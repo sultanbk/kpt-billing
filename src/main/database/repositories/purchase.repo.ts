@@ -246,7 +246,7 @@ export class PurchaseRepository {
          FROM purchases WHERE date >= ? AND date <= ?
          GROUP BY supplier_name ORDER BY total DESC`
       )
-      .all(dateFrom, dateTo) as { supplierName: string; total: number; count: number }[]
+      .all(dateFrom, dateTo) as { supplier_name: string; total: number; count: number }[]
 
     return {
       totalPurchases: summary.total_purchases ?? 0,
@@ -254,7 +254,7 @@ export class PurchaseRepository {
       totalPaid: summary.total_paid ?? 0,
       totalUnpaid: summary.total_unpaid ?? 0,
       cityWise,
-      supplierWise
+      supplierWise: supplierWise.map(s => ({ supplierName: s.supplier_name, total: s.total, count: s.count }))
     }
   }
 

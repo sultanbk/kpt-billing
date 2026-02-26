@@ -79,7 +79,7 @@ function recalculateTotals(
   const grandTotal = items.reduce((sum, item) => sum + item.total, 0) - billDiscount
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
 
-  return { subtotal, totalGst, discountAmount, grandTotal: Math.max(0, grandTotal), totalItems }
+  return { subtotal, totalGst, discountAmount, grandTotal: Math.round(Math.max(0, grandTotal)), totalItems }
 }
 
 export const useBillingStore = create<BillingState>()(
@@ -244,7 +244,7 @@ export const useBillingStore = create<BillingState>()(
       })
     },
 
-    holdBill: () => {
+    holdBill: async () => {
       const state = get()
       if (state.items.length === 0) return
 
@@ -259,11 +259,15 @@ export const useBillingStore = create<BillingState>()(
         total: state.grandTotal
       }
 
-      window.api.billing.holdBill(held.id, {
-        customerName: held.customerName,
-        customerPhone: held.customerPhone,
-        items: JSON.stringify(held.items)
-      })
+      try {
+        await window.api.billing.holdBill(held.id, {
+          customerName: held.customerName,
+          customerPhone: held.customerPhone,
+          items: JSON.stringify(held.items)
+        })
+      } catch {
+        // If DB write fails, still hold in memory for current session
+      }
 
       set((state) => {
         state.heldBills.push(held)
@@ -285,8 +289,9 @@ export const useBillingStore = create<BillingState>()(
 
     recallBill: (heldBillId: string) => {
       set((state) => {
-        const held = state.heldBills.find((h) => h.id === heldBillId)
-        if (!held) return
+        const heldIndex = state.heldBills.findIndex((h) => h.id === heldBillId)
+        if (heldIndex === -1) return
+        const held = state.heldBills[heldIndex]
 
         state.items = held.items.map((i) => calculateItemTotals(i))
         state.customerName = held.customerName || ''
@@ -296,7 +301,12 @@ export const useBillingStore = create<BillingState>()(
         state.currentHeldBillId = heldBillId
         const totals = recalculateTotals(state.items, state.discount, state.discountType)
         Object.assign(state, totals)
+
+        // Remove from held bills list to prevent duplicate recall
+        state.heldBills.splice(heldIndex, 1)
       })
+      // Delete from DB
+      window.api.billing.deleteHeldBill(heldBillId).catch(() => {})
     },
 
     loadHeldBills: async () => {

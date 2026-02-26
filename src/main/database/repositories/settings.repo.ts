@@ -9,7 +9,7 @@ export class SettingsRepository {
     const result = db.prepare('SELECT value FROM settings WHERE key = ?').get(key) as
       | { value: string }
       | undefined
-    return result?.value || null
+    return result?.value ?? null
   }
 
   set(key: string, value: string): void {

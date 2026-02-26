@@ -11,11 +11,36 @@ export class BillRepository {
     const db = getSqlite()
     const fy = getFinancialYear(new Date())
     const prefix = `KPT/${fy}/`
+    const fyKey = `lastBillNumber_${fy}`
 
-    // Get last bill number in atomic way
+    // Get last bill number for this financial year (resets each FY)
     const lastSeq = db
-      .prepare("SELECT value FROM settings WHERE key = 'lastBillNumber'")
-      .get() as { value: string } | undefined
+      .prepare('SELECT value FROM settings WHERE key = ?')
+      .get(fyKey) as { value: string } | undefined
+
+    // Fallback: if no FY-specific key, try legacy global key for migration
+    if (!lastSeq) {
+      const legacySeq = db
+        .prepare("SELECT value FROM settings WHERE key = 'lastBillNumber'")
+        .get() as { value: string } | undefined
+
+      // Check if any bills exist for this FY already
+      const existingBill = db
+        .prepare('SELECT bill_no FROM bills WHERE bill_no LIKE ? ORDER BY id DESC LIMIT 1')
+        .get(`${prefix}%`) as { bill_no: string } | undefined
+
+      if (existingBill) {
+        // Extract sequence from most recent bill of this FY
+        const seq = parseInt(existingBill.bill_no.split('/').pop() || '0')
+        const nextSeq = (seq + 1).toString().padStart(5, '0')
+        return `${prefix}${nextSeq}`
+      }
+
+      // New FY with no bills — if legacy key exists with a value, start fresh at 1
+      if (legacySeq && parseInt(legacySeq.value) > 0) {
+        return `${prefix}00001`
+      }
+    }
 
     const nextSeq = (parseInt(lastSeq?.value || '0') + 1).toString().padStart(5, '0')
     return `${prefix}${nextSeq}`
@@ -174,10 +199,12 @@ export class BillRepository {
         }
       }
 
-      // Update bill number sequence
-      db.prepare("UPDATE settings SET value = ? WHERE key = 'lastBillNumber'").run(
-        lastSeq.toString()
-      )
+      // Update bill number sequence (per financial year)
+      const fy = getFinancialYear(new Date())
+      const fyKey = `lastBillNumber_${fy}`
+      db.prepare(
+        "INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, datetime('now','localtime'))"
+      ).run(fyKey, lastSeq.toString())
 
       // Update customer balance if credit
       if ((data.payment.creditAmount || 0) > 0 && data.customerId) {
@@ -367,10 +394,15 @@ export class BillRepository {
         }
       }
 
-      // Reverse customer credit balance if applicable
+      // Reverse customer credit balance if applicable (clamp to actual balance to prevent negatives)
       if ((bill.credit_amount as number) > 0 && bill.customer_id) {
-        db.prepare('UPDATE customers SET current_balance = current_balance - ? WHERE id = ?')
-          .run(bill.credit_amount, bill.customer_id)
+        const customer = db.prepare('SELECT current_balance FROM customers WHERE id = ?')
+          .get(bill.customer_id) as { current_balance: number } | undefined
+        const actualReversal = Math.min(bill.credit_amount as number, customer?.current_balance ?? 0)
+        if (actualReversal > 0) {
+          db.prepare('UPDATE customers SET current_balance = current_balance - ? WHERE id = ?')
+            .run(actualReversal, bill.customer_id)
+        }
       }
 
       db.prepare("UPDATE bills SET status = 'returned' WHERE id = ?").run(billId)
@@ -399,10 +431,15 @@ export class BillRepository {
         }
       }
 
-      // Reverse customer credit
+      // Reverse customer credit (clamp to actual balance to prevent negatives)
       if ((bill.credit_amount as number) > 0 && bill.customer_id) {
-        db.prepare('UPDATE customers SET current_balance = current_balance - ? WHERE id = ?')
-          .run(bill.credit_amount, bill.customer_id)
+        const customer = db.prepare('SELECT current_balance FROM customers WHERE id = ?')
+          .get(bill.customer_id) as { current_balance: number } | undefined
+        const actualReversal = Math.min(bill.credit_amount as number, customer?.current_balance ?? 0)
+        if (actualReversal > 0) {
+          db.prepare('UPDATE customers SET current_balance = current_balance - ? WHERE id = ?')
+            .run(actualReversal, bill.customer_id)
+        }
       }
 
       db.prepare("UPDATE bills SET status = 'cancelled' WHERE id = ?").run(billId)

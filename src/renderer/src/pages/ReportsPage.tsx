@@ -380,7 +380,7 @@ export default function ReportsPage(): React.JSX.Element {
     setWeekLoading(true)
     try {
       const data = await window.api.billing.getWeeklySummary(endDate)
-      setWeekReport(data)
+      setWeekReport(data as PeriodReport)
     } catch { toast.error('Failed to load weekly report') }
     setWeekLoading(false)
   }, [])
@@ -389,7 +389,7 @@ export default function ReportsPage(): React.JSX.Element {
     setMonthLoading(true)
     try {
       const data = await window.api.billing.getMonthlySummary(yearMonth)
-      setMonthReport(data)
+      setMonthReport(data as PeriodReport)
     } catch { toast.error('Failed to load monthly report') }
     setMonthLoading(false)
   }, [])
@@ -398,7 +398,7 @@ export default function ReportsPage(): React.JSX.Element {
     setYearLoading(true)
     try {
       const data = await window.api.billing.getYearlySummary(year)
-      setYearReport(data)
+      setYearReport(data as PeriodReport)
     } catch { toast.error('Failed to load yearly report') }
     setYearLoading(false)
   }, [])
@@ -407,7 +407,7 @@ export default function ReportsPage(): React.JSX.Element {
     setGstLoading(true)
     try {
       const data = await window.api.reports.getGstReport(dateFrom, dateTo)
-      setGstReport(data)
+      setGstReport(data as GstSummary)
     } catch { toast.error('Failed to load GST report') }
     setGstLoading(false)
   }, [])
@@ -416,7 +416,7 @@ export default function ReportsPage(): React.JSX.Element {
     setPlLoading(true)
     try {
       const data = await window.api.reports.getProfitLoss(dateFrom, dateTo)
-      setPlReport(data)
+      setPlReport(data as ProfitLossReport)
     } catch { toast.error('Failed to load P&L report') }
     setPlLoading(false)
   }, [])

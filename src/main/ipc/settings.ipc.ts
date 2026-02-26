@@ -2,6 +2,7 @@
 // KPT Billing - Settings & Backup IPC Handlers
 // ============================================================================
 import { ipcMain, dialog, shell, BrowserWindow } from 'electron'
+import { createHash } from 'crypto'
 import { settingsRepo } from '../database/repositories/settings.repo'
 import { getSqlite } from '../database/connection'
 import { backupService } from '../services/backup.service'
@@ -133,7 +134,17 @@ export function registerSettingsIpc(): void {
   // ---- Auth / PIN ----
   ipcMain.handle('auth:verifyPin', (_event, pin: string) => {
     const db = getSqlite()
-    const user = db.prepare("SELECT * FROM users WHERE pin = ? AND is_active = 1").get(pin) as { id: number; name: string; role: string } | undefined
+    const hashedPin = createHash('sha256').update(pin).digest('hex')
+    // Support both hashed and legacy plaintext PINs for migration
+    let user = db.prepare("SELECT * FROM users WHERE pin = ? AND is_active = 1").get(hashedPin) as { id: number; name: string; role: string } | undefined
+    if (!user) {
+      // Fallback: check plaintext PIN (for users who haven't migrated)
+      user = db.prepare("SELECT * FROM users WHERE pin = ? AND is_active = 1").get(pin) as { id: number; name: string; role: string } | undefined
+      if (user) {
+        // Auto-migrate: hash the plaintext PIN
+        db.prepare('UPDATE users SET pin = ? WHERE id = ?').run(hashedPin, user.id)
+      }
+    }
     if (user) {
       return { success: true, user: { id: user.id, name: user.name, role: user.role } }
     }
@@ -142,10 +153,16 @@ export function registerSettingsIpc(): void {
 
   ipcMain.handle('auth:changePin', (_event, currentPin: string, newPin: string) => {
     const db = getSqlite()
-    const user = db.prepare("SELECT * FROM users WHERE pin = ? AND is_active = 1").get(currentPin) as { id: number } | undefined
+    const hashedCurrent = createHash('sha256').update(currentPin).digest('hex')
+    // Support both hashed and legacy plaintext PINs
+    let user = db.prepare("SELECT * FROM users WHERE pin = ? AND is_active = 1").get(hashedCurrent) as { id: number } | undefined
+    if (!user) {
+      user = db.prepare("SELECT * FROM users WHERE pin = ? AND is_active = 1").get(currentPin) as { id: number } | undefined
+    }
     if (!user) return { success: false, error: 'Current PIN is incorrect' }
     if (newPin.length < 4) return { success: false, error: 'PIN must be at least 4 digits' }
-    db.prepare('UPDATE users SET pin = ? WHERE id = ?').run(newPin, user.id)
+    const hashedNew = createHash('sha256').update(newPin).digest('hex')
+    db.prepare('UPDATE users SET pin = ? WHERE id = ?').run(hashedNew, user.id)
     return { success: true }
   })
 

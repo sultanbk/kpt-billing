@@ -100,17 +100,22 @@ export function registerBillingIpc(): void {
 
   // Print receipt for existing bill (supports PDF printers)
   ipcMain.handle('billing:printReceipt', async (_event, billId: number) => {
-    const bill = billRepo.getById(billId)
-    if (!bill) return false
-    const shopInfo = settingsRepo.getAll()
-    const printerName = settingsRepo.get('receiptPrinterName') || ''
+    try {
+      const bill = billRepo.getById(billId)
+      if (!bill) return false
+      const shopInfo = settingsRepo.getAll()
+      const printerName = settingsRepo.get('receiptPrinterName') || ''
 
-    // If it's a PDF printer, generate PDF instead
-    if (pdfReceiptService.isPdfPrinter(printerName)) {
-      const result = await pdfReceiptService.generatePdf(bill, shopInfo)
-      return result.success
+      // If it's a PDF printer, generate PDF instead
+      if (pdfReceiptService.isPdfPrinter(printerName)) {
+        const result = await pdfReceiptService.generatePdf(bill, shopInfo)
+        return result.success
+      }
+      return thermalPrinterService.printReceipt(bill, shopInfo)
+    } catch (err) {
+      log.error('Print receipt failed:', err)
+      return false
     }
-    return thermalPrinterService.printReceipt(bill, shopInfo)
   })
 
   // Generate PDF receipt explicitly
@@ -178,7 +183,22 @@ export function registerBillingIpc(): void {
 
   ipcMain.handle('billing:getHeldBills', () => {
     const db = getSqlite()
-    return db.prepare('SELECT * FROM held_bills ORDER BY held_at DESC').all()
+    const rows = db.prepare('SELECT * FROM held_bills ORDER BY held_at DESC').all() as {
+      id: string
+      customer_name: string | null
+      customer_phone: string | null
+      items_json: string
+      held_at: string
+    }[]
+    // Map snake_case DB rows to camelCase and parse items JSON
+    return rows.map(row => ({
+      id: row.id,
+      customerName: row.customer_name || '',
+      customerPhone: row.customer_phone || '',
+      items: JSON.parse(row.items_json || '[]'),
+      heldAt: row.held_at,
+      total: 0 // Will be recalculated on recall
+    }))
   })
 
   ipcMain.handle('billing:recallHeldBill', (_event, id: string) => {

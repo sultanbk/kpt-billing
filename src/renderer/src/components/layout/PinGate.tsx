@@ -116,7 +116,7 @@ export function PinGate({ children }: PinGateProps): React.JSX.Element {
         </div>
 
         <p className="text-center text-xs text-muted-foreground">
-          Default PIN: 1234 (change in Settings)
+          {/* Default PIN: 1234 (change in Settings) */}
         </p>
       </div>
     </div>

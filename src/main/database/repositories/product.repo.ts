@@ -204,7 +204,20 @@ export class ProductRepository {
       if (data.sellingPrice !== undefined) { fields.push('selling_price = ?'); values.push(data.sellingPrice) }
       if (data.wholesalePrice !== undefined) { fields.push('wholesale_price = ?'); values.push(data.wholesalePrice || null) }
       if (data.gstRate !== undefined) { fields.push('gst_rate = ?'); values.push(data.gstRate) }
-      if (data.stock !== undefined) { fields.push('current_stock = ?'); values.push(data.stock) }
+      if (data.stock !== undefined) {
+        // Track stock change in ledger when editing via product form
+        const currentProduct = db.prepare('SELECT current_stock FROM products WHERE id = ?')
+          .get(id) as { current_stock: number } | undefined
+        const oldStock = currentProduct?.current_stock ?? 0
+        const delta = data.stock - oldStock
+        fields.push('current_stock = ?'); values.push(data.stock)
+        if (delta !== 0) {
+          db.prepare(
+            `INSERT INTO stock_ledger (product_id, type, qty, reference_type, notes)
+             VALUES (?, 'adjustment', ?, 'manual', ?)`
+          ).run(id, delta, `Stock adjusted from ${oldStock} to ${data.stock}`)
+        }
+      }
       if (data.lowStockThreshold !== undefined) { fields.push('low_stock_alert = ?'); values.push(data.lowStockThreshold ?? null) }
       if (data.location !== undefined) { fields.push('location = ?'); values.push(data.location || null) }
       if (data.color !== undefined) { fields.push('color = ?'); values.push(data.color || null) }

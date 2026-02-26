@@ -54,7 +54,7 @@ export class CustomerRepository {
       )
       .run(
         data.name,
-        data.phone,
+        data.phone || null,
         data.email || null,
         data.address || null,
         data.city || null,
@@ -224,7 +224,7 @@ export class CustomerRepository {
   getCreditAging(): Record<string, unknown>[] {
     const db = getSqlite()
     // For each customer with credit, find the oldest unpaid bill dates
-    // and classify into aging buckets
+    // and classify into aging buckets based on first outstanding credit date
     return db
       .prepare(
         `WITH customer_credit AS (
@@ -241,11 +241,11 @@ export class CustomerRepository {
          )
          SELECT
            cc.*,
-           CAST(julianday('now','localtime') - julianday(COALESCE(cc.last_payment_date, cc.first_credit_date)) AS INTEGER) as days_overdue,
+           CAST(julianday('now','localtime') - julianday(cc.first_credit_date) AS INTEGER) as days_overdue,
            CASE
-             WHEN CAST(julianday('now','localtime') - julianday(COALESCE(cc.last_payment_date, cc.first_credit_date)) AS INTEGER) <= 30 THEN 'current'
-             WHEN CAST(julianday('now','localtime') - julianday(COALESCE(cc.last_payment_date, cc.first_credit_date)) AS INTEGER) <= 60 THEN '31-60'
-             WHEN CAST(julianday('now','localtime') - julianday(COALESCE(cc.last_payment_date, cc.first_credit_date)) AS INTEGER) <= 90 THEN '61-90'
+             WHEN CAST(julianday('now','localtime') - julianday(cc.first_credit_date) AS INTEGER) <= 30 THEN 'current'
+             WHEN CAST(julianday('now','localtime') - julianday(cc.first_credit_date) AS INTEGER) <= 60 THEN '31-60'
+             WHEN CAST(julianday('now','localtime') - julianday(cc.first_credit_date) AS INTEGER) <= 90 THEN '61-90'
              ELSE '90+'
            END as aging_bucket
          FROM customer_credit cc
@@ -265,10 +265,7 @@ export class CustomerRepository {
            SELECT
              c.current_balance,
              CAST(julianday('now','localtime') - julianday(
-               COALESCE(
-                 (SELECT MAX(cp.date) FROM credit_payments cp WHERE cp.customer_id = c.id),
-                 (SELECT MIN(b.date) FROM bills b WHERE b.customer_id = c.id AND b.credit_amount > 0 AND b.status = 'completed')
-               )
+               (SELECT MIN(b.date) FROM bills b WHERE b.customer_id = c.id AND b.credit_amount > 0 AND b.status = 'completed')
              ) AS INTEGER) as days_overdue
            FROM customers c
            WHERE c.is_active = 1 AND c.current_balance > 0

@@ -6,6 +6,7 @@ import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { app } from 'electron'
 import { join } from 'path'
 import { existsSync, mkdirSync } from 'fs'
+import { createHash } from 'crypto'
 import * as schema from './schema'
 import { DEFAULT_SETTINGS, DEFAULT_CATEGORIES } from '../../shared/constants'
 import log from 'electron-log'
@@ -400,9 +401,10 @@ function seedDefaults(sqlite: Database.Database): void {
   if (userCount.count === 0) {
     log.info('Seeding default owner user...')
     // Default PIN: 1234 (users should change this)
+    const hashedPin = createHash('sha256').update('1234').digest('hex')
     sqlite
       .prepare("INSERT INTO users (name, pin, role) VALUES (?, ?, ?)")
-      .run('Puneet', '1234', 'owner')
+      .run('Puneet', hashedPin, 'owner')
   }
 
   // Seed bill number sequence

@@ -2,9 +2,48 @@
 // KPT Billing - Product IPC Handlers
 // ============================================================================
 import { ipcMain } from 'electron'
+import { readFileSync } from 'fs'
 import { productRepo } from '../database/repositories/product.repo'
 import { categoryRepo } from '../database/repositories/category.repo'
 import log from 'electron-log'
+
+/**
+ * Parse a simple CSV string into an array of objects.
+ * Handles quoted fields and maps common column names to ProductFormData fields.
+ */
+function parseCsvToProducts(csvContent: string): Record<string, unknown>[] {
+  const lines = csvContent.split(/\r?\n/).filter(l => l.trim())
+  if (lines.length < 2) return []
+
+  const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/['"]/g, ''))
+  const rows: Record<string, unknown>[] = []
+
+  for (let i = 1; i < lines.length; i++) {
+    const values = lines[i].split(',').map(v => v.trim().replace(/^["']|["']$/g, ''))
+    const row: Record<string, unknown> = {}
+    headers.forEach((h, idx) => { row[h] = values[idx] || '' })
+
+    // Map CSV columns to ProductFormData fields
+    rows.push({
+      name: row['name'] || row['product_name'] || row['product name'] || '',
+      shortName: row['short_name'] || row['short name'] || null,
+      barcode: row['barcode'] || null,
+      hsnCode: row['hsn_code'] || row['hsn code'] || row['hsn'] || '',
+      costPrice: parseFloat(String(row['cost_price'] || row['cost price'] || row['purchase_price'] || row['purchase price'] || '0')) || 0,
+      sellingPrice: parseFloat(String(row['selling_price'] || row['selling price'] || row['price'] || row['mrp'] || '0')) || 0,
+      wholesalePrice: parseFloat(String(row['wholesale_price'] || row['wholesale price'] || '0')) || null,
+      gstRate: parseFloat(String(row['gst_rate'] || row['gst rate'] || row['gst'] || '5')) || 5,
+      stock: parseFloat(String(row['stock'] || row['opening_stock'] || row['opening stock'] || row['current_stock'] || '0')) || 0,
+      lowStockThreshold: parseFloat(String(row['low_stock'] || row['low stock'] || row['low_stock_alert'] || '0')) || null,
+      color: row['color'] || null,
+      size: row['size'] || null,
+      material: row['material'] || null,
+      description: row['notes'] || row['description'] || null,
+      isActive: true
+    })
+  }
+  return rows
+}
 
 export function registerProductIpc(): void {
   ipcMain.handle('products:search', (_event, term: string) => {
@@ -41,10 +80,30 @@ export function registerProductIpc(): void {
     return true
   })
 
-  ipcMain.handle('products:import', (_event, rows) => {
-    const result = productRepo.bulkImport(rows)
-    log.info(`Product import: ${result.imported} imported, ${result.skipped} skipped`)
-    return result
+  ipcMain.handle('products:import', (_event, input: unknown) => {
+    try {
+      let rows: Record<string, unknown>[]
+
+      if (Array.isArray(input) && input.length > 0 && typeof input[0] === 'string') {
+        // Input is file paths from dialog — read and parse the CSV file
+        const filePath = input[0] as string
+        const csvContent = readFileSync(filePath, 'utf-8')
+        rows = parseCsvToProducts(csvContent)
+      } else if (Array.isArray(input)) {
+        // Input is already parsed product data
+        rows = input as Record<string, unknown>[]
+      } else {
+        return { total: 0, imported: 0, skipped: 0, errors: ['Invalid import data'] }
+      }
+
+      const result = productRepo.bulkImport(rows as any)
+      log.info(`Product import: ${result.imported} imported, ${result.skipped} skipped`)
+      return result
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      log.error('Product import failed:', msg)
+      return { total: 0, imported: 0, skipped: 0, errors: [msg] }
+    }
   })
 
   ipcMain.handle('products:getLowStock', () => {
