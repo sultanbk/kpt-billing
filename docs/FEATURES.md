@@ -1,0 +1,378 @@
+# KPT Billing — Complete Feature List
+
+> Comprehensive overview of all features in the KPT Billing application.
+
+Developed by **[Sultan Kabadi](https://sultanbk.com)**
+
+---
+
+## Table of Contents
+
+1. [Point of Sale (Billing)](#1-point-of-sale-billing)
+2. [Product & Inventory Management](#2-product--inventory-management)
+3. [Customer Management](#3-customer-management)
+4. [Credit Management](#4-credit-management)
+5. [Purchase & Stock-In](#5-purchase--stock-in)
+6. [Supplier Management](#6-supplier-management)
+7. [Reporting & Analytics](#7-reporting--analytics)
+8. [PDF Generation](#8-pdf-generation)
+9. [Thermal Printing](#9-thermal-printing)
+10. [Barcode Support](#10-barcode-support)
+11. [WhatsApp Integration](#11-whatsapp-integration)
+12. [Data Export (Excel)](#12-data-export-excel)
+13. [Backup & Restore](#13-backup--restore)
+14. [Security & Access Control](#14-security--access-control)
+15. [Keyboard Shortcuts](#15-keyboard-shortcuts)
+16. [Dashboard](#16-dashboard)
+17. [Settings & Configuration](#17-settings--configuration)
+18. [Estimates / Quotations](#18-estimates--quotations)
+19. [Expense Tracking](#19-expense-tracking)
+20. [Audit Trail](#20-audit-trail)
+
+---
+
+## 1. Point of Sale (Billing)
+
+The core billing system provides a full POS experience:
+
+- **Product Search** — Search by name, SKU, or short name with real-time dropdown results
+- **Barcode Scanning** — Auto-detects rapid keystroke input as barcode scans, instantly adds product to cart
+- **Shopping Cart** — Add, remove, update quantities, per-item discounts (% or flat), editable prices
+- **Custom Items** — Add miscellaneous/unlisted items ("Other Item") with custom name and price
+- **Customer Association** — Search and link a customer, or quick-add a new customer inline
+- **Bill-Level Discount** — Apply % or flat discount to the entire bill
+- **GST Calculation** — Automatic CGST + SGST split based on product GST rate and HSN code
+- **Multiple Payment Modes** — Cash, UPI (with reference number), Card, Credit, and Mixed (split across modes)
+- **Cash Tendered & Change** — Calculates change when cash tendered exceeds bill amount
+- **Hold / Recall Bills** — Park a bill in progress (F6) and recall it later (F8), persisted to database
+- **Round-Off** — Configurable rounding: none, round to ₹1, or round to ₹0.50
+- **Auto Print** — Optionally auto-print receipt on bill creation
+- **Bill Numbering** — Auto-generated sequential bill numbers: `KPT/{FY}/0001`
+- **Bill Status** — Completed, Returned, or Cancelled
+
+---
+
+## 2. Product & Inventory Management
+
+- **Full CRUD** — Create, read, update, delete products
+- **Product Fields** — Name, short name, SKU (auto-generated), barcode, category, HSN code, purchase price, selling price, wholesale price, GST rate, stock, location, color, size, material, supplier, image
+- **Category Management** — Hierarchical categories with parent/child support (default: Saree, Blouse Piece, Dress Material, Dupatta, Fabric, Readymade, Accessories, Other)
+- **Stock Tracking** — Current stock with opening stock, low stock alerts, out-of-stock detection
+- **Stock Adjustment** — Manual adjustments with type tracking: purchase, adjustment, damage, return
+- **Stock Ledger** — Complete movement audit trail per product (every stock change logged)
+- **Bulk Import** — Import products from CSV or Excel files
+- **Bulk Stock Update** — Update stock for multiple products in a single dialog
+- **Price History** — Full audit trail of price changes (purchase, selling, wholesale) with timestamps
+- **Stock Valuation** — Calculate total inventory value at cost and selling price
+- **Pagination & Filtering** — Paginated product list with search, category filter, stock status filter
+- **Low Stock Alerts** — Configurable threshold; products below threshold shown on dashboard
+
+---
+
+## 3. Customer Management
+
+- **Full CRUD** — Create, read, update, delete customers
+- **Customer Fields** — Name, phone (unique), email, address, city, GSTIN, customer type
+- **Customer Types** — Regular, Wholesale, Walk-in
+- **Customer Search** — Real-time search by name or phone number
+- **Bill History** — View all bills for a specific customer
+- **Quick Add** — Inline customer creation directly from the billing page (Alt+N shortcut)
+- **WhatsApp Messaging** — Send bills, reminders, and confirmations to customer phone via WhatsApp
+
+---
+
+## 4. Credit Management
+
+- **Credit Issuance** — Bills paid via credit mode update the customer's balance
+- **Credit Limits** — Set per-customer credit limits
+- **Payment Recording** — Record credit payments with mode (cash/UPI/card/cheque/bank transfer), reference number, and notes
+- **Credit Ledger** — Chronological ledger showing all credits issued and payments received with running balance
+- **Balance Tracking** — Before/after balance on every transaction
+- **Credit Aging Report** — Aging buckets: Current (0–30 days), 31–60 days, 61–90 days, 90+ days
+- **Credit Risk Scoring** — Credit utilization % with risk levels: None, Low, Medium, High
+- **Collection Summary** — Total collections by date range
+- **WhatsApp Reminders** — Send overdue credit reminders via WhatsApp
+- **Customer Analytics** — Top customers by revenue, purchase frequency analysis, credit risk analysis
+
+---
+
+## 5. Purchase & Stock-In
+
+- **Purchase Entry** — Create purchase orders from suppliers with full line items
+- **Supplier Search / Create** — Search existing suppliers or create new ones inline during purchase entry
+- **Line Items** — Product, barcode, HSN code, quantity, purchase rate, selling rate, MRP, GST rate/amount
+- **City Tracking** — Track supply source cities (Surat, Bengaluru, etc.)
+- **Invoice Tracking** — Capture supplier invoice number and date
+- **Payment Status** — Paid, Unpaid, or Partial payment tracking
+- **Auto Stock Update** — Stock and stock ledger automatically updated on purchase creation
+- **Purchase History** — View all purchases with details, filterable by date and supplier
+- **Barcode Scanner** — Scan product barcodes during purchase entry for quick product lookup
+- **Auto Purchase Number** — Sequential purchase numbers: `PUR/0001`
+
+---
+
+## 6. Supplier Management
+
+- **Full CRUD** — Create, read, update, delete suppliers
+- **Supplier Fields** — Name, phone, email, address, city, GSTIN, bank details
+- **City-Based Grouping** — Group and filter suppliers by city
+- **Supplier Search** — Quick search during purchase entry
+- **Linked Purchases** — View all purchases from a supplier
+
+---
+
+## 7. Reporting & Analytics
+
+### Standard Reports
+- **Daily Report** — Sales summary for a specific date with bills list, payment breakdown, top products
+- **Weekly Report** — 7-day rolling summary with daily breakdown
+- **Monthly Report** — Month summary with daily breakdown and payment trends
+- **Yearly Report** — Year summary with monthly breakdown
+
+### Financial Reports
+- **GST Report** — HSN-wise summary, rate-wise breakdowns (5%, 12%, 18%, 28%), GSTR-1 invoice list with all tax details
+- **Profit & Loss Report** — Revenue, Cost of Goods Sold (purchases), gross profit, expenses by category, net profit, profit margins (gross % and net %)
+
+### Analytics
+- **Customer Analytics** — Three tabs: Top Customers by Revenue, Purchase Frequency, Credit Risk Scoring
+- **Credit Aging Report** — 30/60/90/90+ day overdue buckets with summary statistics and WhatsApp reminder capability
+- **Dashboard Analytics** — Real-time stats: today's sales vs yesterday, week/month totals, payment mode breakdown, top sellers, low stock
+
+### Report Features
+- View individual bill details from any report
+- Return or cancel bills directly from report views
+- Print / Download PDF from bill detail view
+- Date range selection for all reports
+- Export reports to PDF
+
+---
+
+## 8. PDF Generation
+
+- **A4 Professional Invoices** — Full-page invoices with:
+  - Shop header with name, address, GSTIN, phone
+  - Bill number, date, time
+  - Customer details (name, phone, GSTIN if applicable)
+  - Itemized table with product name, HSN, quantity, rate, discount, taxable amount, CGST, SGST, total
+  - Summary: subtotal, discount, taxable amount, tax breakup, round-off, grand total
+  - Amount in words (Indian numbering: Lakh, Crore)
+  - Payment mode details
+  - Digital "Authorized By" footer
+- **Report PDFs** — Summary cards, payment breakdown, top products, bill listings
+- **Generation Method** — Hidden BrowserWindow renders HTML template, then `printToPDF()` produces the file
+
+---
+
+## 9. Thermal Printing
+
+- **ESC/POS Protocol** — Direct printing to 80mm thermal printers
+- **Compatible Printers** — TVS RP 3000 Lite and other ESC/POS compatible printers
+- **Receipt Format** — 48-character width with:
+  - Shop header (centered)
+  - Bill number, date, time, customer
+  - Itemized list with quantities and amounts
+  - Subtotal, discount, tax, grand total
+  - Payment details
+  - Custom footer
+- **Auto Print** — Configurable to print automatically on bill creation
+- **Test Print** — Send test page from Settings to verify printer setup
+- **Printer Selection** — Choose from system-detected printers
+
+---
+
+## 10. Barcode Support
+
+- **Barcode Scanning** — Auto-detects rapid sequential keystrokes (< 80–100ms interval, minimum 4 characters) as barcode input
+- **Billing Integration** — Scanned barcode triggers product lookup and adds directly to cart
+- **Purchase Integration** — Scan barcodes during purchase entry to find products
+- **Barcode Generation** — Generate barcodes for products using bwip-js
+- **Product Barcode Field** — Each product can store a unique barcode
+
+---
+
+## 11. WhatsApp Integration
+
+Three pre-formatted message templates:
+
+1. **Bill Receipt** — Full itemized bill with totals sent as WhatsApp message
+2. **Credit Reminder** — Outstanding balance notification for overdue customers
+3. **Payment Confirmation** — Payment received acknowledgment with remaining balance
+
+- Opens `wa.me` URLs with pre-filled messages
+- Formats Indian phone numbers with +91 prefix
+- Available from Customers page and Credit Aging report
+
+---
+
+## 12. Data Export (Excel)
+
+Five export types available from the Data Export page:
+
+| Export Type | Contents |
+|------------|----------|
+| **Daily Report** | Summary sheet + all bills for a date |
+| **Bill History** | All bills with full details for a date range |
+| **Stock Report** | Complete inventory + low stock items |
+| **Customer Report** | All customers with credit details |
+| **Full Data Export** | Bills, items, products, customers, payments, purchases, expenses, stock ledger — everything |
+
+All exports generate `.xlsx` files using the xlsx library.
+
+---
+
+## 13. Backup & Restore
+
+### Local Backup
+- **SQL Dump** — Full database exported as portable `.sql` file (schema + data)
+- **Auto-Backup** — Configurable frequency: hourly, every 4 hours, or daily
+- **Retention** — Configurable retention period (default: 30 days)
+- **Restore** — Restore from any `.sql` dump file. Safety backup of current data created automatically before restore. App reloads after restoration.
+
+### Cloud Backup (Google Drive)
+- **OAuth2 Authentication** — Connects via Google Cloud OAuth 2.0 Desktop credentials
+- **Upload** — Push local backup to Google Drive
+- **Download** — Pull backups from Google Drive
+- **List** — View all cloud backups with timestamps and sizes
+- **Disconnect** — Revoke Google Drive access
+
+---
+
+## 14. Security & Access Control
+
+- **PIN-Based Authentication** — 4–8 digit numeric PIN
+- **Role-Based Access** — Owner, Manager, Cashier roles
+- **Protected Pages** — Dashboard, Products, Purchases, Customers, Reports, Analytics, Settings all require PIN
+- **Billing Page** — Always accessible without PIN (cashier can always bill)
+- **Lock Screen** — Lock the app (Alt+L or Ctrl+L), requires PIN to unlock. Shows clock and date.
+- **PIN Change** — Change PIN from Settings → Security tab
+- **PinGate Component** — Wraps protected routes with PIN verification
+- **Default Credentials** — Owner "Puneet", PIN: 1234
+
+---
+
+## 15. Keyboard Shortcuts
+
+### Navigation (Fixed)
+| Key | Action |
+|-----|--------|
+| F1 | Dashboard |
+| F2 | Billing |
+| F3 | Products |
+| F4 | Purchases |
+| F5 | Customers |
+| F7 | Reports |
+| F10 | Settings |
+| F12 | Show shortcuts help |
+
+### Billing Page
+| Key | Action |
+|-----|--------|
+| Esc | Focus product search |
+| Alt+O | Add Other (custom) item * |
+| Alt+N | Quick add new customer * |
+| F6 | Hold current bill |
+| F8 | Recall held bill |
+| F9 | Clear cart |
+| F11 | Pay & Print |
+
+### Quick Actions
+| Key | Action |
+|-----|--------|
+| Ctrl+K | Quick Bill Search |
+| Alt+L | Lock Screen |
+| Ctrl+L | Lock Screen (alternate) |
+| Ctrl+N | New Bill |
+| Ctrl+Shift+D | Go to Dashboard |
+| Ctrl+Shift+R | Go to Reports |
+
+\* Configurable via Settings → Shortcuts tab
+
+---
+
+## 16. Dashboard
+
+Real-time dashboard with auto-refresh (every 60 seconds):
+
+### Primary Stats (4 cards)
+- **Today's Sales** — Total amount with bill count and % change vs yesterday
+- **Cash In Hand** — Cash collected today with UPI and Card sub-totals
+- **Pending Credits** — Total outstanding credit with customer count and today's collections
+- **Stock Alerts** — Low stock + out of stock counts with quick navigation
+
+### Secondary Stats (4 cards)
+- **Week Sales** — Last 7 days total
+- **Month Sales** — Current month total
+- **Avg Bill Value** — Today's average bill amount
+- **Today's Expenses** — Expense total with net income calculation
+
+### Additional Sections
+- **Payment Breakdown** — Visual bar chart with per-mode amounts, bill counts, and percentages
+- **Recent Bills** — Last 10 bills with bill number, time, customer, payment mode, amount
+- **Top Selling Today** — Ranked product list by revenue with quantity sold
+- **Low Stock Alerts** — Products below threshold with stock count badges
+- **Credit Sales Today** — Credit issued vs. collections received
+
+---
+
+## 17. Settings & Configuration
+
+Four-tab settings interface:
+
+### General Tab
+- Shop name, GSTIN, address, phone, receipt footer
+- Printer selection, test print, auto-print toggle
+
+### Backup Tab
+- Create / restore local backups
+- Open backups, receipts, reports folders
+- Auto-backup frequency and retention
+- Google Drive cloud backup setup and management
+
+### Security Tab
+- Change PIN (current → new → confirm)
+
+### Shortcuts Tab
+- Fixed shortcuts reference (F1–F12, Ctrl combos)
+- Configurable shortcuts: Add Other Item, Quick New Customer
+- Duplicate prevention — already-assigned shortcuts disabled
+
+### Hidden Settings (stored in DB)
+- Default tax type (inclusive/exclusive), round-off mode, default payment mode
+- Require customer on bill, enable salesman, enable wholesale
+- Receipt copies, state code, bill prefix, financial year start
+- Theme, font size
+
+---
+
+## 18. Estimates / Quotations
+
+- **Create Estimates** — Itemized quotations with product details, quantities, prices
+- **Estimate Number** — Auto-generated sequential numbers
+- **Validity Period** — Default 15 days, configurable
+- **Status Tracking** — Active, Converted (to bill), Expired
+- **Convert to Bill** — One-click conversion from estimate to actual bill
+- **Customer Details** — Name and phone captured on estimate
+
+---
+
+## 19. Expense Tracking
+
+- **Record Expenses** — Date, category, amount, description, payment mode
+- **Expense Categories** — Rent, Electricity, Salary, Transport, Packaging, Maintenance, Tea/Food, Marketing, Other
+- **CRUD Operations** — Create, view, update, delete expenses
+- **Date Filtering** — View expenses by specific date or date range
+- **Summary Reports** — Category-wise expense summary integrated into P&L Report
+- **Dashboard Integration** — Today's expenses shown on dashboard with net income
+
+---
+
+## 20. Audit Trail
+
+- **Audit Log** — Every significant action recorded: user, action type, entity, old/new values (JSON)
+- **Stock Ledger** — Every stock movement logged with reference (sale, purchase, adjustment, return, damage)
+- **Price History** — Every price change recorded with before/after values and who changed it
+- **Credit Ledger** — Every credit transaction logged with running balance
+
+---
+
+*Developed by [Sultan Kabadi](https://sultanbk.com) — KPT Billing v1.0.0*
