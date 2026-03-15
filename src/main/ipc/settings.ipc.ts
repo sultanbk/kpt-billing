@@ -1,5 +1,5 @@
 // ============================================================================
-// KPT Billing - Settings & Backup IPC Handlers
+// KPT Billing - Settings & Backup IPC Handlers (secured with validation & audit)
 // ============================================================================
 import { ipcMain, dialog, shell, BrowserWindow } from 'electron'
 import { createHash } from 'crypto'
@@ -8,45 +8,76 @@ import { getSqlite } from '../database/connection'
 import { backupService } from '../services/backup.service'
 import { cloudBackupService } from '../services/cloud-backup.service'
 import { thermalPrinterService } from '../services/thermal-printer.service'
+import { writeAuditLog } from '../database/audit'
+import { safeHandle, validate } from './ipc-guard'
+import {
+  idSchema,
+  settingsKeySchema,
+  settingsValueSchema,
+  settingsManySchema,
+  pinSchema
+} from './validation'
+import { z } from 'zod'
+import log from 'electron-log'
+
+// ---- Brute-force protection ----
+const PIN_MAX_ATTEMPTS = 5
+const PIN_LOCKOUT_MS = 5 * 60 * 1000 // 5 minutes
+let pinAttempts = 0
+let pinLockoutUntil = 0
 
 export function registerSettingsIpc(): void {
   // Settings
-  ipcMain.handle('settings:get', (_event, key: string) => {
-    return settingsRepo.get(key)
+  safeHandle('settings:get', (_event, key) => {
+    return settingsRepo.get(validate(settingsKeySchema, key))
   })
 
-  ipcMain.handle('settings:set', (_event, key: string, value: string) => {
-    settingsRepo.set(key, value)
+  safeHandle('settings:set', (_event, key, value) => {
+    const validKey = validate(settingsKeySchema, key)
+    const validValue = validate(settingsValueSchema, value)
+    settingsRepo.set(validKey, validValue)
+    writeAuditLog({
+      action: 'update',
+      entityType: 'settings',
+      newValue: { [validKey]: validValue }
+    })
     return true
   })
 
-  ipcMain.handle('settings:getAll', () => {
+  safeHandle('settings:getAll', () => {
     return settingsRepo.getAll()
   })
 
-  ipcMain.handle('settings:setMany', (_event, settings: Record<string, string>) => {
-    settingsRepo.setMany(settings)
+  safeHandle('settings:setMany', (_event, settings) => {
+    const validated = validate(settingsManySchema, settings)
+    settingsRepo.setMany(validated)
+    writeAuditLog({ action: 'update', entityType: 'settings', newValue: validated })
     return true
   })
 
   // Backup
-  ipcMain.handle('backup:create', async (_event, customPath?: string) => {
-    return backupService.createBackup(customPath)
+  safeHandle('backup:create', async (_event, customPath?) => {
+    const path = customPath ? validate(z.string().max(500), customPath) : undefined
+    const result = await backupService.createBackup(path)
+    writeAuditLog({ action: 'create', entityType: 'backup', newValue: { path: result.path } })
+    return result
   })
 
-  ipcMain.handle('backup:list', () => {
+  safeHandle('backup:list', () => {
     return backupService.listBackups()
   })
 
-  ipcMain.handle('backup:clean', (_event, retention?: number) => {
-    backupService.cleanOldBackups(retention)
+  safeHandle('backup:clean', (_event, retention?) => {
+    const validRetention = retention ? validate(z.number().int().positive(), retention) : undefined
+    backupService.cleanOldBackups(validRetention)
     return true
   })
 
-  ipcMain.handle('backup:getDir', () => {
+  safeHandle('backup:getDir', () => {
     return backupService.getBackupDir()
   })
 
+  // These handlers use Electron dialog APIs which need ipcMain directly
   ipcMain.handle('backup:selectFolder', async () => {
     const result = await dialog.showOpenDialog({
       properties: ['openDirectory'],
@@ -56,7 +87,6 @@ export function registerSettingsIpc(): void {
   })
 
   ipcMain.handle('backup:restore', async () => {
-    // Let user pick a .sql backup file
     const result = await dialog.showOpenDialog({
       properties: ['openFile'],
       title: 'Select Backup File to Restore',
@@ -69,9 +99,9 @@ export function registerSettingsIpc(): void {
       return { success: false, error: 'No file selected' }
     }
     const filePath = result.filePaths[0]
+    writeAuditLog({ action: 'restore', entityType: 'backup', newValue: { path: filePath } })
     const restoreResult = await backupService.restoreFromSqlDump(filePath)
 
-    // If restore succeeded, reload the renderer window
     if (restoreResult.success) {
       const win = BrowserWindow.getAllWindows()[0]
       if (win) {
@@ -83,23 +113,25 @@ export function registerSettingsIpc(): void {
   })
 
   // Printers
-  ipcMain.handle('printer:getAvailable', async () => {
+  safeHandle('printer:getAvailable', async () => {
     return thermalPrinterService.getAvailablePrinters()
   })
 
-  ipcMain.handle('printer:setReceipt', (_event, name: string) => {
-    thermalPrinterService.setPrinter(name)
-    settingsRepo.set('receiptPrinterName', name)
+  safeHandle('printer:setReceipt', (_event, name) => {
+    const validName = validate(z.string().min(1).max(200), name)
+    thermalPrinterService.setPrinter(validName)
+    settingsRepo.set('receiptPrinterName', validName)
     return true
   })
 
-  ipcMain.handle('printer:testPrint', async () => {
+  safeHandle('printer:testPrint', async () => {
     return thermalPrinterService.testPrint()
   })
 
-  ipcMain.handle('printer:printReceipt', async (_event, billId: number) => {
+  safeHandle('printer:printReceipt', async (_event, billId) => {
+    const id = validate(idSchema, billId)
     const { billRepo } = await import('../database/repositories/bill.repo')
-    const bill = billRepo.getById(billId)
+    const bill = billRepo.getById(id)
     if (!bill) return false
     const shopInfo = settingsRepo.getAll()
     return thermalPrinterService.printReceipt(bill, shopInfo)
@@ -111,58 +143,96 @@ export function registerSettingsIpc(): void {
     return result.canceled ? null : result.filePaths
   })
 
-  // Open folder in explorer
-  ipcMain.handle('dialog:openFolder', (_event, folderPath: string) => {
-    shell.openPath(folderPath)
+  safeHandle('dialog:openFolder', (_event, folderPath) => {
+    const validPath = validate(z.string().min(1).max(500), folderPath)
+    shell.openPath(validPath)
     return true
   })
 
   // ---- Cloud Backup (Google Drive) ----
-  ipcMain.handle('cloud:getStatus', () => {
+  safeHandle('cloud:getStatus', () => {
     return cloudBackupService.getStatus()
   })
 
-  ipcMain.handle('cloud:saveConfig', (_event, clientId: string, clientSecret: string) => {
-    cloudBackupService.saveConfig(clientId, clientSecret)
+  safeHandle('cloud:saveConfig', (_event, clientId, clientSecret) => {
+    const validId = validate(z.string().min(1).max(200), clientId)
+    const validSecret = validate(z.string().min(1).max(200), clientSecret)
+    cloudBackupService.saveConfig(validId, validSecret)
     return true
   })
 
-  ipcMain.handle('cloud:getConfig', () => {
+  safeHandle('cloud:getConfig', () => {
     return cloudBackupService.getConfig()
   })
 
-  // ---- Auth / PIN ----
-  ipcMain.handle('auth:verifyPin', (_event, pin: string) => {
+  // ---- Auth / PIN (with brute-force protection) ----
+  safeHandle('auth:verifyPin', (_event, pin) => {
+    // Check lockout
+    if (pinLockoutUntil > Date.now()) {
+      const remaining = Math.ceil((pinLockoutUntil - Date.now()) / 1000)
+      log.warn(`PIN verification locked out. ${remaining}s remaining.`)
+      return {
+        success: false,
+        error: `Too many failed attempts. Try again in ${remaining} seconds.`
+      }
+    }
+
+    const validPin = validate(pinSchema, pin)
     const db = getSqlite()
-    const hashedPin = createHash('sha256').update(pin).digest('hex')
+    const hashedPin = createHash('sha256').update(validPin).digest('hex')
     // Support both hashed and legacy plaintext PINs for migration
-    let user = db.prepare("SELECT * FROM users WHERE pin = ? AND is_active = 1").get(hashedPin) as { id: number; name: string; role: string } | undefined
+    let user = db.prepare('SELECT * FROM users WHERE pin = ? AND is_active = 1').get(hashedPin) as
+      | { id: number; name: string; role: string }
+      | undefined
     if (!user) {
       // Fallback: check plaintext PIN (for users who haven't migrated)
-      user = db.prepare("SELECT * FROM users WHERE pin = ? AND is_active = 1").get(pin) as { id: number; name: string; role: string } | undefined
+      user = db.prepare('SELECT * FROM users WHERE pin = ? AND is_active = 1').get(validPin) as
+        | { id: number; name: string; role: string }
+        | undefined
       if (user) {
         // Auto-migrate: hash the plaintext PIN
         db.prepare('UPDATE users SET pin = ? WHERE id = ?').run(hashedPin, user.id)
       }
     }
     if (user) {
+      // Reset attempts on success
+      pinAttempts = 0
+      pinLockoutUntil = 0
+      writeAuditLog({ userId: user.id, userName: user.name, action: 'login', entityType: 'auth' })
       return { success: true, user: { id: user.id, name: user.name, role: user.role } }
     }
+
+    // Failed attempt — increment counter
+    pinAttempts++
+    if (pinAttempts >= PIN_MAX_ATTEMPTS) {
+      pinLockoutUntil = Date.now() + PIN_LOCKOUT_MS
+      log.warn(`PIN brute-force lockout triggered after ${pinAttempts} attempts`)
+      writeAuditLog({ action: 'lockout', entityType: 'auth', newValue: { attempts: pinAttempts } })
+      pinAttempts = 0
+      return { success: false, error: 'Too many failed attempts. Locked for 5 minutes.' }
+    }
+
     return { success: false }
   })
 
-  ipcMain.handle('auth:changePin', (_event, currentPin: string, newPin: string) => {
+  safeHandle('auth:changePin', (_event, currentPin, newPin) => {
+    const validCurrent = validate(pinSchema, currentPin)
+    const validNew = validate(pinSchema, newPin)
     const db = getSqlite()
-    const hashedCurrent = createHash('sha256').update(currentPin).digest('hex')
-    // Support both hashed and legacy plaintext PINs
-    let user = db.prepare("SELECT * FROM users WHERE pin = ? AND is_active = 1").get(hashedCurrent) as { id: number } | undefined
+    const hashedCurrent = createHash('sha256').update(validCurrent).digest('hex')
+    let user = db
+      .prepare('SELECT * FROM users WHERE pin = ? AND is_active = 1')
+      .get(hashedCurrent) as { id: number } | undefined
     if (!user) {
-      user = db.prepare("SELECT * FROM users WHERE pin = ? AND is_active = 1").get(currentPin) as { id: number } | undefined
+      user = db.prepare('SELECT * FROM users WHERE pin = ? AND is_active = 1').get(validCurrent) as
+        | { id: number }
+        | undefined
     }
     if (!user) return { success: false, error: 'Current PIN is incorrect' }
-    if (newPin.length < 4) return { success: false, error: 'PIN must be at least 4 digits' }
-    const hashedNew = createHash('sha256').update(newPin).digest('hex')
+    if (validNew.length < 4) return { success: false, error: 'PIN must be at least 4 digits' }
+    const hashedNew = createHash('sha256').update(validNew).digest('hex')
     db.prepare('UPDATE users SET pin = ? WHERE id = ?').run(hashedNew, user.id)
+    writeAuditLog({ userId: user.id, action: 'change_pin', entityType: 'auth' })
     return { success: true }
   })
 
@@ -175,20 +245,24 @@ export function registerSettingsIpc(): void {
     }
   })
 
-  ipcMain.handle('cloud:disconnect', () => {
+  safeHandle('cloud:disconnect', () => {
     cloudBackupService.disconnect()
     return true
   })
 
-  ipcMain.handle('cloud:backup', async () => {
-    return cloudBackupService.backupToCloud()
+  safeHandle('cloud:backup', async () => {
+    const result = await cloudBackupService.backupToCloud()
+    writeAuditLog({ action: 'cloud_backup', entityType: 'backup' })
+    return result
   })
 
-  ipcMain.handle('cloud:listBackups', async () => {
+  safeHandle('cloud:listBackups', async () => {
     return cloudBackupService.listCloudBackups()
   })
 
-  ipcMain.handle('cloud:downloadBackup', async (_event, fileId: string, fileName: string) => {
-    return cloudBackupService.downloadBackup(fileId, fileName)
+  safeHandle('cloud:downloadBackup', async (_event, fileId, fileName) => {
+    const validFileId = validate(z.string().min(1), fileId)
+    const validFileName = validate(z.string().min(1).max(255), fileName)
+    return cloudBackupService.downloadBackup(validFileId, validFileName)
   })
 }

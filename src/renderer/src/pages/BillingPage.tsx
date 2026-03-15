@@ -30,11 +30,31 @@ import {
   Banknote,
   User,
   UserPlus,
-  PackagePlus
+  PackagePlus,
+  RotateCcw,
+  AlertTriangle,
+  CheckCircle2,
+  MessageCircle,
+  RefreshCw,
+  TrendingUp,
+  BarChart3,
+  Wallet,
+  Loader2
 } from 'lucide-react'
 import { formatCurrency } from '../lib/utils'
 import { toast } from 'sonner'
-import type { Product, BillPayment, BillItem, BillCreateData, Customer } from '@shared/types'
+import { EditBillDialog } from '../components/billing/EditBillDialog'
+import { BulkBillDialog } from '../components/billing/BulkBillDialog'
+import type {
+  Product,
+  BillPayment,
+  BillItem,
+  BillCreateData,
+  Customer,
+  Bill,
+  DailySummary,
+  HeldBill
+} from '@shared/types'
 
 export default function BillingPage(): React.JSX.Element {
   const store = useBillingStore()
@@ -46,6 +66,9 @@ export default function BillingPage(): React.JSX.Element {
   const [showHeldBills, setShowHeldBills] = useState(false)
   const [showQuickAddCustomer, setShowQuickAddCustomer] = useState(false)
   const [selectedResultIdx, setSelectedResultIdx] = useState(0)
+  const [showEditBill, setShowEditBill] = useState(false)
+  const [showDaySummary, setShowDaySummary] = useState(false)
+  const [showBulkBill, setShowBulkBill] = useState(false)
 
   // Custom shortcut settings
   const [shortcutOther, setShortcutOther] = useState('Alt+O')
@@ -53,10 +76,13 @@ export default function BillingPage(): React.JSX.Element {
 
   // Load custom shortcut settings
   useEffect(() => {
-    window.api.settings.getAll().then((all: Record<string, string>) => {
-      if (all.shortcut_addOther) setShortcutOther(all.shortcut_addOther)
-      if (all.shortcut_newCustomer) setShortcutNewCustomer(all.shortcut_newCustomer)
-    }).catch(() => {})
+    window.api.settings
+      .getAll()
+      .then((all: Record<string, string>) => {
+        if (all.shortcut_addOther) setShortcutOther(all.shortcut_addOther)
+        if (all.shortcut_newCustomer) setShortcutNewCustomer(all.shortcut_newCustomer)
+      })
+      .catch(() => {})
   }, [])
 
   // Barcode scanner detection
@@ -112,7 +138,9 @@ export default function BillingPage(): React.JSX.Element {
         if (elapsed > 200) scanBufferRef.current = ''
         scanBufferRef.current += e.key
         if (scanTimerRef.current) clearTimeout(scanTimerRef.current)
-        scanTimerRef.current = setTimeout(() => { scanBufferRef.current = '' }, 300)
+        scanTimerRef.current = setTimeout(() => {
+          scanBufferRef.current = ''
+        }, 300)
       }
     }
 
@@ -150,6 +178,11 @@ export default function BillingPage(): React.JSX.Element {
         store.holdBill()
         toast.info('Bill held')
       }
+      // Ctrl+R: Edit/Return bill
+      if (e.key === 'r' && e.ctrlKey && !e.altKey && !e.shiftKey) {
+        e.preventDefault()
+        setShowEditBill(true)
+      }
       // F8: Recall held bill
       if (e.key === 'F8') {
         e.preventDefault()
@@ -161,7 +194,9 @@ export default function BillingPage(): React.JSX.Element {
         store.addCustomItem()
         toast.success('Custom item added — edit name & price in cart')
         setTimeout(() => {
-          const priceInputs = document.querySelectorAll<HTMLInputElement>('input[placeholder="₹ Price"]')
+          const priceInputs = document.querySelectorAll<HTMLInputElement>(
+            'input[placeholder="₹ Price"]'
+          )
           if (priceInputs.length > 0) {
             priceInputs[priceInputs.length - 1].focus()
             priceInputs[priceInputs.length - 1].select()
@@ -178,6 +213,11 @@ export default function BillingPage(): React.JSX.Element {
         e.preventDefault()
         store.clearCart()
       }
+      // Ctrl+D: Day Summary popup
+      if (e.key === 'd' && e.ctrlKey && !e.altKey && !e.shiftKey) {
+        e.preventDefault()
+        setShowDaySummary(true)
+      }
       // Escape: Focus search
       if (e.key === 'Escape') {
         setShowResults(false)
@@ -189,25 +229,22 @@ export default function BillingPage(): React.JSX.Element {
   }, [store.items.length, shortcutOther, shortcutNewCustomer])
 
   // Search products
-  const handleSearch = useCallback(
-    async (query: string): Promise<void> => {
-      setSearchQuery(query)
-      if (query.length < 1) {
-        setSearchResults([])
-        setShowResults(false)
-        return
-      }
-      try {
-        const results = await window.api.products.search(query)
-        setSearchResults(results.slice(0, 10))
-        setShowResults(true)
-        setSelectedResultIdx(0)
-      } catch {
-        setSearchResults([])
-      }
-    },
-    []
-  )
+  const handleSearch = useCallback(async (query: string): Promise<void> => {
+    setSearchQuery(query)
+    if (query.length < 1) {
+      setSearchResults([])
+      setShowResults(false)
+      return
+    }
+    try {
+      const results = await window.api.products.search(query)
+      setSearchResults(results.slice(0, 10))
+      setShowResults(true)
+      setSelectedResultIdx(0)
+    } catch {
+      setSearchResults([])
+    }
+  }, [])
 
   const handleSearchKeyDown = (e: React.KeyboardEvent): void => {
     if (e.key === 'ArrowDown') {
@@ -261,7 +298,9 @@ export default function BillingPage(): React.JSX.Element {
                 store.addCustomItem()
                 toast.success('Custom item added — edit name & price in cart')
                 setTimeout(() => {
-                  const priceInputs = document.querySelectorAll<HTMLInputElement>('input[placeholder="₹ Price"]')
+                  const priceInputs = document.querySelectorAll<HTMLInputElement>(
+                    'input[placeholder="₹ Price"]'
+                  )
                   if (priceInputs.length > 0) {
                     priceInputs[priceInputs.length - 1].focus()
                     priceInputs[priceInputs.length - 1].select()
@@ -271,7 +310,9 @@ export default function BillingPage(): React.JSX.Element {
             >
               <PackagePlus className="h-4 w-4" />
               <span className="hidden sm:inline">+ Other</span>
-              <kbd className="ml-0.5 rounded bg-muted px-1 py-0.5 text-[9px] font-mono hidden sm:inline">{shortcutOther}</kbd>
+              <kbd className="ml-0.5 rounded bg-muted px-1 py-0.5 text-[9px] font-mono hidden sm:inline">
+                {shortcutOther}
+              </kbd>
             </Button>
           </div>
 
@@ -282,7 +323,9 @@ export default function BillingPage(): React.JSX.Element {
                 <button
                   key={product.id}
                   className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-all ${
-                    idx === selectedResultIdx ? 'bg-primary/8 text-foreground' : 'hover:bg-accent/50'
+                    idx === selectedResultIdx
+                      ? 'bg-primary/8 text-foreground'
+                      : 'hover:bg-accent/50'
                   } ${idx > 0 ? 'border-t border-border/40' : ''}`}
                   onMouseDown={(e) => {
                     e.preventDefault()
@@ -293,7 +336,10 @@ export default function BillingPage(): React.JSX.Element {
                   <div>
                     <div className="font-medium">{product.name}</div>
                     <div className="text-xs text-muted-foreground mt-0.5">
-                      {product.sku} • {product.category} • Stock: <span className={product.stock <= 5 ? 'text-orange-500 font-medium' : ''}>{product.stock}</span>
+                      {product.sku} • {product.category} • Stock:{' '}
+                      <span className={product.stock <= 5 ? 'text-orange-500 font-medium' : ''}>
+                        {product.stock}
+                      </span>
                     </div>
                   </div>
                   <div className="text-right">
@@ -301,7 +347,9 @@ export default function BillingPage(): React.JSX.Element {
                       {formatCurrency(product.sellingPrice)}
                     </div>
                     {product.stock <= 0 && (
-                      <Badge variant="destructive" className="text-[10px] mt-0.5">Out of stock</Badge>
+                      <Badge variant="destructive" className="text-[10px] mt-0.5">
+                        Out of stock
+                      </Badge>
                     )}
                   </div>
                 </button>
@@ -318,7 +366,9 @@ export default function BillingPage(): React.JSX.Element {
                 <ShoppingCart className="h-10 w-10 text-muted-foreground/30" />
               </div>
               <p className="text-lg font-semibold text-foreground/60">Cart is empty</p>
-              <p className="text-sm text-muted-foreground/60 mt-1">Search and add products to start billing</p>
+              <p className="text-sm text-muted-foreground/60 mt-1">
+                Search and add products to start billing
+              </p>
             </div>
           ) : (
             <table className="w-full">
@@ -340,9 +390,7 @@ export default function BillingPage(): React.JSX.Element {
                     item={item}
                     index={idx}
                     onUpdateQty={(qty) => store.updateItemQuantity(item.id, qty)}
-                    onUpdateDiscount={(disc, type) =>
-                      store.updateItemDiscount(item.id, disc, type)
-                    }
+                    onUpdateDiscount={(disc, type) => store.updateItemDiscount(item.id, disc, type)}
                     onUpdatePrice={(price) => store.updateItemPrice(item.id, price)}
                     onUpdateName={(name) => store.updateItemName(item.id, name)}
                     onRemove={() => store.removeItem(item.id)}
@@ -364,6 +412,26 @@ export default function BillingPage(): React.JSX.Element {
           >
             <PauseCircle className="h-4 w-4" />
             Hold <kbd className="ml-1 rounded bg-muted px-1 py-0.5 text-[9px] font-mono">F6</kbd>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowEditBill(true)}
+            className="gap-1.5 rounded-lg border-orange-300/50 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/10"
+          >
+            <RotateCcw className="h-4 w-4" />
+            Return/Exchange{' '}
+            <kbd className="ml-1 rounded bg-muted px-1 py-0.5 text-[9px] font-mono">Ctrl+R</kbd>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowBulkBill(true)}
+            disabled={store.items.length === 0}
+            className="gap-1.5 rounded-lg border-blue-300/50 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/10"
+          >
+            <PackagePlus className="h-4 w-4" />
+            Bulk Bill
           </Button>
           <Button
             variant="outline"
@@ -410,7 +478,9 @@ export default function BillingPage(): React.JSX.Element {
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Items</span>
-              <span>{store.totalItems} ({store.items.length} lines)</span>
+              <span>
+                {store.totalItems} ({store.items.length} lines)
+              </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Subtotal</span>
@@ -447,10 +517,7 @@ export default function BillingPage(): React.JSX.Element {
                   className="h-8 rounded-md border border-input bg-background px-2 text-xs"
                   value={store.discountType}
                   onChange={(e) =>
-                    store.setDiscount(
-                      store.discount,
-                      e.target.value as 'percentage' | 'amount'
-                    )
+                    store.setDiscount(store.discount, e.target.value as 'percentage' | 'amount')
                   }
                 >
                   <option value="percentage">%</option>
@@ -464,7 +531,9 @@ export default function BillingPage(): React.JSX.Element {
         {/* Grand Total + Pay Button */}
         <div className="border-t border-border p-4">
           <div className="mb-3 flex items-center justify-between">
-            <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Grand Total</span>
+            <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              Grand Total
+            </span>
             <span className="text-2xl font-bold font-amount gradient-text">
               {formatCurrency(store.grandTotal)}
             </span>
@@ -477,7 +546,9 @@ export default function BillingPage(): React.JSX.Element {
           >
             <IndianRupee className="h-5 w-5" />
             Pay & Print
-            <kbd className="ml-2 rounded bg-primary-foreground/20 px-1.5 py-0.5 text-[10px] font-mono">F11</kbd>
+            <kbd className="ml-2 rounded bg-primary-foreground/20 px-1.5 py-0.5 text-[10px] font-mono">
+              F11
+            </kbd>
           </Button>
         </div>
       </div>
@@ -493,7 +564,22 @@ export default function BillingPage(): React.JSX.Element {
         customerId={store.customerId}
         discount={store.discount}
         discountType={store.discountType}
+        onSetCustomer={(name, phone, id) => store.setCustomer(name, phone, id)}
         onBillCreated={() => {
+          store.clearCart()
+          searchRef.current?.focus()
+        }}
+      />
+
+      {/* Bulk Bill Dialog */}
+      <BulkBillDialog
+        open={showBulkBill}
+        onClose={() => setShowBulkBill(false)}
+        items={store.items}
+        discount={store.discount}
+        discountType={store.discountType}
+        grandTotal={store.grandTotal}
+        onAllDone={() => {
           store.clearCart()
           searchRef.current?.focus()
         }}
@@ -510,6 +596,12 @@ export default function BillingPage(): React.JSX.Element {
         }}
         onDelete={(id) => store.deleteHeldBill(id)}
       />
+
+      {/* Edit Bill (Return/Exchange) Dialog */}
+      <EditBillDialog open={showEditBill} onClose={() => setShowEditBill(false)} />
+
+      {/* Day Summary Dialog (Ctrl+D) */}
+      <DaySummaryDialog open={showDaySummary} onClose={() => setShowDaySummary(false)} />
     </div>
   )
 }
@@ -598,15 +690,20 @@ function CartRow({
           min={0}
           value={item.discount || ''}
           onChange={(e) =>
-            onUpdateDiscount(parseFloat(e.target.value) || 0, item.discountType === 'percent' ? 'percentage' : item.discountType === 'flat' ? 'amount' : item.discountType)
+            onUpdateDiscount(
+              parseFloat(e.target.value) || 0,
+              item.discountType === 'percent'
+                ? 'percentage'
+                : item.discountType === 'flat'
+                  ? 'amount'
+                  : item.discountType
+            )
           }
           className="h-7 w-16 text-right text-sm ml-auto"
           placeholder="0"
         />
       </td>
-      <td className="px-2 py-2 text-right font-amount font-medium">
-        {formatCurrency(item.total)}
-      </td>
+      <td className="px-2 py-2 text-right font-amount font-medium">{formatCurrency(item.total)}</td>
       <td className="px-2 py-2">
         <Button
           variant="ghost"
@@ -632,6 +729,7 @@ function PaymentDialog({
   customerId,
   discount,
   discountType,
+  onSetCustomer,
   onBillCreated
 }: {
   open: boolean
@@ -643,6 +741,7 @@ function PaymentDialog({
   customerId: string | null
   discount: number
   discountType: 'percentage' | 'amount'
+  onSetCustomer: (name: string, phone: string, id: string) => void
   onBillCreated: () => void
 }): React.JSX.Element {
   const [paymentMode, setPaymentMode] = useState<string>('cash')
@@ -650,41 +749,77 @@ function PaymentDialog({
   const [upiReference, setUpiReference] = useState('')
   const [processing, setProcessing] = useState(false)
   const [creditWarning, setCreditWarning] = useState('')
+  const [completedBill, setCompletedBill] = useState<Bill | null>(null)
+  const [quickPhone, setQuickPhone] = useState('')
+  const [sendingWA, setSendingWA] = useState(false)
+  const [quickRegPhone, setQuickRegPhone] = useState('')
+  const [registeringCustomer, setRegisteringCustomer] = useState(false)
+  const [customerRegistered, setCustomerRegistered] = useState(false)
+  // Quick-add customer inside payment form
+  const [qcName, setQcName] = useState('')
+  const [qcPhone, setQcPhone] = useState('')
+  const [qcSaving, setQcSaving] = useState(false)
+  const [qcAdded, setQcAdded] = useState(false)
+  // Local customer overrides (set when user quick-adds during payment)
+  const [localCustomerName, setLocalCustomerName] = useState(customerName)
+  const [localCustomerPhone, setLocalCustomerPhone] = useState(customerPhone)
+  const [localCustomerId, setLocalCustomerId] = useState(customerId)
   const receivedRef = useRef<HTMLInputElement>(null)
+  const quickPhoneRef = useRef<HTMLInputElement>(null)
+  const quickRegPhoneRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (open) {
-      setAmountReceived(Math.ceil(grandTotal))
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAmountReceived(Math.round(grandTotal))
       setPaymentMode('cash')
       setUpiReference('')
       setCreditWarning('')
+      setCompletedBill(null)
+      setQuickPhone('')
+      setSendingWA(false)
+      setQuickRegPhone('')
+      setRegisteringCustomer(false)
+      setCustomerRegistered(false)
+      setQcName('')
+      setQcPhone('')
+      setQcSaving(false)
+      setQcAdded(false)
+      setLocalCustomerName(customerName)
+      setLocalCustomerPhone(customerPhone)
+      setLocalCustomerId(customerId)
       setTimeout(() => receivedRef.current?.select(), 100)
     }
   }, [open, grandTotal])
 
   // Check credit limit when credit mode is selected
   useEffect(() => {
-    if (paymentMode !== 'credit' || !customerId) {
+    if (paymentMode !== 'credit' || !localCustomerId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCreditWarning('')
       return
     }
-    window.api.customers.getById(Number(customerId)).then((customer) => {
+    window.api.customers.getById(Number(localCustomerId)).then((customer) => {
       if (!customer) return
       const newBalance = customer.currentBalance + grandTotal
       if (customer.creditLimit && customer.creditLimit > 0 && newBalance > customer.creditLimit) {
         setCreditWarning(
           `This will exceed credit limit! Current: ₹${customer.currentBalance.toLocaleString('en-IN')}, ` +
-          `After: ₹${newBalance.toLocaleString('en-IN')}, Limit: ₹${customer.creditLimit.toLocaleString('en-IN')}`
+            `After: ₹${newBalance.toLocaleString('en-IN')}, Limit: ₹${customer.creditLimit.toLocaleString('en-IN')}`
         )
       } else {
         setCreditWarning('')
       }
     })
-  }, [paymentMode, customerId, grandTotal])
+  }, [paymentMode, localCustomerId, grandTotal])
 
   const change = paymentMode === 'cash' ? amountReceived - grandTotal : 0
 
   const handlePay = async (): Promise<void> => {
+    if (grandTotal <= 0) {
+      toast.error('Bill total must be greater than zero')
+      return
+    }
     if (paymentMode === 'cash' && amountReceived < grandTotal) {
       toast.error('Amount received is less than total')
       return
@@ -693,8 +828,12 @@ function PaymentDialog({
       toast.error('Please enter UPI transaction reference')
       return
     }
-    if (paymentMode === 'credit' && !customerName.trim()) {
+    if (paymentMode === 'credit' && !localCustomerName.trim()) {
       toast.error('Customer name is required for credit sales')
+      return
+    }
+    if (paymentMode === 'credit' && !localCustomerId) {
+      toast.error('Please select a registered customer for credit sales')
       return
     }
 
@@ -714,7 +853,7 @@ function PaymentDialog({
 
       const billData: BillCreateData = {
         items: items.map((item) => ({
-          productId: item.productId,
+          productId: item.productId || null,
           productName: item.productName,
           sku: item.sku,
           hsn: item.hsn,
@@ -725,37 +864,23 @@ function PaymentDialog({
           discountType: item.discountType,
           gstRate: item.gstRate
         })),
-        customerName: customerName || 'Walk-in Customer',
-        customerPhone,
-        customerId,
+        customerName: localCustomerName || 'Walk-in Customer',
+        customerPhone: localCustomerPhone,
+        customerId: localCustomerId,
         discount,
         discountType,
         payment
       }
 
       const bill = await window.api.billing.createBill(billData)
-
-      // Show success with WhatsApp option if phone is available
-      if (customerPhone && customerPhone.length >= 10) {
-        toast.success(`Bill ${bill.billNumber} created!`, {
-          duration: 8000,
-          action: {
-            label: '📱 WhatsApp Receipt',
-            onClick: () => {
-              window.api.whatsapp.sendBillReceipt(bill.id, customerPhone).then((res) => {
-                if (!res.success) toast.error(res.error || 'Failed to open WhatsApp')
-              })
-            }
-          }
-        })
-      } else {
-        toast.success(`Bill ${bill.billNumber} created successfully!`)
+      setCompletedBill(bill)
+      if (paymentMode === 'credit' && !localCustomerId) {
+        setTimeout(() => quickRegPhoneRef.current?.focus(), 150)
+      } else if (!localCustomerPhone) {
+        setTimeout(() => quickPhoneRef.current?.focus(), 150)
       }
-
-      onBillCreated()
-      onClose()
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to create bill')
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to create bill')
     }
     setProcessing(false)
   }
@@ -768,157 +893,502 @@ function PaymentDialog({
   ]
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) {
+          if (completedBill) {
+            onBillCreated()
+          }
+          onClose()
+        }
+      }}
+    >
       <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-lg">Payment</DialogTitle>
-          <DialogDescription>Complete the payment for this bill</DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4 py-2">
-          {/* Grand Total */}
-          <div className="rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 p-5 text-center border border-primary/10">
-            <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1">Total Amount</div>
-            <div className="text-3xl font-bold font-amount gradient-text">
-              {formatCurrency(grandTotal)}
-            </div>
-          </div>
-
-          {/* Payment Mode */}
-          <div className="grid grid-cols-4 gap-2">
-            {paymentModes.map((mode) => (
-              <button
-                key={mode.id}
-                className={`flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 text-xs font-medium transition-all ${
-                  paymentMode === mode.id
-                    ? 'border-primary bg-primary/10 text-primary shadow-sm shadow-primary/10'
-                    : 'border-border/60 hover:bg-accent hover:border-accent-foreground/20'
-                }`}
-                onClick={() => setPaymentMode(mode.id)}
-              >
-                <mode.icon className="h-5 w-5" />
-                {mode.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Amount Received (Cash only) */}
-          {paymentMode === 'cash' && (
-            <div className="space-y-2">
-              <Label>Amount Received (₹)</Label>
-              <Input
-                ref={receivedRef}
-                type="number"
-                min={0}
-                step={1}
-                value={amountReceived || ''}
-                onChange={(e) => setAmountReceived(parseFloat(e.target.value) || 0)}
-                onKeyDown={(e) => e.key === 'Enter' && handlePay()}
-                className="text-lg font-amount"
-              />
-
-              {/* Quick amounts */}
-              <div className="flex gap-2">
-                {[...new Set([
-                  Math.ceil(grandTotal),
-                  Math.ceil(grandTotal / 100) * 100,
-                  Math.ceil(grandTotal / 500) * 500,
-                  Math.ceil(grandTotal / 1000) * 1000,
-                  Math.ceil(grandTotal / 2000) * 2000
-                ])]
-                  .filter((a) => a >= grandTotal)
-                  .slice(0, 4)
-                  .map((amount) => (
-                    <Button
-                      key={amount}
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 text-xs font-amount"
-                      onClick={() => setAmountReceived(amount)}
-                    >
-                      ₹{amount.toLocaleString('en-IN')}
-                    </Button>
-                  ))}
+        {completedBill ? (
+          /* ---- Success Screen ---- */
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-green-600">
+                <CheckCircle2 className="h-5 w-5" />
+                Bill Created!
+              </DialogTitle>
+              <DialogDescription>
+                {completedBill.billNumber} &mdash; {formatCurrency(completedBill.grandTotal)}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <div className="rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100 p-4 text-center dark:from-green-900/20 dark:to-emerald-900/20 dark:border-green-800">
+                <div className="text-xs text-muted-foreground mb-1">Bill Number</div>
+                <div className="text-2xl font-bold font-amount text-green-700 dark:text-green-400">
+                  {completedBill.billNumber}
+                </div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  {completedBill.customerName} &bull; {formatCurrency(completedBill.grandTotal)}
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-col h-auto py-3 gap-1.5 rounded-xl border-border/60 hover:border-primary/40 hover:bg-primary/5"
+                  onClick={async () => {
+                    try {
+                      await window.api.billing.printReceipt(completedBill.id)
+                      toast.success(`Bill ${completedBill.billNumber} printed successfully`)
+                    } catch {
+                      toast.error('Print failed')
+                    }
+                  }}
+                >
+                  <Printer className="h-5 w-5 text-primary" />
+                  <span className="text-xs">Print</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-col h-auto py-3 gap-1.5 rounded-xl border-border/60 hover:border-green-500/40 hover:bg-green-500/5"
+                  disabled={!completedBill.customerPhone}
+                  onClick={async () => {
+                    if (!completedBill.customerPhone) return
+                    const res = await window.api.whatsapp.sendBillReceipt(
+                      completedBill.id,
+                      completedBill.customerPhone
+                    )
+                    if (!res.success) toast.error(res.error || 'Failed to open WhatsApp')
+                  }}
+                >
+                  <MessageCircle className="h-5 w-5 text-green-600" />
+                  <span className="text-xs">WhatsApp</span>
+                </Button>
+                <Button
+                  className="flex-col h-auto py-3 gap-1.5 rounded-xl shadow-md shadow-primary/20"
+                  onClick={() => {
+                    onBillCreated()
+                    onClose()
+                  }}
+                >
+                  <RefreshCw className="h-5 w-5" />
+                  <span className="text-xs">New Bill</span>
+                </Button>
               </div>
 
-              {/* Change */}
-              {amountReceived >= grandTotal && (
-                <div className="rounded-lg bg-green-50 p-3 text-center dark:bg-green-900/20">
-                  <div className="text-sm text-muted-foreground">Change to Return</div>
-                  <div className="text-xl font-bold font-amount text-green-600">
-                    {formatCurrency(change)}
+              {/* Quick WhatsApp for walk-in: no phone on bill */}
+              {!completedBill.customerPhone && (
+                <div className="rounded-xl border border-green-200 bg-green-50 dark:bg-green-900/10 dark:border-green-800 p-3 space-y-2">
+                  <p className="text-xs font-medium text-green-700 dark:text-green-400 flex items-center gap-1.5">
+                    <MessageCircle className="h-3.5 w-3.5" />
+                    Send bill via WhatsApp
+                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      ref={quickPhoneRef}
+                      type="tel"
+                      value={quickPhone}
+                      onChange={(e) =>
+                        setQuickPhone(e.target.value.replace(/\D/g, '').slice(0, 10))
+                      }
+                      placeholder="Enter 10-digit phone number"
+                      className="h-9 text-sm flex-1"
+                      onKeyDown={async (e) => {
+                        if (e.key === 'Enter' && quickPhone.length === 10) {
+                          e.preventDefault()
+                          setSendingWA(true)
+                          try {
+                            const res = await window.api.whatsapp.sendBillReceipt(
+                              completedBill.id,
+                              quickPhone
+                            )
+                            if (!res.success) toast.error(res.error || 'Failed to open WhatsApp')
+                            else toast.success('WhatsApp opened')
+                          } catch {
+                            toast.error('Failed to open WhatsApp')
+                          }
+                          setSendingWA(false)
+                        }
+                      }}
+                    />
+                    <Button
+                      size="sm"
+                      className="h-9 gap-1.5 bg-green-600 hover:bg-green-700 text-white shrink-0"
+                      disabled={quickPhone.length !== 10 || sendingWA}
+                      onClick={async () => {
+                        setSendingWA(true)
+                        try {
+                          const res = await window.api.whatsapp.sendBillReceipt(
+                            completedBill.id,
+                            quickPhone
+                          )
+                          if (!res.success) toast.error(res.error || 'Failed to open WhatsApp')
+                          else toast.success('WhatsApp opened')
+                        } catch {
+                          toast.error('Failed to open WhatsApp')
+                        }
+                        setSendingWA(false)
+                      }}
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      {sendingWA ? 'Opening...' : 'Send'}
+                    </Button>
                   </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    Number is only used for this message — not saved
+                  </p>
                 </div>
               )}
-            </div>
-          )}
 
-          {paymentMode === 'upi' && (
-            <div className="space-y-2">
-              <Label>UPI Transaction Reference *</Label>
-              <Input
-                value={upiReference}
-                onChange={(e) => setUpiReference(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && upiReference.trim() && handlePay()}
-                placeholder="e.g. UPI Ref No. / Transaction ID"
-                autoFocus
-              />
-              <div className="rounded-lg bg-blue-50 p-3 text-center dark:bg-blue-900/20">
-                <div className="text-sm text-blue-700 dark:text-blue-400">
-                  Amount: <span className="font-amount font-bold">{formatCurrency(grandTotal)}</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {paymentMode === 'card' && (
-            <div className="rounded-lg bg-purple-50 p-3 text-center dark:bg-purple-900/20">
-              <div className="text-sm text-purple-700 dark:text-purple-400">
-                Swipe/Tap card for <span className="font-amount font-bold">{formatCurrency(grandTotal)}</span>
-              </div>
-            </div>
-          )}
-
-          {paymentMode === 'credit' && (
-            <div className="space-y-2">
-              <div className="rounded-lg bg-yellow-50 p-3 text-center dark:bg-yellow-900/20">
-                <div className="text-sm text-yellow-700 dark:text-yellow-400">
-                  {customerName ? (
-                    <>
-                      <span className="font-amount font-bold">{formatCurrency(grandTotal)}</span> will be added to{' '}
-                      <strong>{customerName}</strong>&apos;s credit balance
-                    </>
+              {/* Quick customer register for unregistered credit customers */}
+              {completedBill.creditAmount > 0 && !completedBill.customerId && (
+                <div className="rounded-xl border border-blue-200 bg-blue-50 dark:bg-blue-900/10 dark:border-blue-800 p-3 space-y-2">
+                  <p className="text-xs font-medium text-blue-700 dark:text-blue-400 flex items-center gap-1.5">
+                    <UserPlus className="h-3.5 w-3.5" />
+                    Register customer for credit tracking
+                  </p>
+                  {customerRegistered ? (
+                    <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-400 py-1">
+                      <CheckCircle2 className="h-4 w-4" />
+                      <span>Customer registered successfully</span>
+                    </div>
                   ) : (
-                    <span className="text-destructive font-medium">
-                      ⚠ Customer name is required for credit sales
-                    </span>
+                    <>
+                      <div className="flex gap-2">
+                        <Input
+                          value={completedBill.customerName ?? ''}
+                          readOnly
+                          className="h-9 text-sm flex-1 bg-muted/60"
+                          placeholder="Customer name"
+                        />
+                        <Input
+                          ref={quickRegPhoneRef}
+                          type="tel"
+                          value={quickRegPhone}
+                          onChange={(e) =>
+                            setQuickRegPhone(e.target.value.replace(/\D/g, '').slice(0, 10))
+                          }
+                          placeholder="Phone number"
+                          className="h-9 text-sm flex-1"
+                          onKeyDown={async (e) => {
+                            if (e.key === 'Enter' && quickRegPhone.length === 10) {
+                              e.preventDefault()
+                              setRegisteringCustomer(true)
+                              try {
+                                await window.api.customers.create({
+                                  name: completedBill.customerName ?? 'Unknown',
+                                  phone: quickRegPhone,
+                                  customerType: 'regular'
+                                })
+                                setCustomerRegistered(true)
+                                toast.success('Customer registered')
+                              } catch (err: unknown) {
+                                toast.error(
+                                  err instanceof Error ? err.message : 'Failed to register customer'
+                                )
+                              }
+                              setRegisteringCustomer(false)
+                            }
+                          }}
+                        />
+                        <Button
+                          size="sm"
+                          className="h-9 gap-1.5 bg-blue-600 hover:bg-blue-700 text-white shrink-0"
+                          disabled={quickRegPhone.length !== 10 || registeringCustomer}
+                          onClick={async () => {
+                            setRegisteringCustomer(true)
+                            try {
+                              await window.api.customers.create({
+                                name: completedBill.customerName ?? 'Unknown',
+                                phone: quickRegPhone,
+                                customerType: 'regular'
+                              })
+                              setCustomerRegistered(true)
+                              toast.success('Customer registered')
+                            } catch (err: unknown) {
+                              toast.error(
+                                err instanceof Error ? err.message : 'Failed to register customer'
+                              )
+                            }
+                            setRegisteringCustomer(false)
+                          }}
+                        >
+                          <UserPlus className="h-4 w-4" />
+                          {registeringCustomer ? 'Saving...' : 'Register'}
+                        </Button>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">
+                        Registers customer to track this credit balance
+                      </p>
+                    </>
                   )}
                 </div>
+              )}
+            </div>
+          </>
+        ) : (
+          /* ---- Payment Form ---- */
+          <>
+            <DialogHeader>
+              <DialogTitle className="text-lg">Payment</DialogTitle>
+              <DialogDescription>Complete the payment for this bill</DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2">
+              {/* Grand Total */}
+              <div className="rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 p-5 text-center border border-primary/10">
+                <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1">
+                  Total Amount
+                </div>
+                <div className="text-3xl font-bold font-amount gradient-text">
+                  {formatCurrency(grandTotal)}
+                </div>
               </div>
-              {creditWarning && (
-                <div className="rounded-lg bg-destructive/10 border border-destructive/30 p-3 text-center">
-                  <div className="text-sm text-destructive font-medium">
-                    ⚠ {creditWarning}
+
+              {/* Payment Mode */}
+              <div className="grid grid-cols-4 gap-2">
+                {paymentModes.map((mode) => (
+                  <button
+                    key={mode.id}
+                    className={`flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 text-xs font-medium transition-all ${
+                      paymentMode === mode.id
+                        ? 'border-primary bg-primary/10 text-primary shadow-sm shadow-primary/10'
+                        : 'border-border/60 hover:bg-accent hover:border-accent-foreground/20'
+                    }`}
+                    onClick={() => setPaymentMode(mode.id)}
+                  >
+                    <mode.icon className="h-5 w-5" />
+                    {mode.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Amount Received (Cash only) */}
+              {paymentMode === 'cash' && (
+                <div className="space-y-2">
+                  <Label>Amount Received (₹)</Label>
+                  <Input
+                    ref={receivedRef}
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={amountReceived || ''}
+                    onChange={(e) => setAmountReceived(parseFloat(e.target.value) || 0)}
+                    onKeyDown={(e) => e.key === 'Enter' && handlePay()}
+                    className="text-lg font-amount"
+                  />
+
+                  {/* Quick amounts */}
+                  <div className="flex gap-2">
+                    {[
+                      ...new Set([
+                        Math.ceil(grandTotal),
+                        Math.ceil(grandTotal / 100) * 100,
+                        Math.ceil(grandTotal / 500) * 500,
+                        Math.ceil(grandTotal / 1000) * 1000,
+                        Math.ceil(grandTotal / 2000) * 2000
+                      ])
+                    ]
+                      .filter((a) => a >= grandTotal)
+                      .slice(0, 4)
+                      .map((amount) => (
+                        <Button
+                          key={amount}
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 text-xs font-amount"
+                          onClick={() => setAmountReceived(amount)}
+                        >
+                          ₹{amount.toLocaleString('en-IN')}
+                        </Button>
+                      ))}
+                  </div>
+
+                  {/* Change */}
+                  {amountReceived >= grandTotal && (
+                    <div className="rounded-lg bg-green-50 p-3 text-center dark:bg-green-900/20">
+                      <div className="text-sm text-muted-foreground">Change to Return</div>
+                      <div className="text-xl font-bold font-amount text-green-600">
+                        {formatCurrency(change)}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {paymentMode === 'upi' && (
+                <div className="space-y-2">
+                  <Label>UPI Transaction Reference *</Label>
+                  <Input
+                    value={upiReference}
+                    onChange={(e) => setUpiReference(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && upiReference.trim() && handlePay()}
+                    placeholder="e.g. UPI Ref No. / Transaction ID"
+                    autoFocus
+                  />
+                  <div className="rounded-lg bg-blue-50 p-3 text-center dark:bg-blue-900/20">
+                    <div className="text-sm text-blue-700 dark:text-blue-400">
+                      Amount:{' '}
+                      <span className="font-amount font-bold">{formatCurrency(grandTotal)}</span>
+                    </div>
                   </div>
                 </div>
               )}
-            </div>
-          )}
-        </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} className="rounded-lg">
-            Cancel
-          </Button>
-          <Button
-            onClick={handlePay}
-            disabled={processing}
-            className="gap-2 rounded-lg shadow-md shadow-primary/20 min-w-[160px]"
-          >
-            <Printer className="h-4 w-4" />
-            {processing ? 'Processing...' : 'Complete & Print'}
-          </Button>
-        </DialogFooter>
+              {paymentMode === 'card' && (
+                <div className="rounded-lg bg-purple-50 p-3 text-center dark:bg-purple-900/20">
+                  <div className="text-sm text-purple-700 dark:text-purple-400">
+                    Swipe/Tap card for{' '}
+                    <span className="font-amount font-bold">{formatCurrency(grandTotal)}</span>
+                  </div>
+                </div>
+              )}
+
+              {paymentMode === 'credit' && (
+                <div className="space-y-2">
+                  {/* Quick Add Customer inline */}
+                  {!localCustomerId && (
+                    <div className="rounded-xl border border-blue-200 bg-blue-50 dark:bg-blue-900/10 dark:border-blue-800 p-3 space-y-2">
+                      <p className="text-xs font-medium text-blue-700 dark:text-blue-400 flex items-center gap-1.5">
+                        <UserPlus className="h-3.5 w-3.5" />
+                        {qcAdded ? 'Customer linked' : 'Quick-add customer for credit'}
+                      </p>
+                      {qcAdded ? (
+                        <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-400 py-0.5">
+                          <CheckCircle2 className="h-4 w-4" />
+                          <span>
+                            {localCustomerName} — {localCustomerPhone}
+                          </span>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex gap-2">
+                            <Input
+                              value={qcName}
+                              onChange={(e) => setQcName(e.target.value)}
+                              placeholder="Customer name"
+                              className="h-9 text-sm flex-1"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Tab') {
+                                  e.preventDefault()
+                                  ;(e.currentTarget.nextElementSibling as HTMLInputElement)?.focus()
+                                }
+                              }}
+                            />
+                            <Input
+                              type="tel"
+                              value={qcPhone}
+                              onChange={(e) =>
+                                setQcPhone(e.target.value.replace(/\D/g, '').slice(0, 10))
+                              }
+                              placeholder="Phone number"
+                              className="h-9 text-sm flex-1"
+                              onKeyDown={async (e) => {
+                                if (e.key === 'Enter' && qcName.trim() && qcPhone.length === 10) {
+                                  e.preventDefault()
+                                  setQcSaving(true)
+                                  try {
+                                    const newCustomer = await window.api.customers.create({
+                                      name: qcName.trim(),
+                                      phone: qcPhone,
+                                      customerType: 'regular'
+                                    })
+                                    setLocalCustomerName(newCustomer.name)
+                                    setLocalCustomerPhone(newCustomer.phone)
+                                    setLocalCustomerId(String(newCustomer.id))
+                                    onSetCustomer(
+                                      newCustomer.name,
+                                      newCustomer.phone,
+                                      String(newCustomer.id)
+                                    )
+                                    setQcAdded(true)
+                                    toast.success('Customer added')
+                                  } catch (err: unknown) {
+                                    toast.error(
+                                      err instanceof Error ? err.message : 'Failed to add customer'
+                                    )
+                                  }
+                                  setQcSaving(false)
+                                }
+                              }}
+                            />
+                            <Button
+                              size="sm"
+                              className="h-9 gap-1 bg-blue-600 hover:bg-blue-700 text-white shrink-0"
+                              disabled={!qcName.trim() || qcPhone.length !== 10 || qcSaving}
+                              onClick={async () => {
+                                setQcSaving(true)
+                                try {
+                                  const newCustomer = await window.api.customers.create({
+                                    name: qcName.trim(),
+                                    phone: qcPhone,
+                                    customerType: 'regular'
+                                  })
+                                  setLocalCustomerName(newCustomer.name)
+                                  setLocalCustomerPhone(newCustomer.phone)
+                                  setLocalCustomerId(String(newCustomer.id))
+                                  onSetCustomer(
+                                    newCustomer.name,
+                                    newCustomer.phone,
+                                    String(newCustomer.id)
+                                  )
+                                  setQcAdded(true)
+                                  toast.success('Customer added')
+                                } catch (err: unknown) {
+                                  toast.error(
+                                    err instanceof Error ? err.message : 'Failed to add customer'
+                                  )
+                                }
+                                setQcSaving(false)
+                              }}
+                            >
+                              <UserPlus className="h-3.5 w-3.5" />
+                              {qcSaving ? '...' : 'Add'}
+                            </Button>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground">
+                            Name + 10-digit phone required to link credit
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  )}
+                  <div className="rounded-lg bg-yellow-50 p-3 text-center dark:bg-yellow-900/20">
+                    <div className="text-sm text-yellow-700 dark:text-yellow-400">
+                      {localCustomerName ? (
+                        <>
+                          <span className="font-amount font-bold">
+                            {formatCurrency(grandTotal)}
+                          </span>{' '}
+                          will be added to <strong>{localCustomerName}</strong>&apos;s credit
+                          balance
+                        </>
+                      ) : (
+                        <span className="text-destructive font-medium">
+                          ⚠ Customer name is required for credit sales
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {creditWarning && (
+                    <div className="rounded-lg bg-destructive/10 border border-destructive/30 p-3 text-center">
+                      <div className="text-sm text-destructive font-medium">⚠ {creditWarning}</div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={onClose} className="rounded-lg">
+                Cancel
+              </Button>
+              <Button
+                onClick={handlePay}
+                disabled={processing}
+                className="gap-2 rounded-lg shadow-md shadow-primary/20 min-w-[160px]"
+              >
+                <Printer className="h-4 w-4" />
+                {processing ? 'Processing...' : 'Complete & Print'}
+              </Button>
+            </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   )
@@ -934,7 +1404,7 @@ function HeldBillsDialog({
 }: {
   open: boolean
   onClose: () => void
-  heldBills: any[]
+  heldBills: HeldBill[]
   onRecall: (id: string) => void
   onDelete: (id: string) => void
 }): React.JSX.Element {
@@ -946,9 +1416,7 @@ function HeldBillsDialog({
           <DialogDescription>Select a bill to recall</DialogDescription>
         </DialogHeader>
         {heldBills.length === 0 ? (
-          <div className="py-8 text-center text-muted-foreground">
-            No held bills
-          </div>
+          <div className="py-8 text-center text-muted-foreground">No held bills</div>
         ) : (
           <ScrollArea className="max-h-[400px]">
             <div className="space-y-2">
@@ -958,12 +1426,10 @@ function HeldBillsDialog({
                   className="flex items-center justify-between rounded-lg border border-border p-3"
                 >
                   <div>
-                    <div className="font-medium">
-                      {bill.customerName || 'Walk-in Customer'}
-                    </div>
+                    <div className="font-medium">{bill.customerName || 'Walk-in Customer'}</div>
                     <div className="text-xs text-muted-foreground">
-                      {new Date(bill.heldAt).toLocaleString('en-IN')} •{' '}
-                      {bill.items?.length || 0} items
+                      {new Date(bill.heldAt).toLocaleString('en-IN')} • {bill.items?.length || 0}{' '}
+                      items
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1011,7 +1477,20 @@ function CustomerSection({
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Customer[]>([])
   const [showResults, setShowResults] = useState(false)
+  const [selectedCustomerIdx, setSelectedCustomerIdx] = useState(0)
   const [isLinked, setIsLinked] = useState(!!customerId)
+  const [customerBalance, setCustomerBalance] = useState<number | null>(null)
+
+  // Fetch outstanding balance when a linked customer is selected
+  useEffect(() => {
+    if (customerId) {
+      window.api.customers.getById(Number(customerId)).then((c) => {
+        setCustomerBalance(c?.currentBalance ?? 0)
+      })
+    } else {
+      setCustomerBalance(null)
+    }
+  }, [customerId])
 
   // Quick Add Customer state
   const [showQuickAdd, setShowQuickAdd] = useState(false)
@@ -1036,6 +1515,7 @@ function CustomerSection({
 
   const handleSearch = useCallback(async (term: string) => {
     setQuery(term)
+    setSelectedCustomerIdx(0)
     if (term.length < 2) {
       setResults([])
       setShowResults(false)
@@ -1051,7 +1531,7 @@ function CustomerSection({
   }, [])
 
   const selectCustomer = (c: Customer): void => {
-    onSelect(c.name, c.phone, c.id.toString())
+    onSelect(c.name, c.phone?.startsWith('__NOPHONE__') ? '' : c.phone || '', c.id.toString())
     setQuery('')
     setResults([])
     setShowResults(false)
@@ -1106,7 +1586,11 @@ function CustomerSection({
               <span className="text-xs font-semibold text-primary">New Customer</span>
             </div>
             <button
-              onClick={() => { setShowQuickAdd(false); setNewName(''); setNewPhone('') }}
+              onClick={() => {
+                setShowQuickAdd(false)
+                setNewName('')
+                setNewPhone('')
+              }}
               className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
             >
               <X className="h-3.5 w-3.5" />
@@ -1168,14 +1652,21 @@ function CustomerSection({
                   name: newName.trim(),
                   phone: newPhone.trim()
                 })
-                onSelect(created.name, created.phone, created.id.toString())
+                onSelect(
+                  created.name,
+                  created.phone?.startsWith('__NOPHONE__') ? '' : created.phone || '',
+                  created.id.toString()
+                )
                 setIsLinked(true)
                 toast.success(`Customer "${created.name}" added & selected`)
                 setShowQuickAdd(false)
                 setNewName('')
                 setNewPhone('')
               } catch (err: unknown) {
-                toast.error('Failed to add customer: ' + (err instanceof Error ? err.message : 'Unknown error'))
+                toast.error(
+                  'Failed to add customer: ' +
+                    (err instanceof Error ? err.message : 'Unknown error')
+                )
               } finally {
                 setAddingCustomer(false)
               }
@@ -1188,10 +1679,21 @@ function CustomerSection({
       )}
 
       {isLinked && customerName ? (
-        <div className="rounded-md bg-accent/50 px-3 py-2 text-sm">
-          <div className="font-medium">{customerName}</div>
-          {customerPhone && (
-            <div className="text-xs text-muted-foreground">{customerPhone}</div>
+        <div className="space-y-1.5">
+          <div className="rounded-md bg-accent/50 px-3 py-2 text-sm">
+            <div className="font-medium">{customerName}</div>
+            {customerPhone && <div className="text-xs text-muted-foreground">{customerPhone}</div>}
+          </div>
+          {customerBalance !== null && customerBalance > 0 && (
+            <div className="flex items-center gap-2 rounded-md border border-orange-200 bg-orange-50 px-2.5 py-2 dark:border-orange-800 dark:bg-orange-900/20">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-orange-500" />
+              <span className="text-xs text-orange-700 dark:text-orange-400">
+                Outstanding:{' '}
+                <strong className="font-amount font-semibold">
+                  {formatCurrency(customerBalance)}
+                </strong>
+              </span>
+            </div>
           )}
         </div>
       ) : (
@@ -1204,14 +1706,32 @@ function CustomerSection({
             onBlur={() => setTimeout(() => setShowResults(false), 200)}
             placeholder="Search customer or type name..."
             className="h-8 pl-8 text-sm"
+            onKeyDown={(e) => {
+              if (!showResults || results.length === 0) return
+              if (e.key === 'ArrowDown') {
+                e.preventDefault()
+                setSelectedCustomerIdx((i) => Math.min(i + 1, results.length - 1))
+              } else if (e.key === 'ArrowUp') {
+                e.preventDefault()
+                setSelectedCustomerIdx((i) => Math.max(i - 1, 0))
+              } else if (e.key === 'Enter') {
+                e.preventDefault()
+                selectCustomer(results[selectedCustomerIdx])
+              } else if (e.key === 'Escape') {
+                setShowResults(false)
+              }
+            }}
           />
 
           {showResults && results.length > 0 && (
             <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-auto rounded-md border border-border bg-popover shadow-lg">
-              {results.map((c) => (
+              {results.map((c, idx) => (
                 <button
                   key={c.id}
-                  className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-accent"
+                  className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors ${
+                    idx === selectedCustomerIdx ? 'bg-accent' : 'hover:bg-accent/50'
+                  }`}
+                  onMouseEnter={() => setSelectedCustomerIdx(idx)}
                   onMouseDown={(e) => {
                     e.preventDefault()
                     selectCustomer(c)
@@ -1219,10 +1739,15 @@ function CustomerSection({
                 >
                   <div>
                     <div className="font-medium">{c.name}</div>
-                    <div className="text-[11px] text-muted-foreground">{c.phone}</div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {c.phone?.startsWith('__NOPHONE__') ? '' : c.phone}
+                    </div>
                   </div>
                   {c.currentBalance > 0 && (
-                    <Badge variant="outline" className="text-[10px] border-orange-400 text-orange-600">
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] border-orange-400 text-orange-600"
+                    >
                       ₹{c.currentBalance.toLocaleString('en-IN')}
                     </Badge>
                   )}
@@ -1256,5 +1781,145 @@ function CustomerSection({
         />
       )}
     </div>
+  )
+}
+
+// ---- Day Summary Dialog (Ctrl+D) ----
+function DaySummaryDialog({
+  open,
+  onClose
+}: {
+  open: boolean
+  onClose: () => void
+}): React.JSX.Element {
+  const [summary, setSummary] = useState<DailySummary | null>(null)
+  const [totalExpenses, setTotalExpenses] = useState(0)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    const today = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoading(true)
+    Promise.all([window.api.billing.getDailySummary(today), window.api.expenses.getByDate(today)])
+      .then(([s, exps]) => {
+        setSummary(s)
+        setTotalExpenses(
+          (exps as { amount: number }[]).reduce((acc, e) => acc + (e.amount ?? 0), 0)
+        )
+      })
+      .finally(() => setLoading(false))
+  }, [open])
+
+  const netIncome = summary ? summary.totalSales - totalExpenses : 0
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-primary" />
+            Today&apos;s Summary
+          </DialogTitle>
+          <DialogDescription>
+            {new Date().toLocaleDateString('en-IN', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long'
+            })}
+          </DialogDescription>
+        </DialogHeader>
+
+        {loading || !summary ? (
+          <div className="flex items-center justify-center py-10">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="space-y-3 py-1">
+            {/* Total Sales */}
+            <div className="rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/10 p-4 text-center">
+              <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1">
+                Total Sales
+              </div>
+              <div className="text-3xl font-bold font-amount gradient-text">
+                {formatCurrency(summary.totalSales)}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {summary.totalBills} bill{summary.totalBills !== 1 ? 's' : ''} &bull;{' '}
+                {summary.totalItems} items
+              </div>
+            </div>
+
+            {/* Payment Breakdown */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-lg border border-border/60 bg-green-50/50 dark:bg-green-900/10 p-3">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Banknote className="h-3.5 w-3.5 text-green-600" />
+                  <span className="text-[11px] font-medium text-muted-foreground">Cash</span>
+                </div>
+                <div className="font-amount font-bold text-sm">
+                  {formatCurrency(summary.cashSales)}
+                </div>
+                <div className="text-[10px] text-muted-foreground">{summary.cashBills} bills</div>
+              </div>
+              <div className="rounded-lg border border-border/60 bg-blue-50/50 dark:bg-blue-900/10 p-3">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Smartphone className="h-3.5 w-3.5 text-blue-600" />
+                  <span className="text-[11px] font-medium text-muted-foreground">UPI</span>
+                </div>
+                <div className="font-amount font-bold text-sm">
+                  {formatCurrency(summary.upiSales)}
+                </div>
+                <div className="text-[10px] text-muted-foreground">{summary.upiBills} bills</div>
+              </div>
+              <div className="rounded-lg border border-border/60 bg-purple-50/50 dark:bg-purple-900/10 p-3">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <CreditCard className="h-3.5 w-3.5 text-purple-600" />
+                  <span className="text-[11px] font-medium text-muted-foreground">Card</span>
+                </div>
+                <div className="font-amount font-bold text-sm">
+                  {formatCurrency(summary.cardSales)}
+                </div>
+                <div className="text-[10px] text-muted-foreground">{summary.cardBills} bills</div>
+              </div>
+              <div className="rounded-lg border border-border/60 bg-yellow-50/50 dark:bg-yellow-900/10 p-3">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <User className="h-3.5 w-3.5 text-yellow-600" />
+                  <span className="text-[11px] font-medium text-muted-foreground">Credit</span>
+                </div>
+                <div className="font-amount font-bold text-sm">
+                  {formatCurrency(summary.creditSales)}
+                </div>
+                <div className="text-[10px] text-muted-foreground">{summary.creditBills} bills</div>
+              </div>
+            </div>
+
+            {/* Expenses + Net */}
+            <div className="rounded-lg border border-border/60 p-3 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <Wallet className="h-3.5 w-3.5" />
+                  Expenses
+                </div>
+                <span className="font-amount font-medium text-destructive">
+                  &minus; {formatCurrency(totalExpenses)}
+                </span>
+              </div>
+              <div className="border-t border-border/60 pt-2 flex items-center justify-between">
+                <div className="flex items-center gap-1.5 font-medium text-sm">
+                  <TrendingUp className="h-3.5 w-3.5 text-green-600" />
+                  Net Income
+                </div>
+                <span
+                  className={`font-amount font-bold text-sm ${netIncome >= 0 ? 'text-green-600' : 'text-destructive'}`}
+                >
+                  {formatCurrency(netIncome)}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   )
 }

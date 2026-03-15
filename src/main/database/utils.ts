@@ -18,7 +18,7 @@ const COLUMN_ALIASES: Record<string, string | string[]> = {
   category_name: ['categoryName', 'category'],
   sub_category: 'subCategory',
   short_name: 'shortName',
-  hsn_code: 'hsnCode',
+  hsn_code: ['hsnCode', 'hsn'],
   selling_price: 'sellingPrice',
   wholesale_price: 'wholesalePrice',
   gst_rate: 'gstRate',
@@ -132,7 +132,8 @@ export function mapRow<T>(row: Record<string, unknown>): T {
 
   // Special: compute gstAmount from cgst + sgst for bills
   if ('cgst_amount' in row && 'sgst_amount' in row) {
-    result['gstAmount'] = (row['cgst_amount'] as number || 0) + (row['sgst_amount'] as number || 0)
+    result['gstAmount'] =
+      ((row['cgst_amount'] as number) || 0) + ((row['sgst_amount'] as number) || 0)
   }
 
   return result as T

@@ -21,18 +21,27 @@ export class CustomerRepository {
 
   getAll(): Customer[] {
     const db = getSqlite()
-    return mapRows<Customer>(db.prepare('SELECT * FROM customers WHERE is_active = 1 ORDER BY name').all() as Record<string, unknown>[])
+    return mapRows<Customer>(
+      db.prepare('SELECT * FROM customers WHERE is_active = 1 ORDER BY name').all() as Record<
+        string,
+        unknown
+      >[]
+    )
   }
 
   getById(id: number): Customer | null {
     const db = getSqlite()
-    const row = db.prepare('SELECT * FROM customers WHERE id = ?').get(id) as Record<string, unknown> | undefined
+    const row = db.prepare('SELECT * FROM customers WHERE id = ?').get(id) as
+      | Record<string, unknown>
+      | undefined
     return row ? mapRow<Customer>(row) : null
   }
 
   getByPhone(phone: string): Customer | null {
     const db = getSqlite()
-    const row = db.prepare('SELECT * FROM customers WHERE phone = ?').get(phone) as Record<string, unknown> | undefined
+    const row = db.prepare('SELECT * FROM customers WHERE phone = ?').get(phone) as
+      | Record<string, unknown>
+      | undefined
     return row ? mapRow<Customer>(row) : null
   }
 
@@ -47,6 +56,10 @@ export class CustomerRepository {
     creditLimit?: number
   }): Customer {
     const db = getSqlite()
+    // Use a unique placeholder when phone is not provided to satisfy NOT NULL UNIQUE constraint
+    const phone = data.phone?.trim()
+      ? data.phone.trim()
+      : `__NOPHONE__${Date.now()}${Math.random().toString(36).slice(2, 6)}`
     const result = db
       .prepare(
         `INSERT INTO customers (name, phone, email, address, city, gstin, customer_type, credit_limit)
@@ -54,7 +67,7 @@ export class CustomerRepository {
       )
       .run(
         data.name,
-        data.phone || null,
+        phone,
         data.email || null,
         data.address || null,
         data.city || null,
@@ -82,14 +95,38 @@ export class CustomerRepository {
     const fields: string[] = []
     const values: unknown[] = []
 
-    if (data.name !== undefined) { fields.push('name = ?'); values.push(data.name) }
-    if (data.phone !== undefined) { fields.push('phone = ?'); values.push(data.phone) }
-    if (data.email !== undefined) { fields.push('email = ?'); values.push(data.email) }
-    if (data.address !== undefined) { fields.push('address = ?'); values.push(data.address) }
-    if (data.city !== undefined) { fields.push('city = ?'); values.push(data.city) }
-    if (data.gstin !== undefined) { fields.push('gstin = ?'); values.push(data.gstin) }
-    if (data.customerType !== undefined) { fields.push('customer_type = ?'); values.push(data.customerType) }
-    if (data.creditLimit !== undefined) { fields.push('credit_limit = ?'); values.push(data.creditLimit) }
+    if (data.name !== undefined) {
+      fields.push('name = ?')
+      values.push(data.name)
+    }
+    if (data.phone !== undefined) {
+      fields.push('phone = ?')
+      values.push(data.phone)
+    }
+    if (data.email !== undefined) {
+      fields.push('email = ?')
+      values.push(data.email)
+    }
+    if (data.address !== undefined) {
+      fields.push('address = ?')
+      values.push(data.address)
+    }
+    if (data.city !== undefined) {
+      fields.push('city = ?')
+      values.push(data.city)
+    }
+    if (data.gstin !== undefined) {
+      fields.push('gstin = ?')
+      values.push(data.gstin)
+    }
+    if (data.customerType !== undefined) {
+      fields.push('customer_type = ?')
+      values.push(data.customerType)
+    }
+    if (data.creditLimit !== undefined) {
+      fields.push('credit_limit = ?')
+      values.push(data.creditLimit)
+    }
 
     if (fields.length === 0) return this.getById(id)!
 
@@ -113,7 +150,9 @@ export class CustomerRepository {
   getTotalCredit(): number {
     const db = getSqlite()
     const result = db
-      .prepare('SELECT COALESCE(SUM(current_balance), 0) as total FROM customers WHERE current_balance > 0')
+      .prepare(
+        'SELECT COALESCE(SUM(current_balance), 0) as total FROM customers WHERE current_balance > 0'
+      )
       .get() as { total: number }
     return result.total
   }
@@ -233,19 +272,28 @@ export class CustomerRepository {
              c.current_balance, c.credit_limit,
              (SELECT MAX(b2.date) FROM bills b2
               WHERE b2.customer_id = c.id AND b2.credit_amount > 0 AND b2.status = 'completed') as last_credit_date,
-             (SELECT MIN(b3.date) FROM bills b3
-              WHERE b3.customer_id = c.id AND b3.credit_amount > 0 AND b3.status = 'completed') as first_credit_date,
+             -- First unpaid credit: oldest credit bill after the last payment (FIFO approximation)
+             COALESCE(
+               (SELECT MIN(b3.date) FROM bills b3
+                WHERE b3.customer_id = c.id AND b3.credit_amount > 0 AND b3.status = 'completed'
+                AND b3.date > COALESCE(
+                  (SELECT MAX(cp2.date) FROM credit_payments cp2 WHERE cp2.customer_id = c.id),
+                  '1970-01-01'
+                )),
+               (SELECT MIN(b3.date) FROM bills b3
+                WHERE b3.customer_id = c.id AND b3.credit_amount > 0 AND b3.status = 'completed')
+             ) as first_unpaid_credit_date,
              (SELECT MAX(cp.date) FROM credit_payments cp WHERE cp.customer_id = c.id) as last_payment_date
            FROM customers c
            WHERE c.is_active = 1 AND c.current_balance > 0
          )
          SELECT
            cc.*,
-           CAST(julianday('now','localtime') - julianday(cc.first_credit_date) AS INTEGER) as days_overdue,
+           CAST(julianday('now','localtime') - julianday(cc.first_unpaid_credit_date) AS INTEGER) as days_overdue,
            CASE
-             WHEN CAST(julianday('now','localtime') - julianday(cc.first_credit_date) AS INTEGER) <= 30 THEN 'current'
-             WHEN CAST(julianday('now','localtime') - julianday(cc.first_credit_date) AS INTEGER) <= 60 THEN '31-60'
-             WHEN CAST(julianday('now','localtime') - julianday(cc.first_credit_date) AS INTEGER) <= 90 THEN '61-90'
+             WHEN CAST(julianday('now','localtime') - julianday(cc.first_unpaid_credit_date) AS INTEGER) <= 30 THEN 'current'
+             WHEN CAST(julianday('now','localtime') - julianday(cc.first_unpaid_credit_date) AS INTEGER) <= 60 THEN '31-60'
+             WHEN CAST(julianday('now','localtime') - julianday(cc.first_unpaid_credit_date) AS INTEGER) <= 90 THEN '61-90'
              ELSE '90+'
            END as aging_bucket
          FROM customer_credit cc
@@ -265,7 +313,15 @@ export class CustomerRepository {
            SELECT
              c.current_balance,
              CAST(julianday('now','localtime') - julianday(
-               (SELECT MIN(b.date) FROM bills b WHERE b.customer_id = c.id AND b.credit_amount > 0 AND b.status = 'completed')
+               COALESCE(
+                 (SELECT MIN(b.date) FROM bills b WHERE b.customer_id = c.id AND b.credit_amount > 0
+                  AND b.status = 'completed'
+                  AND b.date > COALESCE(
+                    (SELECT MAX(cp2.date) FROM credit_payments cp2 WHERE cp2.customer_id = c.id),
+                    '1970-01-01'
+                  )),
+                 (SELECT MIN(b.date) FROM bills b WHERE b.customer_id = c.id AND b.credit_amount > 0 AND b.status = 'completed')
+               )
              ) AS INTEGER) as days_overdue
            FROM customers c
            WHERE c.is_active = 1 AND c.current_balance > 0

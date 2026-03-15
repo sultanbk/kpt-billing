@@ -213,6 +213,34 @@ function runMigrations(sqlite: Database.Database): void {
       held_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
 
+    CREATE TABLE IF NOT EXISTS bill_returns (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      original_bill_id INTEGER NOT NULL REFERENCES bills(id),
+      new_bill_id INTEGER REFERENCES bills(id),
+      type TEXT NOT NULL DEFAULT 'return',
+      reason TEXT,
+      return_amount REAL NOT NULL DEFAULT 0,
+      exchange_amount REAL NOT NULL DEFAULT 0,
+      net_amount REAL NOT NULL DEFAULT 0,
+      refund_mode TEXT NOT NULL DEFAULT 'cash',
+      status TEXT NOT NULL DEFAULT 'completed',
+      created_by TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+    );
+
+    CREATE TABLE IF NOT EXISTS bill_return_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      return_id INTEGER NOT NULL REFERENCES bill_returns(id),
+      bill_item_id INTEGER NOT NULL,
+      product_id INTEGER,
+      product_name TEXT NOT NULL,
+      original_qty INTEGER NOT NULL DEFAULT 0,
+      return_qty INTEGER NOT NULL DEFAULT 0,
+      rate REAL NOT NULL DEFAULT 0,
+      gst_rate REAL NOT NULL DEFAULT 0,
+      refund_amount REAL NOT NULL DEFAULT 0
+    );
+
     CREATE TABLE IF NOT EXISTS suppliers (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
@@ -353,6 +381,13 @@ function runMigrations(sqlite: Database.Database): void {
     );
     CREATE INDEX IF NOT EXISTS idx_price_history_product ON price_history(product_id);
     CREATE INDEX IF NOT EXISTS idx_price_history_date ON price_history(created_at);
+
+    -- Return-related indexes for performance
+    CREATE INDEX IF NOT EXISTS idx_bill_returns_original ON bill_returns(original_bill_id);
+    CREATE INDEX IF NOT EXISTS idx_bill_return_items_return ON bill_return_items(return_id);
+    CREATE INDEX IF NOT EXISTS idx_bill_return_items_bill_item ON bill_return_items(bill_item_id);
+    CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);
+    CREATE INDEX IF NOT EXISTS idx_purchase_items_product ON purchase_items(product_id);
   `)
 
   log.info('Migrations completed')
@@ -364,7 +399,9 @@ function runMigrations(sqlite: Database.Database): void {
       sqlite.exec('ALTER TABLE suppliers ADD COLUMN city TEXT')
       log.info('Added city column to suppliers')
     }
-  } catch { /* table may not exist yet, already handled by CREATE IF NOT EXISTS */ }
+  } catch {
+    /* table may not exist yet, already handled by CREATE IF NOT EXISTS */
+  }
 }
 
 function seedDefaults(sqlite: Database.Database): void {
@@ -386,9 +423,7 @@ function seedDefaults(sqlite: Database.Database): void {
   }
   if (settingsCount.count === 0) {
     log.info('Seeding default settings...')
-    const insert = sqlite.prepare(
-      "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)"
-    )
+    const insert = sqlite.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)')
     for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) {
       insert.run(key, value)
     }
@@ -403,7 +438,7 @@ function seedDefaults(sqlite: Database.Database): void {
     // Default PIN: 1234 (users should change this)
     const hashedPin = createHash('sha256').update('1234').digest('hex')
     sqlite
-      .prepare("INSERT INTO users (name, pin, role) VALUES (?, ?, ?)")
+      .prepare('INSERT INTO users (name, pin, role) VALUES (?, ?, ?)')
       .run('Puneet', hashedPin, 'owner')
   }
 
@@ -412,9 +447,7 @@ function seedDefaults(sqlite: Database.Database): void {
     .prepare("SELECT value FROM settings WHERE key = 'lastBillNumber'")
     .get() as { value: string } | undefined
   if (!billSeq) {
-    sqlite
-      .prepare("INSERT INTO settings (key, value) VALUES ('lastBillNumber', '0')")
-      .run()
+    sqlite.prepare("INSERT INTO settings (key, value) VALUES ('lastBillNumber', '0')").run()
   }
 }
 

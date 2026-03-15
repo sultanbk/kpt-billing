@@ -17,7 +17,7 @@ const sections = [
       { keys: ['F3'], action: 'Products' },
       { keys: ['F4'], action: 'Purchases / Stock-In' },
       { keys: ['F5'], action: 'Customers' },
-      { keys: ['F7'], action: 'Reports' },
+      { keys: ['F7'], action: 'Reports (global)' },
       { keys: ['F10'], action: 'Settings' }
     ]
   },
@@ -28,9 +28,11 @@ const sections = [
       { keys: ['Alt', 'O'], action: 'Add Other (custom) item' },
       { keys: ['Alt', 'N'], action: 'Quick add new customer' },
       { keys: ['F6'], action: 'Hold current bill' },
+      { keys: ['Ctrl', 'R'], action: 'Return / Exchange' },
       { keys: ['F8'], action: 'Recall held bill' },
       { keys: ['F9'], action: 'Clear cart' },
-      { keys: ['F11'], action: 'Pay & Print' }
+      { keys: ['F11'], action: 'Pay & Print' },
+      { keys: ['Ctrl', 'D'], action: 'Day summary popup' }
     ]
   },
   {
@@ -43,6 +45,21 @@ const sections = [
       { keys: ['Ctrl', 'Shift', 'D'], action: 'Go to Dashboard' },
       { keys: ['Ctrl', 'Shift', 'R'], action: 'Go to Reports' },
       { keys: ['F12'], action: 'Show this help' }
+    ]
+  },
+  {
+    title: 'Quick Bill Search (Ctrl+K)',
+    shortcuts: [
+      { keys: ['↑', '↓'], action: 'Navigate bills / actions' },
+      { keys: ['Enter'], action: 'Open actions / Execute' },
+      { keys: ['→'], action: 'Open actions for bill' },
+      { keys: ['←'], action: 'Go back' },
+      { keys: ['V'], action: 'View bill details' },
+      { keys: ['P'], action: 'Print receipt' },
+      { keys: ['D'], action: 'Download PDF' },
+      { keys: ['W'], action: 'Send via WhatsApp' },
+      { keys: ['R'], action: 'Return / Exchange' },
+      { keys: ['Esc'], action: 'Back / Close' }
     ]
   }
 ]

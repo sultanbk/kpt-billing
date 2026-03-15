@@ -128,6 +128,7 @@ export default function CustomersPage(): React.JSX.Element {
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadCustomers()
   }, [loadCustomers])
 
@@ -464,15 +465,10 @@ export default function CustomersPage(): React.JSX.Element {
                   filteredCustomers.map((customer) => (
                     <TableRow key={customer.id} className="cursor-pointer hover:bg-accent/50">
                       <TableCell>
-                        <button
-                          className="text-left"
-                          onClick={() => openDetailDialog(customer)}
-                        >
+                        <button className="text-left" onClick={() => openDetailDialog(customer)}>
                           <div className="font-medium">{customer.name}</div>
                           {customer.email && (
-                            <div className="text-xs text-muted-foreground">
-                              {customer.email}
-                            </div>
+                            <div className="text-xs text-muted-foreground">{customer.email}</div>
                           )}
                         </button>
                       </TableCell>
@@ -526,25 +522,27 @@ export default function CustomersPage(): React.JSX.Element {
                                 Collect Payment
                               </DropdownMenuItem>
                             )}
-                            {customer.currentBalance > 0 && customer.phone && customer.phone.length >= 10 && (
-                              <DropdownMenuItem
-                                onClick={async () => {
-                                  const res = await window.api.whatsapp.sendCreditReminder(
-                                    customer.phone,
-                                    customer.name,
-                                    customer.currentBalance
-                                  )
-                                  if (res.success) {
-                                    toast.success('WhatsApp opened with reminder')
-                                  } else {
-                                    toast.error(res.error || 'Failed')
-                                  }
-                                }}
-                              >
-                                <span className="mr-2">📱</span>
-                                WhatsApp Reminder
-                              </DropdownMenuItem>
-                            )}
+                            {customer.currentBalance > 0 &&
+                              customer.phone &&
+                              customer.phone.length >= 10 && (
+                                <DropdownMenuItem
+                                  onClick={async () => {
+                                    const res = await window.api.whatsapp.sendCreditReminder(
+                                      customer.phone,
+                                      customer.name,
+                                      customer.currentBalance
+                                    )
+                                    if (res.success) {
+                                      toast.success('WhatsApp opened with reminder')
+                                    } else {
+                                      toast.error(res.error || 'Failed')
+                                    }
+                                  }}
+                                >
+                                  <span className="mr-2">📱</span>
+                                  WhatsApp Reminder
+                                </DropdownMenuItem>
+                              )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -560,9 +558,7 @@ export default function CustomersPage(): React.JSX.Element {
         <Dialog open={showFormDialog} onOpenChange={setShowFormDialog}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>
-                {editingCustomer ? 'Edit Customer' : 'Add New Customer'}
-              </DialogTitle>
+              <DialogTitle>{editingCustomer ? 'Edit Customer' : 'Add New Customer'}</DialogTitle>
               <DialogDescription>
                 {editingCustomer
                   ? 'Update customer details below.'
@@ -702,8 +698,7 @@ export default function CustomersPage(): React.JSX.Element {
                 Collect Credit Payment
               </DialogTitle>
               <DialogDescription>
-                Record a credit clearance payment from{' '}
-                <strong>{selectedCustomer?.name}</strong>
+                Record a credit clearance payment from <strong>{selectedCustomer?.name}</strong>
               </DialogDescription>
             </DialogHeader>
 
@@ -759,10 +754,7 @@ export default function CustomersPage(): React.JSX.Element {
                       Balance after payment:{' '}
                       <span className="font-amount font-medium">
                         {formatCurrency(
-                          Math.max(
-                            0,
-                            selectedCustomer.currentBalance - parseFloat(paymentAmount)
-                          )
+                          Math.max(0, selectedCustomer.currentBalance - parseFloat(paymentAmount))
                         )}
                       </span>
                       {parseFloat(paymentAmount) >= selectedCustomer.currentBalance && (
@@ -948,9 +940,7 @@ export default function CustomersPage(): React.JSX.Element {
                     {selectedCustomer.gstin && (
                       <Card>
                         <CardHeader className="pb-2">
-                          <CardTitle className="text-sm text-muted-foreground">
-                            GSTIN
-                          </CardTitle>
+                          <CardTitle className="text-sm text-muted-foreground">GSTIN</CardTitle>
                         </CardHeader>
                         <CardContent>
                           <span className="text-sm font-mono">{selectedCustomer.gstin}</span>
@@ -1036,9 +1026,7 @@ export default function CustomersPage(): React.JSX.Element {
                             <TableHead className="text-right text-destructive">
                               Credit (+)
                             </TableHead>
-                            <TableHead className="text-right text-green-600">
-                              Paid (-)
-                            </TableHead>
+                            <TableHead className="text-right text-green-600">Paid (-)</TableHead>
                             <TableHead className="text-right">Balance</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -1055,9 +1043,7 @@ export default function CustomersPage(): React.JSX.Element {
                           ) : (
                             creditLedger.map((entry, idx) => (
                               <TableRow key={`${entry.type}-${entry.id}-${idx}`}>
-                                <TableCell className="text-sm">
-                                  {formatDate(entry.date)}
-                                </TableCell>
+                                <TableCell className="text-sm">{formatDate(entry.date)}</TableCell>
                                 <TableCell>
                                   {entry.type === 'credit' ? (
                                     <span className="flex items-center text-xs text-destructive">
@@ -1081,10 +1067,7 @@ export default function CustomersPage(): React.JSX.Element {
                                 </TableCell>
                                 <TableCell>
                                   {entry.paymentMode && (
-                                    <Badge
-                                      variant="secondary"
-                                      className="text-[10px] uppercase"
-                                    >
+                                    <Badge variant="secondary" className="text-[10px] uppercase">
                                       {entry.paymentMode.replace('_', ' ')}
                                     </Badge>
                                   )}
@@ -1170,17 +1153,12 @@ export default function CustomersPage(): React.JSX.Element {
                           ) : (
                             creditPayments.map((p) => (
                               <TableRow key={p.id}>
-                                <TableCell className="text-sm">
-                                  {formatDate(p.date)}
-                                </TableCell>
+                                <TableCell className="text-sm">{formatDate(p.date)}</TableCell>
                                 <TableCell className="text-right font-amount font-bold text-green-600">
                                   {formatCurrency(p.amount)}
                                 </TableCell>
                                 <TableCell>
-                                  <Badge
-                                    variant="secondary"
-                                    className="text-[10px] uppercase"
-                                  >
+                                  <Badge variant="secondary" className="text-[10px] uppercase">
                                     {p.paymentMode.replace('_', ' ')}
                                   </Badge>
                                 </TableCell>
@@ -1192,10 +1170,7 @@ export default function CustomersPage(): React.JSX.Element {
                                 </TableCell>
                                 <TableCell className="text-right font-amount text-sm">
                                   {p.balanceAfter === 0 ? (
-                                    <Badge
-                                      variant="default"
-                                      className="text-[10px] bg-green-600"
-                                    >
+                                    <Badge variant="default" className="text-[10px] bg-green-600">
                                       CLEARED
                                     </Badge>
                                   ) : (
@@ -1263,9 +1238,7 @@ export default function CustomersPage(): React.JSX.Element {
                                 <TableCell className="font-mono text-xs">
                                   {bill.billNumber || bill.billNo}
                                 </TableCell>
-                                <TableCell className="text-sm">
-                                  {formatDate(bill.date)}
-                                </TableCell>
+                                <TableCell className="text-sm">{formatDate(bill.date)}</TableCell>
                                 <TableCell>{bill.totalItems}</TableCell>
                                 <TableCell>
                                   <Badge variant="secondary" className="text-[10px]">

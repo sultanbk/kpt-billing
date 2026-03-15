@@ -113,6 +113,7 @@ export default function CustomerAnalyticsPage(): React.JSX.Element {
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData()
   }, [loadData])
 
@@ -133,13 +134,19 @@ export default function CustomerAnalyticsPage(): React.JSX.Element {
         )
       case 'medium':
         return (
-          <Badge variant="secondary" className="gap-1 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+          <Badge
+            variant="secondary"
+            className="gap-1 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
+          >
             <Shield className="h-3 w-3" /> Medium
           </Badge>
         )
       case 'low':
         return (
-          <Badge variant="secondary" className="gap-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+          <Badge
+            variant="secondary"
+            className="gap-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+          >
             <ShieldCheck className="h-3 w-3" /> Low
           </Badge>
         )
@@ -151,13 +158,24 @@ export default function CustomerAnalyticsPage(): React.JSX.Element {
   function getFrequencyLabel(days: number | null): React.JSX.Element {
     if (days === null) return <span className="text-muted-foreground">-</span>
     if (days <= 7)
-      return <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Weekly</Badge>
+      return (
+        <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+          Weekly
+        </Badge>
+      )
     if (days <= 15)
-      return <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">Bi-weekly</Badge>
+      return (
+        <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+          Bi-weekly
+        </Badge>
+      )
     if (days <= 30)
-      return <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Monthly</Badge>
-    if (days <= 90)
-      return <Badge variant="secondary">Quarterly</Badge>
+      return (
+        <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+          Monthly
+        </Badge>
+      )
+    if (days <= 90) return <Badge variant="secondary">Quarterly</Badge>
     return <Badge variant="outline">Rare</Badge>
   }
 
@@ -292,7 +310,9 @@ export default function CustomerAnalyticsPage(): React.JSX.Element {
                       ) : (
                         topCustomers.map((c, i) => (
                           <TableRow key={c.id}>
-                            <TableCell className="font-medium text-muted-foreground">{i + 1}</TableCell>
+                            <TableCell className="font-medium text-muted-foreground">
+                              {i + 1}
+                            </TableCell>
                             <TableCell>
                               <div>
                                 <span className="font-medium">{c.name}</span>
@@ -302,17 +322,23 @@ export default function CustomerAnalyticsPage(): React.JSX.Element {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <Badge variant="outline" className="capitalize">{c.customerType}</Badge>
+                              <Badge variant="outline" className="capitalize">
+                                {c.customerType}
+                              </Badge>
                             </TableCell>
                             <TableCell className="text-right font-medium">{c.totalBills}</TableCell>
                             <TableCell className="text-right font-bold text-green-600">
                               {formatCurrency(c.totalRevenue)}
                             </TableCell>
-                            <TableCell className="text-right">{formatCurrency(c.avgBillValue)}</TableCell>
+                            <TableCell className="text-right">
+                              {formatCurrency(c.avgBillValue)}
+                            </TableCell>
                             <TableCell className="text-right">{c.totalItemsBought}</TableCell>
                             <TableCell>
                               {c.lastPurchaseDate ? (
-                                <span className="text-sm">{dayjs(c.lastPurchaseDate).fromNow()}</span>
+                                <span className="text-sm">
+                                  {dayjs(c.lastPurchaseDate).fromNow()}
+                                </span>
                               ) : (
                                 <span className="text-muted-foreground">-</span>
                               )}
@@ -371,23 +397,41 @@ export default function CustomerAnalyticsPage(): React.JSX.Element {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <Badge variant="outline" className="capitalize">{c.customerType}</Badge>
+                              <Badge variant="outline" className="capitalize">
+                                {c.customerType}
+                              </Badge>
                             </TableCell>
                             <TableCell className="text-right font-medium">{c.totalBills}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(c.totalRevenue)}</TableCell>
+                            <TableCell className="text-right">
+                              {formatCurrency(c.totalRevenue)}
+                            </TableCell>
                             <TableCell>{getFrequencyLabel(c.avgDaysBetweenPurchases)}</TableCell>
                             <TableCell className="text-right">
-                              {c.avgDaysBetweenPurchases !== null ? `${c.avgDaysBetweenPurchases} days` : '-'}
+                              {c.avgDaysBetweenPurchases !== null
+                                ? `${c.avgDaysBetweenPurchases} days`
+                                : '-'}
                             </TableCell>
                             <TableCell>
-                              {c.lastPurchaseDate ? dayjs(c.lastPurchaseDate).format('DD MMM YYYY') : '-'}
+                              {c.lastPurchaseDate
+                                ? dayjs(c.lastPurchaseDate).format('DD MMM YYYY')
+                                : '-'}
                             </TableCell>
                             <TableCell className="text-right">
                               {c.daysSinceLastPurchase !== null ? (
-                                <span className={c.daysSinceLastPurchase > 60 ? 'text-red-600 font-medium' : c.daysSinceLastPurchase > 30 ? 'text-amber-600' : ''}>
+                                <span
+                                  className={
+                                    c.daysSinceLastPurchase > 60
+                                      ? 'text-red-600 font-medium'
+                                      : c.daysSinceLastPurchase > 30
+                                        ? 'text-amber-600'
+                                        : ''
+                                  }
+                                >
                                   {c.daysSinceLastPurchase}d
                                 </span>
-                              ) : '-'}
+                              ) : (
+                                '-'
+                              )}
                             </TableCell>
                           </TableRow>
                         ))
@@ -435,7 +479,12 @@ export default function CustomerAnalyticsPage(): React.JSX.Element {
                         </TableRow>
                       ) : (
                         creditRisk.map((c) => (
-                          <TableRow key={c.id} className={c.riskLevel === 'high' ? 'bg-red-50/50 dark:bg-red-900/10' : ''}>
+                          <TableRow
+                            key={c.id}
+                            className={
+                              c.riskLevel === 'high' ? 'bg-red-50/50 dark:bg-red-900/10' : ''
+                            }
+                          >
                             <TableCell>
                               <div>
                                 <span className="font-medium">{c.name}</span>
@@ -447,20 +496,40 @@ export default function CustomerAnalyticsPage(): React.JSX.Element {
                               {formatCurrency(c.currentBalance)}
                             </TableCell>
                             <TableCell className="text-right">
-                              {c.creditLimit ? formatCurrency(c.creditLimit) : <span className="text-muted-foreground">No limit</span>}
+                              {c.creditLimit ? (
+                                formatCurrency(c.creditLimit)
+                              ) : (
+                                <span className="text-muted-foreground">No limit</span>
+                              )}
                             </TableCell>
                             <TableCell className="text-right">
                               {c.creditLimit ? (
-                                <span className={c.creditUtilizationPct > 80 ? 'text-red-600 font-medium' : c.creditUtilizationPct > 50 ? 'text-amber-600' : 'text-green-600'}>
+                                <span
+                                  className={
+                                    c.creditUtilizationPct > 80
+                                      ? 'text-red-600 font-medium'
+                                      : c.creditUtilizationPct > 50
+                                        ? 'text-amber-600'
+                                        : 'text-green-600'
+                                  }
+                                >
                                   {c.creditUtilizationPct}%
                                 </span>
-                              ) : '-'}
+                              ) : (
+                                '-'
+                              )}
                             </TableCell>
-                            <TableCell className="text-right">{formatCurrency(c.totalCreditTaken)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(c.totalPaymentsMade)}</TableCell>
+                            <TableCell className="text-right">
+                              {formatCurrency(c.totalCreditTaken)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {formatCurrency(c.totalPaymentsMade)}
+                            </TableCell>
                             <TableCell>
                               {c.lastPaymentDate ? (
-                                <span className="text-sm">{dayjs(c.lastPaymentDate).fromNow()}</span>
+                                <span className="text-sm">
+                                  {dayjs(c.lastPaymentDate).fromNow()}
+                                </span>
                               ) : (
                                 <span className="text-red-500 text-sm font-medium">Never paid</span>
                               )}

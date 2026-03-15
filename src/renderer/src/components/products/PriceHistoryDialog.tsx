@@ -3,13 +3,7 @@
 // Track when prices changed and by how much
 // ============================================================================
 import { useState, useEffect } from 'react'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription
-} from '../ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog'
 import { Badge } from '../ui/badge'
 import { ScrollArea } from '../ui/scroll-area'
 import { TrendingUp, TrendingDown, Minus, History } from 'lucide-react'
@@ -56,6 +50,7 @@ export function PriceHistoryDialog({
 
   useEffect(() => {
     if (open && productId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoading(true)
       window.api.products
         .getPriceHistory(productId, 100)
@@ -78,11 +73,22 @@ export function PriceHistoryDialog({
     }
   }, [open, productId])
 
-  const getChangeIndicator = (oldVal: number, newVal: number) => {
+  const getChangeIndicator = (
+    oldVal: number,
+    newVal: number
+  ): { icon: typeof TrendingUp; color: string; label: string } => {
     if (newVal > oldVal) {
-      return { icon: TrendingUp, color: 'text-red-500', label: `+${formatCurrency(newVal - oldVal)}` }
+      return {
+        icon: TrendingUp,
+        color: 'text-red-500',
+        label: `+${formatCurrency(newVal - oldVal)}`
+      }
     } else if (newVal < oldVal) {
-      return { icon: TrendingDown, color: 'text-green-500', label: `-${formatCurrency(oldVal - newVal)}` }
+      return {
+        icon: TrendingDown,
+        color: 'text-green-500',
+        label: `-${formatCurrency(oldVal - newVal)}`
+      }
     }
     return { icon: Minus, color: 'text-muted-foreground', label: 'No change' }
   }

@@ -99,7 +99,7 @@ export default function ProductsPage(): React.JSX.Element {
       })
       setProducts(result.data)
       setTotal(result.total)
-    } catch (err) {
+    } catch {
       toast.error('Failed to load products')
     }
     setLoading(false)
@@ -115,15 +115,18 @@ export default function ProductsPage(): React.JSX.Element {
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadProducts()
   }, [loadProducts])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadCategories()
   }, [loadCategories])
 
   // Reset page when filters change
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage(1)
   }, [search, categoryFilter])
 
@@ -134,7 +137,7 @@ export default function ProductsPage(): React.JSX.Element {
       toast.success('Product deleted')
       setShowDelete(null)
       loadProducts()
-    } catch (err) {
+    } catch {
       toast.error('Failed to delete product')
     }
   }
@@ -146,13 +149,14 @@ export default function ProductsPage(): React.JSX.Element {
       })
       if (!result) return
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const importResult = await window.api.products.import(result as any)
       toast.success(`Imported ${importResult.imported} products. ${importResult.skipped} skipped.`)
       if (importResult.errors && importResult.errors.length > 0) {
         importResult.errors.slice(0, 5).forEach((e: string) => toast.warning(e))
       }
       loadProducts()
-    } catch (err) {
+    } catch {
       toast.error('Import failed')
     }
   }
@@ -240,7 +244,9 @@ export default function ProductsPage(): React.JSX.Element {
         >
           <option value="">All Categories</option>
           {categories.map((c) => (
-            <option key={c.id} value={c.name}>{c.name}</option>
+            <option key={c.id} value={c.name}>
+              {c.name}
+            </option>
           ))}
         </select>
       </div>
@@ -278,10 +284,15 @@ export default function ProductsPage(): React.JSX.Element {
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{product.name}</span>
                       {product.stock <= 0 && (
-                        <Badge variant="destructive" className="text-[10px]">Out</Badge>
+                        <Badge variant="destructive" className="text-[10px]">
+                          Out
+                        </Badge>
                       )}
                       {product.stock > 0 && product.stock <= (product.lowStockThreshold || 5) && (
-                        <Badge variant="outline" className="border-yellow-500 text-yellow-600 text-[10px]">
+                        <Badge
+                          variant="outline"
+                          className="border-yellow-500 text-yellow-600 text-[10px]"
+                        >
                           Low
                         </Badge>
                       )}
@@ -297,11 +308,11 @@ export default function ProductsPage(): React.JSX.Element {
                   <TableCell className="text-right font-amount font-medium">
                     {formatCurrency(product.sellingPrice)}
                   </TableCell>
-                  <TableCell className="text-right font-amount">
-                    {product.stock}
-                  </TableCell>
+                  <TableCell className="text-right font-amount">{product.stock}</TableCell>
                   <TableCell className="text-center">
-                    <Badge variant="secondary" className="text-[10px]">{product.gstRate}%</Badge>
+                    <Badge variant="secondary" className="text-[10px]">
+                      {product.gstRate}%
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
@@ -335,9 +346,7 @@ export default function ProductsPage(): React.JSX.Element {
                           <PackagePlus className="mr-2 h-4 w-4" />
                           Adjust Stock
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => setShowPriceHistory(product)}
-                        >
+                        <DropdownMenuItem onClick={() => setShowPriceHistory(product)}>
                           <History className="mr-2 h-4 w-4" />
                           Price History
                         </DropdownMenuItem>
@@ -556,6 +565,7 @@ function ProductFormDialog({
 
   useEffect(() => {
     if (product) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm({
         name: product.name,
         category: product.category || undefined,
@@ -606,7 +616,7 @@ function ProductFormDialog({
         toast.success('Product created')
       }
       onSaved()
-    } catch (err) {
+    } catch {
       toast.error('Failed to save product')
     }
     setSaving(false)
@@ -649,7 +659,9 @@ function ProductFormDialog({
             >
               <option value="">Select category</option>
               {categories.map((c) => (
-                <option key={c.id} value={c.name}>{c.name}</option>
+                <option key={c.id} value={c.name}>
+                  {c.name}
+                </option>
               ))}
             </select>
           </div>
@@ -708,7 +720,9 @@ function ProductFormDialog({
               onChange={(e) => updateField('gstRate', parseInt(e.target.value))}
             >
               {GST_RATES.map((r) => (
-                <option key={r} value={r}>{r}%</option>
+                <option key={r} value={r}>
+                  {r}%
+                </option>
               ))}
             </select>
           </div>
@@ -749,9 +763,7 @@ function ProductFormDialog({
               type="number"
               min={0}
               value={form.lowStockThreshold || ''}
-              onChange={(e) =>
-                updateField('lowStockThreshold', parseInt(e.target.value) || 0)
-              }
+              onChange={(e) => updateField('lowStockThreshold', parseInt(e.target.value) || 0)}
             />
           </div>
 
@@ -783,7 +795,10 @@ function ProductFormDialog({
             <span className="font-medium">
               {formatCurrency(form.sellingPrice - form.costPrice)}
             </span>
-            <span className="text-muted-foreground"> ({((form.sellingPrice - form.costPrice) / form.costPrice * 100).toFixed(1)}%)</span>
+            <span className="text-muted-foreground">
+              {' '}
+              ({(((form.sellingPrice - form.costPrice) / form.costPrice) * 100).toFixed(1)}%)
+            </span>
           </div>
         )}
 

@@ -137,7 +137,7 @@ export class CloudBackupService {
             await this.exchangeCode(code)
             resolve(true)
           }
-        } catch (err) {
+        } catch {
           // Not a redirect we care about
         }
       })
@@ -226,10 +226,11 @@ export class CloudBackupService {
 
   private async getAccessToken(): Promise<string> {
     if (!this.token?.access_token) throw new Error('Not authenticated')
-    if (!this.config?.clientId || !this.config?.clientSecret) throw new Error('Google Drive not configured')
+    if (!this.config?.clientId || !this.config?.clientSecret)
+      throw new Error('Google Drive not configured')
 
     // Refresh if expired (with 5 min buffer)
-    if (Date.now() >= (this.token.expiry_date - 300000)) {
+    if (Date.now() >= this.token.expiry_date - 300000) {
       await this.refreshAccessToken()
     }
 
@@ -355,9 +356,7 @@ export class CloudBackupService {
       const token = await this.getAccessToken()
       const folderId = await this.getOrCreateFolder()
 
-      const query = encodeURIComponent(
-        `'${folderId}' in parents and trashed=false`
-      )
+      const query = encodeURIComponent(`'${folderId}' in parents and trashed=false`)
       const resp = await this.httpGet(
         `https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name,size,modifiedTime)&orderBy=modifiedTime desc&pageSize=50`,
         token
@@ -405,7 +404,9 @@ export class CloudBackupService {
     if (existsSync(tokenPath)) {
       try {
         writeFileSync(tokenPath, '')
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
   }
 
@@ -417,7 +418,7 @@ export class CloudBackupService {
     return {
       configured: this.isConfigured(),
       authenticated: this.isAuthenticated(),
-      hasRefreshToken: !!(this.token?.refresh_token)
+      hasRefreshToken: !!this.token?.refresh_token
     }
   }
 

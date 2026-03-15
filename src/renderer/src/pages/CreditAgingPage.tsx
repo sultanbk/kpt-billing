@@ -14,14 +14,7 @@ import {
   TableHeader,
   TableRow
 } from '../components/ui/table'
-import {
-  IndianRupee,
-  AlertTriangle,
-  Clock,
-  TrendingDown,
-  Phone,
-  Download
-} from 'lucide-react'
+import { IndianRupee, AlertTriangle, Clock, TrendingDown, Phone, Download } from 'lucide-react'
 import { formatCurrency } from '../lib/utils'
 import { toast } from 'sonner'
 import dayjs from 'dayjs'
@@ -84,21 +77,33 @@ export default function CreditAgingPage(): React.JSX.Element {
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData()
   }, [loadData])
 
-  const filtered = filterBucket === 'all'
-    ? customers
-    : customers.filter((c) => c.agingBucket === filterBucket)
+  const filtered =
+    filterBucket === 'all' ? customers : customers.filter((c) => c.agingBucket === filterBucket)
 
   function getBucketBadge(bucket: string): React.JSX.Element {
     switch (bucket) {
       case 'current':
-        return <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Current (0-30d)</Badge>
+        return (
+          <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+            Current (0-30d)
+          </Badge>
+        )
       case '31-60':
-        return <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">31-60 days</Badge>
+        return (
+          <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+            31-60 days
+          </Badge>
+        )
       case '61-90':
-        return <Badge className="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">61-90 days</Badge>
+        return (
+          <Badge className="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+            61-90 days
+          </Badge>
+        )
       case '90+':
         return <Badge variant="destructive">90+ days</Badge>
       default:
@@ -123,9 +128,7 @@ export default function CreditAgingPage(): React.JSX.Element {
       <div className="flex items-center justify-between border-b border-border px-6 py-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Credit Aging Report</h1>
-          <p className="text-sm text-muted-foreground">
-            30/60/90 day overdue credit breakdown
-          </p>
+          <p className="text-sm text-muted-foreground">30/60/90 day overdue credit breakdown</p>
         </div>
         <Button variant="outline" className="gap-2" onClick={handleExport}>
           <Download className="h-4 w-4" />
@@ -149,7 +152,9 @@ export default function CreditAgingPage(): React.JSX.Element {
                   <div>
                     <p className="text-xs text-muted-foreground">Total Outstanding</p>
                     <p className="text-lg font-bold">{formatCurrency(summary.totalOutstanding)}</p>
-                    <p className="text-xs text-muted-foreground">{summary.totalCustomers} customers</p>
+                    <p className="text-xs text-muted-foreground">
+                      {summary.totalCustomers} customers
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -166,7 +171,9 @@ export default function CreditAgingPage(): React.JSX.Element {
                   <div>
                     <p className="text-xs text-muted-foreground">Current (0-30d)</p>
                     <p className="text-lg font-bold">{formatCurrency(summary.currentAmount)}</p>
-                    <p className="text-xs text-muted-foreground">{summary.currentCount} customers</p>
+                    <p className="text-xs text-muted-foreground">
+                      {summary.currentCount} customers
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -216,7 +223,9 @@ export default function CreditAgingPage(): React.JSX.Element {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">90+ Days</p>
-                    <p className="text-lg font-bold text-red-600">{formatCurrency(summary.days90Plus)}</p>
+                    <p className="text-lg font-bold text-red-600">
+                      {formatCurrency(summary.days90Plus)}
+                    </p>
                     <p className="text-xs text-muted-foreground">{summary.count90Plus} customers</p>
                   </div>
                 </div>
@@ -236,7 +245,9 @@ export default function CreditAgingPage(): React.JSX.Element {
                 {summary.currentAmount > 0 && (
                   <div
                     className="bg-green-500 flex items-center justify-center text-xs font-medium text-white"
-                    style={{ width: `${(summary.currentAmount / summary.totalOutstanding) * 100}%` }}
+                    style={{
+                      width: `${(summary.currentAmount / summary.totalOutstanding) * 100}%`
+                    }}
                     title={`Current: ${formatCurrency(summary.currentAmount)}`}
                   >
                     {((summary.currentAmount / summary.totalOutstanding) * 100).toFixed(0)}%
@@ -271,10 +282,18 @@ export default function CreditAgingPage(): React.JSX.Element {
                 )}
               </div>
               <div className="mt-3 flex gap-6 text-xs">
-                <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-green-500" /> Current (0-30d)</span>
-                <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-amber-500" /> 31-60 days</span>
-                <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-orange-500" /> 61-90 days</span>
-                <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-red-500" /> 90+ days</span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-3 w-3 rounded bg-green-500" /> Current (0-30d)
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-3 w-3 rounded bg-amber-500" /> 31-60 days
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-3 w-3 rounded bg-orange-500" /> 61-90 days
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-3 w-3 rounded bg-red-500" /> 90+ days
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -284,8 +303,15 @@ export default function CreditAgingPage(): React.JSX.Element {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
-              {filterBucket === 'all' ? 'All' : filterBucket === 'current' ? 'Current (0-30d)' : filterBucket} Overdue Customers
-              <Badge variant="secondary" className="ml-2">{filtered.length}</Badge>
+              {filterBucket === 'all'
+                ? 'All'
+                : filterBucket === 'current'
+                  ? 'Current (0-30d)'
+                  : filterBucket}{' '}
+              Overdue Customers
+              <Badge variant="secondary" className="ml-2">
+                {filtered.length}
+              </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -340,18 +366,24 @@ export default function CreditAgingPage(): React.JSX.Element {
                           {formatCurrency(c.currentBalance)}
                         </TableCell>
                         <TableCell className="text-right">
-                          {c.creditLimit ? formatCurrency(c.creditLimit) : <span className="text-muted-foreground">-</span>}
+                          {c.creditLimit ? (
+                            formatCurrency(c.creditLimit)
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <span className={
-                            c.daysOverdue > 90
-                              ? 'text-red-600 font-bold'
-                              : c.daysOverdue > 60
-                                ? 'text-orange-600 font-medium'
-                                : c.daysOverdue > 30
-                                  ? 'text-amber-600'
-                                  : ''
-                          }>
+                          <span
+                            className={
+                              c.daysOverdue > 90
+                                ? 'text-red-600 font-bold'
+                                : c.daysOverdue > 60
+                                  ? 'text-orange-600 font-medium'
+                                  : c.daysOverdue > 30
+                                    ? 'text-amber-600'
+                                    : ''
+                            }
+                          >
                             {c.daysOverdue} days
                           </span>
                         </TableCell>

@@ -28,6 +28,7 @@ export function LockScreen({ open, onUnlock }: LockScreenProps): React.JSX.Eleme
   // Focus input when shown
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPin('')
       setError('')
       setTimeout(() => inputRef.current?.focus(), 100)
@@ -84,10 +85,13 @@ export function LockScreen({ open, onUnlock }: LockScreenProps): React.JSX.Eleme
     <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-background">
       {/* Background pattern */}
       <div className="absolute inset-0 opacity-5">
-        <div className="h-full w-full" style={{
-          backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)',
-          backgroundSize: '40px 40px'
-        }} />
+        <div
+          className="h-full w-full"
+          style={{
+            backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)',
+            backgroundSize: '40px 40px'
+          }}
+        />
       </div>
 
       {/* Clock */}
@@ -108,9 +112,7 @@ export function LockScreen({ open, onUnlock }: LockScreenProps): React.JSX.Eleme
           </div>
           <div className="text-center">
             <h2 className="text-xl font-bold">Screen Locked</h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              Enter PIN to unlock
-            </p>
+            <p className="text-sm text-muted-foreground mt-1">Enter PIN to unlock</p>
           </div>
         </div>
 
@@ -142,9 +144,7 @@ export function LockScreen({ open, onUnlock }: LockScreenProps): React.JSX.Eleme
             </button>
           </div>
 
-          {error && (
-            <p className="text-center text-sm text-destructive">{error}</p>
-          )}
+          {error && <p className="text-center text-sm text-destructive">{error}</p>}
 
           <button
             onClick={handleVerify}

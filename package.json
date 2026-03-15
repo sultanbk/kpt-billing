@@ -1,6 +1,6 @@
 {
   "name": "kpt-billing",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "Krishnapriya Textiles - Billing & Inventory Management System",
   "main": "./out/main/index.js",
   "author": "Krishnapriya Textiles",
@@ -18,7 +18,14 @@
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && electron-builder --win",
     "build:mac": "electron-vite build && electron-builder --mac",
-    "build:linux": "electron-vite build && electron-builder --linux"
+    "build:linux": "electron-vite build && electron-builder --linux",
+    "test": "vitest run --config vitest.config.node.ts && vitest run --config vitest.config.web.ts",
+    "test:main": "vitest --config vitest.config.node.ts",
+    "test:web": "vitest --config vitest.config.web.ts",
+    "test:main:run": "vitest run --config vitest.config.node.ts",
+    "test:web:run": "vitest run --config vitest.config.web.ts",
+    "test:coverage": "vitest run --config vitest.config.node.ts --coverage && vitest run --config vitest.config.web.ts --coverage",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
@@ -57,13 +64,18 @@
     "tailwind-merge": "^3.5.0",
     "uuid": "^13.0.0",
     "xlsx": "^0.18.5",
+    "zod": "^4.3.6",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",
     "@electron-toolkit/eslint-config-ts": "^3.1.0",
     "@electron-toolkit/tsconfig": "^2.0.0",
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/vite": "^4.2.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.19.1",
     "@types/papaparse": "^5.5.2",
@@ -71,6 +83,7 @@
     "@types/react-dom": "^19.2.3",
     "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "^5.1.1",
+    "@vitest/coverage-v8": "^4.0.18",
     "drizzle-kit": "^0.31.9",
     "electron": "^39.2.6",
     "electron-builder": "^26.0.12",
@@ -79,6 +92,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
+    "jsdom": "^28.1.0",
     "png-to-ico": "^3.0.1",
     "prettier": "^3.7.4",
     "react": "^19.2.1",
@@ -86,6 +100,7 @@
     "sharp": "^0.34.5",
     "tailwindcss": "^4.2.1",
     "typescript": "^5.9.3",
-    "vite": "^7.2.6"
+    "vite": "^7.2.6",
+    "vitest": "^4.0.18"
   }
 }

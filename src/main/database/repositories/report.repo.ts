@@ -99,9 +99,16 @@ class ReportRepository {
          ORDER BY bi.hsn_code`
       )
       .all(dateFrom, dateTo) as {
-      hsn_code: string; description: string; total_qty: number; total_taxable: number;
-      cgst_rate: number; total_cgst: number; sgst_rate: number; total_sgst: number;
-      total_gst: number; total_amount: number
+      hsn_code: string
+      description: string
+      total_qty: number
+      total_taxable: number
+      cgst_rate: number
+      total_cgst: number
+      sgst_rate: number
+      total_sgst: number
+      total_gst: number
+      total_amount: number
     }[]
 
     // 2. Rate-wise summary
@@ -120,7 +127,11 @@ class ReportRepository {
          ORDER BY gst_rate`
       )
       .all(dateFrom, dateTo) as {
-      gst_rate: number; taxable_amount: number; cgst: number; sgst: number; total: number
+      gst_rate: number
+      taxable_amount: number
+      cgst: number
+      sgst: number
+      total: number
     }[]
 
     // 3. Invoice list (for GSTR-1)
@@ -142,8 +153,15 @@ class ReportRepository {
          ORDER BY b.date, b.bill_no`
       )
       .all(dateFrom, dateTo) as {
-      bill_no: string; date: string; customer_name: string | null; customer_gstin: string | null;
-      taxable_amount: number; cgst: number; sgst: number; igst: number; total: number
+      bill_no: string
+      date: string
+      customer_name: string | null
+      customer_gstin: string | null
+      taxable_amount: number
+      cgst: number
+      sgst: number
+      igst: number
+      total: number
     }[]
 
     // 4. Totals
@@ -161,8 +179,13 @@ class ReportRepository {
          WHERE date >= ? AND date <= ? AND status = 'completed'`
       )
       .get(dateFrom, dateTo) as {
-      total_taxable: number; total_cgst: number; total_sgst: number; total_igst: number;
-      total_gst: number; total_invoice: number; total_bills: number
+      total_taxable: number
+      total_cgst: number
+      total_sgst: number
+      total_igst: number
+      total_gst: number
+      total_invoice: number
+      total_bills: number
     }
 
     return {
@@ -225,8 +248,11 @@ class ReportRepository {
          WHERE date >= ? AND date <= ?`
       )
       .get(dateFrom, dateTo) as {
-      total_sales: number; total_bills: number; total_returns: number;
-      total_discount: number; total_credit_sales: number
+      total_sales: number
+      total_bills: number
+      total_returns: number
+      total_discount: number
+      total_credit_sales: number
     }
 
     const netSales = salesResult.total_sales - salesResult.total_returns
@@ -299,7 +325,8 @@ class ReportRepository {
         totalDiscount: salesResult.total_discount,
         totalCreditSales: salesResult.total_credit_sales,
         totalCreditCollected: creditCollected.total,
-        avgBillValue: salesResult.total_bills > 0 ? salesResult.total_sales / salesResult.total_bills : 0
+        avgBillValue:
+          salesResult.total_bills > 0 ? salesResult.total_sales / salesResult.total_bills : 0
       }
     }
   }
@@ -329,23 +356,17 @@ class ReportRepository {
 
     // Out of stock
     const outOfStock = db
-      .prepare(
-        `SELECT COUNT(*) as count FROM products WHERE current_stock <= 0 AND is_active = 1`
-      )
+      .prepare(`SELECT COUNT(*) as count FROM products WHERE current_stock <= 0 AND is_active = 1`)
       .get() as { count: number }
 
     // Today's expenses
     const todayExpenses = db
-      .prepare(
-        `SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE date = ?`
-      )
+      .prepare(`SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE date = ?`)
       .get(date) as { total: number }
 
     // Today's credit collections
     const todayCollections = db
-      .prepare(
-        `SELECT COALESCE(SUM(amount), 0) as total FROM credit_payments WHERE date = ?`
-      )
+      .prepare(`SELECT COALESCE(SUM(amount), 0) as total FROM credit_payments WHERE date = ?`)
       .get(date) as { total: number }
 
     // Yesterday's sales for comparison

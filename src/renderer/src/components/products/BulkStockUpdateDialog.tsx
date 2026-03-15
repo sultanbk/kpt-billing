@@ -42,7 +42,8 @@ function parseCSV(text: string): ParsedRow[] {
   const skuIdx = cols.findIndex((c) => c === 'sku' || c === 'sku_code' || c === 'product_code')
   const barcodeIdx = cols.findIndex((c) => c === 'barcode' || c === 'bar_code' || c === 'ean')
   const stockIdx = cols.findIndex(
-    (c) => c === 'stock' || c === 'quantity' || c === 'qty' || c === 'current_stock' || c === 'count'
+    (c) =>
+      c === 'stock' || c === 'quantity' || c === 'qty' || c === 'current_stock' || c === 'count'
   )
 
   if (stockIdx === -1) return []
@@ -105,7 +106,9 @@ export function BulkStockUpdateDialog({
       if (!text) return
       const rows = parseCSV(text)
       if (rows.length === 0) {
-        toast.error('No valid rows found. Ensure the file has a header row with "sku" or "barcode" and "stock" or "qty" columns.')
+        toast.error(
+          'No valid rows found. Ensure the file has a header row with "sku" or "barcode" and "stock" or "qty" columns.'
+        )
         setParsedRows([])
         return
       }
@@ -133,7 +136,7 @@ export function BulkStockUpdateDialog({
       if (res.skipped > 0) {
         toast.warning(`${res.skipped} rows skipped — see details below`)
       }
-    } catch (err) {
+    } catch {
       toast.error('Bulk update failed')
     }
     setImporting(false)
@@ -173,9 +176,7 @@ export function BulkStockUpdateDialog({
               >
                 <Upload className="h-8 w-8 text-muted-foreground" />
                 <div className="text-center">
-                  <p className="text-sm font-medium">
-                    {fileName || 'Click to select CSV file'}
-                  </p>
+                  <p className="text-sm font-medium">{fileName || 'Click to select CSV file'}</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     Required columns: <code className="bg-muted px-1 rounded">sku</code> or{' '}
                     <code className="bg-muted px-1 rounded">barcode</code> +{' '}
@@ -191,7 +192,12 @@ export function BulkStockUpdateDialog({
                 />
               </div>
 
-              <Button variant="link" size="sm" onClick={handleDownloadTemplate} className="gap-1 text-xs h-auto p-0">
+              <Button
+                variant="link"
+                size="sm"
+                onClick={handleDownloadTemplate}
+                className="gap-1 text-xs h-auto p-0"
+              >
                 <Download className="h-3 w-3" />
                 Download CSV template
               </Button>
@@ -202,9 +208,7 @@ export function BulkStockUpdateDialog({
           {parsedRows.length > 0 && !result && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">
-                  Preview ({parsedRows.length} rows)
-                </span>
+                <span className="text-sm font-medium">Preview ({parsedRows.length} rows)</span>
                 <Badge variant="secondary">{fileName}</Badge>
               </div>
               <ScrollArea className="max-h-[250px] rounded-md border">
@@ -249,13 +253,15 @@ export function BulkStockUpdateDialog({
                 </div>
                 <div className="rounded-lg bg-green-50 dark:bg-green-900/20 p-3 text-center">
                   <div className="text-2xl font-bold text-green-600">
-                    <CheckCircle2 className="h-4 w-4 inline mr-1" />{result.imported}
+                    <CheckCircle2 className="h-4 w-4 inline mr-1" />
+                    {result.imported}
                   </div>
                   <div className="text-xs text-green-600">Updated</div>
                 </div>
                 <div className="rounded-lg bg-orange-50 dark:bg-orange-900/20 p-3 text-center">
                   <div className="text-2xl font-bold text-orange-600">
-                    <AlertCircle className="h-4 w-4 inline mr-1" />{result.skipped}
+                    <AlertCircle className="h-4 w-4 inline mr-1" />
+                    {result.skipped}
                   </div>
                   <div className="text-xs text-orange-600">Skipped</div>
                 </div>

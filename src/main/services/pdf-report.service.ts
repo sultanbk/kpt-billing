@@ -35,8 +35,18 @@ function pct(part: number, whole: number): string {
 }
 
 const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December'
 ]
 
 function monthName(ym: string): string {
@@ -119,18 +129,28 @@ function summaryCardsHtml(s: DailySummary): string {
 </div>`
 }
 
-function paymentBreakdownHtml(data: { mode: string; total: number; count: number }[], total: number): string {
-  const colors: Record<string, string> = { cash: '#16a34a', upi: '#2563eb', card: '#7c3aed', credit: '#ea580c' }
-  const bars = data.map(d => {
-    const w = total > 0 ? (d.total / total) * 100 : 0
-    const color = colors[d.mode] || '#999'
-    return `<div class="payment-bar">
+function paymentBreakdownHtml(
+  data: { mode: string; total: number; count: number }[],
+  total: number
+): string {
+  const colors: Record<string, string> = {
+    cash: '#16a34a',
+    upi: '#2563eb',
+    card: '#7c3aed',
+    credit: '#ea580c'
+  }
+  const bars = data
+    .map((d) => {
+      const w = total > 0 ? (d.total / total) * 100 : 0
+      const color = colors[d.mode] || '#999'
+      return `<div class="payment-bar">
       <div class="bar-label" style="color:${color}">${d.mode.toUpperCase()}</div>
       <div class="bar-track"><div class="bar-fill" style="width:${w}%;background:${color}"></div></div>
       <div class="bar-value">${fmt(d.total)}</div>
       <div class="bar-pct">${pct(d.total, total)}</div>
     </div>`
-  }).join('')
+    })
+    .join('')
   return `<div class="section">
   <div class="section-title">Payment Breakdown</div>
   ${bars}
@@ -138,15 +158,28 @@ function paymentBreakdownHtml(data: { mode: string; total: number; count: number
 </div>`
 }
 
-function topProductsHtml(data: { productName: string; totalQty: number; totalAmount: number }[]): string {
+function topProductsHtml(
+  data: { productName: string; totalQty: number; totalAmount: number }[]
+): string {
   if (data.length === 0) return ''
-  const rows = data.map((p, i) => `<tr>
+  const rows = data
+    .map(
+      (p, i) => `<tr>
     <td class="text-center">${i + 1}</td>
     <td>${p.productName}</td>
     <td class="text-right">${num(p.totalQty)}</td>
     <td class="text-right">${fmt(p.totalAmount)}</td>
-    <td class="text-right">${data.length > 0 ? pct(p.totalAmount, data.reduce((s, x) => s + x.totalAmount, 0)) : '-'}</td>
-  </tr>`).join('')
+    <td class="text-right">${
+      data.length > 0
+        ? pct(
+            p.totalAmount,
+            data.reduce((s, x) => s + x.totalAmount, 0)
+          )
+        : '-'
+    }</td>
+  </tr>`
+    )
+    .join('')
   const totalQty = data.reduce((s, p) => s + p.totalQty, 0)
   const totalAmt = data.reduce((s, p) => s + p.totalAmount, 0)
   return `<div class="section">
@@ -159,16 +192,33 @@ function topProductsHtml(data: { productName: string; totalQty: number; totalAmo
   </table></div>`
 }
 
-interface DayRow { date: string; totalSales: number; billCount: number; cashSales: number; upiSales: number; cardSales: number; creditSales: number }
-interface MonthRow { month: string; totalSales: number; billCount: number; cashSales: number; upiSales: number; cardSales: number; creditSales: number }
+interface DayRow {
+  date: string
+  totalSales: number
+  billCount: number
+  cashSales: number
+  upiSales: number
+  cardSales: number
+  creditSales: number
+}
+interface MonthRow {
+  month: string
+  totalSales: number
+  billCount: number
+  cashSales: number
+  upiSales: number
+  cardSales: number
+  creditSales: number
+}
 
 function dailyBreakdownHtml(rows: DayRow[], title: string): string {
   if (!rows || rows.length === 0) return ''
-  const body = rows.map(d => {
-    const dt = new Date(d.date + 'T00:00:00')
-    const dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][dt.getDay()]
-    const label = `${dayName}, ${dt.getDate()} ${MONTH_NAMES[dt.getMonth()]?.substring(0, 3)}`
-    return `<tr>
+  const body = rows
+    .map((d) => {
+      const dt = new Date(d.date + 'T00:00:00')
+      const dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][dt.getDay()]
+      const label = `${dayName}, ${dt.getDate()} ${MONTH_NAMES[dt.getMonth()]?.substring(0, 3)}`
+      return `<tr>
       <td>${label}</td>
       <td class="text-right font-bold">${fmt(d.totalSales)}</td>
       <td class="text-center">${d.billCount}</td>
@@ -177,7 +227,8 @@ function dailyBreakdownHtml(rows: DayRow[], title: string): string {
       <td class="text-right purple">${fmt(d.cardSales)}</td>
       <td class="text-right orange">${fmt(d.creditSales)}</td>
     </tr>`
-  }).join('')
+    })
+    .join('')
   const ts = rows.reduce((s, r) => s + r.totalSales, 0)
   const tb = rows.reduce((s, r) => s + r.billCount, 0)
   const tc = rows.reduce((s, r) => s + r.cashSales, 0)
@@ -196,9 +247,10 @@ function dailyBreakdownHtml(rows: DayRow[], title: string): string {
 
 function monthlyBreakdownHtml(rows: MonthRow[]): string {
   if (!rows || rows.length === 0) return ''
-  const body = rows.map(m => {
-    const label = `${monthName(m.month)} ${m.month.split('-')[0]}`
-    return `<tr>
+  const body = rows
+    .map((m) => {
+      const label = `${monthName(m.month)} ${m.month.split('-')[0]}`
+      return `<tr>
       <td>${label}</td>
       <td class="text-right font-bold">${fmt(m.totalSales)}</td>
       <td class="text-center">${m.billCount}</td>
@@ -207,7 +259,8 @@ function monthlyBreakdownHtml(rows: MonthRow[]): string {
       <td class="text-right purple">${fmt(m.cardSales)}</td>
       <td class="text-right orange">${fmt(m.creditSales)}</td>
     </tr>`
-  }).join('')
+    })
+    .join('')
   const ts = rows.reduce((s, r) => s + r.totalSales, 0)
   const tb = rows.reduce((s, r) => s + r.billCount, 0)
   const tc = rows.reduce((s, r) => s + r.cashSales, 0)
@@ -238,7 +291,11 @@ function yearlyStatsHtml(totals: DailySummary, monthCount: number): string {
 // ---- Main class ----
 
 export class PdfReportService {
-  private async renderPdf(html: string, fileName: string, landscape = false): Promise<{ success: boolean; path: string }> {
+  private async renderPdf(
+    html: string,
+    fileName: string,
+    landscape = false
+  ): Promise<{ success: boolean; path: string }> {
     const dir = getReportsDir()
     const filePath = join(dir, fileName)
 
@@ -251,7 +308,7 @@ export class PdfReportService {
 
     try {
       await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
-      await new Promise(r => setTimeout(r, 500))
+      await new Promise((r) => setTimeout(r, 500))
 
       const pdfBuffer = await win.webContents.printToPDF({
         printBackground: true,
@@ -274,14 +331,26 @@ export class PdfReportService {
   async generateDailyReport(
     date: string,
     summary: DailySummary,
-    bills: { billNumber: string; time: string; customerName: string | null; totalItems: number; paymentMode: string; grandTotal: number; status: string }[]
+    bills: {
+      billNumber: string
+      time: string
+      customerName: string | null
+      totalItems: number
+      paymentMode: string
+      grandTotal: number
+      status: string
+    }[]
   ): Promise<{ success: boolean; path: string }> {
     const dt = new Date(date + 'T00:00:00')
-    const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dt.getDay()]
+    const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][
+      dt.getDay()
+    ]
     const periodLabel = `${dayName}, ${dt.getDate()} ${MONTH_NAMES[dt.getMonth()]} ${dt.getFullYear()}`
 
-    const billRows = bills.map((b, i) =>
-      `<tr>
+    const billRows = bills
+      .map(
+        (b, i) =>
+          `<tr>
         <td class="text-center">${i + 1}</td>
         <td>${b.billNumber}</td>
         <td class="text-center">${b.time || '-'}</td>
@@ -291,7 +360,8 @@ export class PdfReportService {
         <td style="text-align:center;"><span style="padding:2px 6px;border-radius:3px;font-size:8px;font-weight:600;background:${b.status === 'completed' ? '#dcfce7;color:#16a34a' : b.status === 'returned' ? '#fee2e2;color:#dc2626' : '#f3f4f6;color:#6b7280'}">${b.status}</span></td>
         <td class="text-right font-bold">${fmt(b.grandTotal)}</td>
       </tr>`
-    ).join('')
+      )
+      .join('')
 
     const body = `
 ${summaryCardsHtml(summary)}
@@ -301,7 +371,7 @@ ${paymentBreakdownHtml(
     { mode: 'upi', total: summary.upiSales, count: 0 },
     { mode: 'card', total: summary.cardSales, count: 0 },
     { mode: 'credit', total: summary.creditSales, count: 0 }
-  ].filter(d => d.total > 0),
+  ].filter((d) => d.total > 0),
   summary.totalSales
 )}
 <div class="section">
@@ -309,7 +379,7 @@ ${paymentBreakdownHtml(
   <table>
     <thead><tr><th class="text-center">#</th><th>Bill No</th><th class="text-center">Time</th><th>Customer</th><th class="text-center">Items</th><th class="text-center">Payment</th><th class="text-center">Status</th><th class="text-right">Amount</th></tr></thead>
     <tbody>${billRows}
-    <tr class="total-row"><td></td><td colspan="6">Grand Total (${bills.filter(b => b.status === 'completed').length} completed)</td><td class="text-right">${fmt(summary.totalSales)}</td></tr>
+    <tr class="total-row"><td></td><td colspan="6">Grand Total (${bills.filter((b) => b.status === 'completed').length} completed)</td><td class="text-right">${fmt(summary.totalSales)}</td></tr>
     </tbody>
   </table>
 </div>`
@@ -358,8 +428,14 @@ ${topProductsHtml(report.topProducts)}`
     // Additional monthly stats
     const activeDays = report.dailyBreakdown.length
     const avgDailySales = activeDays > 0 ? report.totals.totalSales / activeDays : 0
-    const bestDay = report.dailyBreakdown.reduce((best, d) => d.totalSales > best.totalSales ? d : best, report.dailyBreakdown[0] || { date: '-', totalSales: 0 })
-    const worstDay = report.dailyBreakdown.reduce((worst, d) => d.totalSales < worst.totalSales ? d : worst, report.dailyBreakdown[0] || { date: '-', totalSales: 0 })
+    const bestDay = report.dailyBreakdown.reduce(
+      (best, d) => (d.totalSales > best.totalSales ? d : best),
+      report.dailyBreakdown[0] || { date: '-', totalSales: 0 }
+    )
+    const worstDay = report.dailyBreakdown.reduce(
+      (worst, d) => (d.totalSales < worst.totalSales ? d : worst),
+      report.dailyBreakdown[0] || { date: '-', totalSales: 0 }
+    )
 
     const statsHtml = `<div class="stats-row">
       <div class="stat-box"><div class="label">Active Business Days</div><div class="value">${activeDays}</div></div>
@@ -395,8 +471,14 @@ ${topProductsHtml(report.topProducts)}`
     const periodLabel = `Financial Year ${year}`
 
     // Best/worst month
-    const bestMonth = report.monthlyBreakdown.reduce((best, m) => m.totalSales > best.totalSales ? m : best, report.monthlyBreakdown[0] || { month: '-', totalSales: 0 } as MonthRow)
-    const worstMonth = report.monthlyBreakdown.reduce((worst, m) => m.totalSales < worst.totalSales ? m : worst, report.monthlyBreakdown[0] || { month: '-', totalSales: 0 } as MonthRow)
+    const bestMonth = report.monthlyBreakdown.reduce(
+      (best, m) => (m.totalSales > best.totalSales ? m : best),
+      report.monthlyBreakdown[0] || ({ month: '-', totalSales: 0 } as MonthRow)
+    )
+    const worstMonth = report.monthlyBreakdown.reduce(
+      (worst, m) => (m.totalSales < worst.totalSales ? m : worst),
+      report.monthlyBreakdown[0] || ({ month: '-', totalSales: 0 } as MonthRow)
+    )
 
     const extraStats = `<div class="stats-row">
       <div class="stat-box"><div class="label">Best Month</div><div class="value green">${bestMonth.month ? monthName(bestMonth.month) : '-'}</div><div class="sub" style="font-size:9px;color:#888">${fmt(bestMonth.totalSales)}</div></div>

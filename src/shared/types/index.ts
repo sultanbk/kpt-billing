@@ -160,8 +160,12 @@ export interface BillItem {
   discountAmount: number
   gstRate: number
   gstAmount: number
+  cgstRate?: number
+  sgstRate?: number
   taxableAmount: number
   total: number
+  /** Quantity already returned for this line item (populated by getById) */
+  returnedQty?: number
 }
 
 export interface BillPayment {
@@ -189,6 +193,9 @@ export interface Bill {
   discountAmount: number
   taxableAmount: number
   gstAmount: number
+  cgstAmount?: number
+  sgstAmount?: number
+  igstAmount?: number
   roundOff: number
   grandTotal: number
   paymentMode: string
@@ -206,6 +213,23 @@ export interface Bill {
   createdBy: string | null
   createdAt: string
   items?: BillItem[]
+  /** Return/exchange history for this bill (populated by getById) */
+  returns?: BillReturnInfo[]
+}
+
+/** Summary of a return/exchange for display in bill detail */
+export interface BillReturnInfo {
+  id: number
+  type: 'return' | 'exchange'
+  reason: string
+  returnAmount: number
+  exchangeAmount: number
+  netAmount: number
+  refundMode: string
+  newBillId: number | null
+  newBillNo: string | null
+  createdAt: string
+  itemsSummary: string
 }
 
 export interface BillCreateData {
@@ -223,11 +247,59 @@ export interface HeldBill {
   id: string
   customerName?: string
   customerPhone?: string
+  customerId?: string | null
   items: BillItem[]
   discount?: number
   discountType?: 'percentage' | 'amount'
   heldAt: string
   total?: number
+}
+
+// ---- Bill Return / Exchange ----
+
+/** An individual item being returned from a bill */
+export interface ReturnItem {
+  billItemId: number
+  productId: number | null
+  productName: string
+  originalQty: number
+  returnQty: number
+  rate: number
+  gstRate: number
+  refundAmount: number // Calculated: (rate * returnQty) + GST on that, minus discount proportion
+}
+
+/** An individual new item being exchanged for returned items */
+export interface ExchangeItem {
+  productId: number | null
+  productName: string
+  sku?: string
+  hsn: string
+  price: number
+  quantity: number
+  discount: number
+  discountType: 'percentage' | 'amount'
+  gstRate: number
+}
+
+/** Data required to process a return/exchange */
+export interface BillReturnData {
+  originalBillId: number
+  type: 'return' | 'exchange'
+  reason: string
+  returnItems: ReturnItem[]
+  exchangeItems: ExchangeItem[] // Only for exchange type
+  refundMode: 'cash' | 'credit' | 'adjust' // adjust = net off against exchange
+}
+
+/** Result of a return/exchange operation */
+export interface BillReturnResult {
+  success: boolean
+  returnAmount: number
+  exchangeAmount: number
+  netAmount: number // positive = customer owes, negative = refund to customer
+  newBillId?: number // If exchange created a new bill
+  newBillNo?: string
 }
 
 // ---- Customers ----
@@ -306,10 +378,15 @@ export interface DailySummary {
 export interface QuickStats {
   todaySales: number
   todayBills: number
-  todayProfit: number
+  todayNetSales: number
   weekSales: number
   lowStockItems: number
-  topSellingToday: { productName: string; totalQty: number; totalAmount: number; quantity?: number }[]
+  topSellingToday: {
+    productName: string
+    totalQty: number
+    totalAmount: number
+    quantity?: number
+  }[]
 }
 
 // ---- Settings ----

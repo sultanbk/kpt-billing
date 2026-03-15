@@ -63,7 +63,13 @@ function recalculateTotals(
   items: BillItem[],
   discount: number,
   discountType: 'percentage' | 'amount'
-): { subtotal: number; totalGst: number; discountAmount: number; grandTotal: number; totalItems: number } {
+): {
+  subtotal: number
+  totalGst: number
+  discountAmount: number
+  grandTotal: number
+  totalItems: number
+} {
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const totalGst = items.reduce((sum, item) => sum + item.gstAmount, 0)
   const itemDiscounts = items.reduce((sum, item) => sum + item.discountAmount, 0)
@@ -79,7 +85,13 @@ function recalculateTotals(
   const grandTotal = items.reduce((sum, item) => sum + item.total, 0) - billDiscount
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
 
-  return { subtotal, totalGst, discountAmount, grandTotal: Math.round(Math.max(0, grandTotal)), totalItems }
+  return {
+    subtotal,
+    totalGst,
+    discountAmount,
+    grandTotal: Math.round(Math.max(0, grandTotal)),
+    totalItems
+  }
 }
 
 export const useBillingStore = create<BillingState>()(
@@ -253,6 +265,7 @@ export const useBillingStore = create<BillingState>()(
         items: JSON.parse(JSON.stringify(state.items)),
         customerName: state.customerName,
         customerPhone: state.customerPhone,
+        customerId: state.customerId,
         discount: state.discount,
         discountType: state.discountType,
         heldAt: new Date().toISOString(),
@@ -263,7 +276,12 @@ export const useBillingStore = create<BillingState>()(
         await window.api.billing.holdBill(held.id, {
           customerName: held.customerName,
           customerPhone: held.customerPhone,
-          items: JSON.stringify(held.items)
+          items: JSON.stringify({
+            items: held.items,
+            discount: held.discount,
+            discountType: held.discountType,
+            customerId: held.customerId
+          })
         })
       } catch {
         // If DB write fails, still hold in memory for current session
@@ -296,6 +314,7 @@ export const useBillingStore = create<BillingState>()(
         state.items = held.items.map((i) => calculateItemTotals(i))
         state.customerName = held.customerName || ''
         state.customerPhone = held.customerPhone || ''
+        state.customerId = held.customerId || null
         state.discount = held.discount || 0
         state.discountType = held.discountType || 'percentage'
         state.currentHeldBillId = heldBillId

@@ -1,7 +1,7 @@
 // ============================================================================
-// KPT Billing - Billing IPC Handlers
+// KPT Billing - Billing IPC Handlers (secured with validation & audit)
 // ============================================================================
-import { ipcMain, shell } from 'electron'
+import { shell } from 'electron'
 import { billRepo } from '../database/repositories/bill.repo'
 import { mapRows } from '../database/utils'
 import { customerRepo } from '../database/repositories/customer.repo'
@@ -14,80 +14,87 @@ import { pdfReportService } from '../services/pdf-report.service'
 import { whatsappService } from '../services/whatsapp.service'
 import { settingsRepo } from '../database/repositories/settings.repo'
 import { getSqlite } from '../database/connection'
+import { writeAuditLog } from '../database/audit'
+import { safeHandle, validate } from './ipc-guard'
+import {
+  idSchema,
+  limitSchema,
+  dateSchema,
+  searchTermSchema,
+  billCreateSchema,
+  billFiltersSchema,
+  billReturnSchema,
+  creditPaymentSchema,
+  creditFiltersSchema,
+  expenseFormSchema,
+  expenseFiltersSchema,
+  customerFormSchema,
+  holdBillDataSchema
+} from './validation'
+import { z } from 'zod'
 import log from 'electron-log'
 
 export function registerBillingIpc(): void {
-  ipcMain.handle('billing:getNextBillNumber', () => {
+  safeHandle('billing:getNextBillNumber', () => {
     return billRepo.getNextBillNumber()
   })
 
-  ipcMain.handle('billing:createBill', async (_event, data) => {
-    const bill = billRepo.create(data)
+  safeHandle('billing:createBill', async (_event, data) => {
+    const validated = validate(billCreateSchema, data)
+    const bill = billRepo.create(validated as Parameters<typeof billRepo.create>[0])
     log.info(`Bill created: ${bill.billNo} - Total: ${bill.grandTotal}`)
+    writeAuditLog({
+      action: 'create',
+      entityType: 'bill',
+      entityId: bill.id,
+      newValue: { billNo: bill.billNo, grandTotal: bill.grandTotal }
+    })
 
-    // Auto-print if enabled
-    const autoPrint = settingsRepo.get('autoPrintReceipt')
-    if (autoPrint === 'true') {
-      const shopInfo = settingsRepo.getAll()
-      const printerName = settingsRepo.get('receiptPrinterName') || ''
-
-      try {
-        // Check if using a PDF printer
-        if (pdfReceiptService.isPdfPrinter(printerName)) {
-          const result = await pdfReceiptService.generatePdf(bill, shopInfo)
-          if (result.success) {
-            log.info(`PDF receipt saved: ${result.path}`)
-          }
-        } else {
-          await thermalPrinterService.printReceipt(bill, shopInfo)
-        }
-      } catch (err) {
-        log.error('Auto-print failed:', err)
-      }
-    }
+    // Auto-print disabled — owner can download/print manually from the bill screen
 
     return bill
   })
 
-  ipcMain.handle('billing:getById', (_event, id: number) => {
-    return billRepo.getById(id)
+  safeHandle('billing:getById', (_event, id) => {
+    return billRepo.getById(validate(idSchema, id))
   })
 
-  ipcMain.handle('billing:getByBillNo', (_event, billNo: string) => {
-    return billRepo.getByBillNo(billNo)
+  safeHandle('billing:getByBillNo', (_event, billNo) => {
+    return billRepo.getByBillNo(validate(z.string().min(1), billNo))
   })
 
-  ipcMain.handle('billing:getRecentBills', (_event, limit?: number) => {
-    return billRepo.getRecentBills(limit)
+  safeHandle('billing:getRecentBills', (_event, limit?) => {
+    return billRepo.getRecentBills(validate(limitSchema, limit))
   })
 
-  ipcMain.handle('billing:getBillsByDate', (_event, date: string) => {
-    return billRepo.getBillsByDate(date)
+  safeHandle('billing:getBillsByDate', (_event, date) => {
+    return billRepo.getBillsByDate(validate(dateSchema, date))
   })
 
-  ipcMain.handle('billing:getDailySummary', (_event, date: string) => {
-    return billRepo.getDailySummary(date)
+  safeHandle('billing:getDailySummary', (_event, date) => {
+    return billRepo.getDailySummary(validate(dateSchema, date))
   })
 
-  ipcMain.handle('billing:getWeekSummary', () => {
+  safeHandle('billing:getWeekSummary', () => {
     return billRepo.getWeekSummary()
   })
 
-  ipcMain.handle('billing:getMonthSummary', () => {
+  safeHandle('billing:getMonthSummary', () => {
     return billRepo.getMonthSummary()
   })
 
-  ipcMain.handle('billing:getTopSellingToday', (_event, date: string, limit?: number) => {
-    return billRepo.getTopSellingToday(date, limit)
+  safeHandle('billing:getTopSellingToday', (_event, date, limit?) => {
+    return billRepo.getTopSellingToday(validate(dateSchema, date), validate(limitSchema, limit))
   })
 
-  ipcMain.handle('billing:getAllBills', (_event, filters) => {
-    return billRepo.getAllBills(filters)
+  safeHandle('billing:getAllBills', (_event, filters) => {
+    return billRepo.getAllBills(validate(billFiltersSchema, filters))
   })
 
-  ipcMain.handle('billing:quickSearch', (_event, term: string) => {
+  safeHandle('billing:quickSearch', (_event, term) => {
+    const validTerm = validate(searchTermSchema, term)
     const db = getSqlite()
-    const s = `%${term}%`
+    const s = `%${validTerm}%`
     const rows = db
       .prepare(
         `SELECT * FROM bills
@@ -99,89 +106,97 @@ export function registerBillingIpc(): void {
   })
 
   // Print receipt for existing bill (supports PDF printers)
-  ipcMain.handle('billing:printReceipt', async (_event, billId: number) => {
-    try {
-      const bill = billRepo.getById(billId)
-      if (!bill) return false
-      const shopInfo = settingsRepo.getAll()
-      const printerName = settingsRepo.get('receiptPrinterName') || ''
+  safeHandle('billing:printReceipt', async (_event, billId) => {
+    const id = validate(idSchema, billId)
+    const bill = billRepo.getById(id)
+    if (!bill) return false
+    const shopInfo = settingsRepo.getAll()
+    const printerName = settingsRepo.get('receiptPrinterName') || ''
 
-      // If it's a PDF printer, generate PDF instead
-      if (pdfReceiptService.isPdfPrinter(printerName)) {
-        const result = await pdfReceiptService.generatePdf(bill, shopInfo)
-        return result.success
-      }
-      return thermalPrinterService.printReceipt(bill, shopInfo)
-    } catch (err) {
-      log.error('Print receipt failed:', err)
-      return false
+    if (pdfReceiptService.isPdfPrinter(printerName)) {
+      const result = await pdfReceiptService.generatePdf(bill, shopInfo)
+      return result.success
     }
+    return thermalPrinterService.printReceipt(bill, shopInfo)
   })
 
   // Generate PDF receipt explicitly
-  ipcMain.handle('billing:generatePdfReceipt', async (_event, billId: number) => {
-    const bill = billRepo.getById(billId)
+  safeHandle('billing:generatePdfReceipt', async (_event, billId) => {
+    const id = validate(idSchema, billId)
+    const bill = billRepo.getById(id)
     if (!bill) return { success: false, path: '' }
     const shopInfo = settingsRepo.getAll()
     return pdfReceiptService.generatePdf(bill, shopInfo)
   })
 
   // Get receipts directory
-  ipcMain.handle('billing:getReceiptsDir', () => {
+  safeHandle('billing:getReceiptsDir', () => {
     return pdfReceiptService.getReceiptsDir()
   })
 
   // Return / Cancel
-  ipcMain.handle('billing:returnBill', (_event, billId: number, reason?: string) => {
-    try {
-      return billRepo.returnBill(billId, reason)
-    } catch (err) {
-      log.error('Return bill failed:', err)
-      throw err
-    }
+  safeHandle('billing:returnBill', (_event, billId, reason?) => {
+    const id = validate(idSchema, billId)
+    const validReason = reason ? validate(z.string().max(500), reason) : undefined
+    const result = billRepo.returnBill(id, validReason)
+    writeAuditLog({
+      action: 'return',
+      entityType: 'bill',
+      entityId: id,
+      newValue: { reason: validReason }
+    })
+    return result
   })
 
-  ipcMain.handle('billing:cancelBill', (_event, billId: number, reason?: string) => {
-    try {
-      return billRepo.cancelBill(billId, reason)
-    } catch (err) {
-      log.error('Cancel bill failed:', err)
-      throw err
-    }
+  safeHandle('billing:cancelBill', (_event, billId, reason?) => {
+    const id = validate(idSchema, billId)
+    const validReason = reason ? validate(z.string().max(500), reason) : undefined
+    const result = billRepo.cancelBill(id, validReason)
+    writeAuditLog({
+      action: 'cancel',
+      entityType: 'bill',
+      entityId: id,
+      newValue: { reason: validReason }
+    })
+    return result
   })
 
-  ipcMain.handle('billing:getBillsByCustomer', (_event, customerId: number, limit?: number) => {
-    return billRepo.getBillsByCustomer(customerId, limit)
+  safeHandle('billing:getBillsByCustomer', (_event, customerId, limit?) => {
+    return billRepo.getBillsByCustomer(validate(idSchema, customerId), validate(limitSchema, limit))
   })
 
   // Period summaries (weekly / monthly / yearly)
-  ipcMain.handle('billing:getWeeklySummary', (_event, endDate?: string) => {
-    return billRepo.getWeeklySummary(endDate)
+  safeHandle('billing:getWeeklySummary', (_event, endDate?) => {
+    return billRepo.getWeeklySummary(endDate ? validate(dateSchema, endDate) : undefined)
   })
 
-  ipcMain.handle('billing:getMonthlySummary', (_event, yearMonth?: string) => {
-    return billRepo.getMonthlySummary(yearMonth)
+  safeHandle('billing:getMonthlySummary', (_event, yearMonth?) => {
+    return billRepo.getMonthlySummary(
+      yearMonth ? validate(z.string().max(7), yearMonth) : undefined
+    )
   })
 
-  ipcMain.handle('billing:getYearlySummary', (_event, year?: number) => {
-    return billRepo.getYearlySummary(year)
+  safeHandle('billing:getYearlySummary', (_event, year?) => {
+    return billRepo.getYearlySummary(year ? validate(z.number().int().positive(), year) : undefined)
   })
 
-  ipcMain.handle('billing:getPeriodSummary', (_event, dateFrom: string, dateTo: string) => {
-    return billRepo.getPeriodSummary(dateFrom, dateTo)
+  safeHandle('billing:getPeriodSummary', (_event, dateFrom, dateTo) => {
+    return billRepo.getPeriodSummary(validate(dateSchema, dateFrom), validate(dateSchema, dateTo))
   })
 
   // Held bills
-  ipcMain.handle('billing:holdBill', (_event, id: string, data: { customerName?: string; customerPhone?: string; items: string }) => {
+  safeHandle('billing:holdBill', (_event, id, data) => {
+    const validId = validate(z.string().min(1), id)
+    const validData = validate(holdBillDataSchema, data)
     const db = getSqlite()
     db.prepare(
       `INSERT OR REPLACE INTO held_bills (id, customer_name, customer_phone, items_json, held_at)
        VALUES (?, ?, ?, ?, datetime('now','localtime'))`
-    ).run(id, data.customerName || null, data.customerPhone || null, data.items)
+    ).run(validId, validData.customerName || null, validData.customerPhone || null, validData.items)
     return true
   })
 
-  ipcMain.handle('billing:getHeldBills', () => {
+  safeHandle('billing:getHeldBills', () => {
     const db = getSqlite()
     const rows = db.prepare('SELECT * FROM held_bills ORDER BY held_at DESC').all() as {
       id: string
@@ -190,237 +205,354 @@ export function registerBillingIpc(): void {
       items_json: string
       held_at: string
     }[]
-    // Map snake_case DB rows to camelCase and parse items JSON
-    return rows.map(row => ({
-      id: row.id,
-      customerName: row.customer_name || '',
-      customerPhone: row.customer_phone || '',
-      items: JSON.parse(row.items_json || '[]'),
-      heldAt: row.held_at,
-      total: 0 // Will be recalculated on recall
-    }))
+    return rows
+      .map((row) => {
+        try {
+          const parsedJson = JSON.parse(row.items_json || '[]')
+          const isLegacy = Array.isArray(parsedJson)
+          const items = isLegacy ? parsedJson : parsedJson.items || []
+          const discount = isLegacy ? 0 : parsedJson.discount || 0
+          const discountType = isLegacy ? 'percentage' : parsedJson.discountType || 'percentage'
+          const customerId = isLegacy ? null : parsedJson.customerId || null
+          const subtotal = items.reduce(
+            (sum: number, i: { total?: number }) => sum + (i.total || 0),
+            0
+          )
+          const discountAmt = discountType === 'percentage' ? (subtotal * discount) / 100 : discount
+          const total = Math.max(0, subtotal - discountAmt)
+          return {
+            id: row.id,
+            customerName: row.customer_name || '',
+            customerPhone: row.customer_phone || '',
+            customerId,
+            items,
+            discount,
+            discountType,
+            heldAt: row.held_at,
+            total
+          }
+        } catch {
+          log.warn(`Corrupt held bill JSON for id=${row.id}, skipping`)
+          return null
+        }
+      })
+      .filter(Boolean)
   })
 
-  ipcMain.handle('billing:recallHeldBill', (_event, id: string) => {
+  safeHandle('billing:recallHeldBill', (_event, id) => {
+    const validId = validate(z.string().min(1), id)
     const db = getSqlite()
-    const bill = db.prepare('SELECT * FROM held_bills WHERE id = ?').get(id) as {
-      id: string
-      customer_name: string
-      customer_phone: string
-      items_json: string
-      held_at: string
-    } | undefined
+    const bill = db.prepare('SELECT * FROM held_bills WHERE id = ?').get(validId) as
+      | {
+          id: string
+          customer_name: string
+          customer_phone: string
+          items_json: string
+          held_at: string
+        }
+      | undefined
     if (bill) {
-      db.prepare('DELETE FROM held_bills WHERE id = ?').run(id)
+      db.prepare('DELETE FROM held_bills WHERE id = ?').run(validId)
     }
     return bill || null
   })
 
-  ipcMain.handle('billing:deleteHeldBill', (_event, id: string) => {
+  safeHandle('billing:deleteHeldBill', (_event, id) => {
+    const validId = validate(z.string().min(1), id)
     const db = getSqlite()
-    db.prepare('DELETE FROM held_bills WHERE id = ?').run(id)
+    db.prepare('DELETE FROM held_bills WHERE id = ?').run(validId)
     return true
   })
 
   // Customer
-  ipcMain.handle('customers:search', (_event, term: string) => {
-    return customerRepo.search(term)
+  // Customer
+  safeHandle('customers:search', (_event, term) => {
+    return customerRepo.search(validate(searchTermSchema, term))
   })
 
-  ipcMain.handle('customers:getAll', () => {
+  safeHandle('customers:getAll', () => {
     return customerRepo.getAll()
   })
 
-  ipcMain.handle('customers:getById', (_event, id: number) => {
-    return customerRepo.getById(id)
+  safeHandle('customers:getById', (_event, id) => {
+    return customerRepo.getById(validate(idSchema, id))
   })
 
-  ipcMain.handle('customers:create', (_event, data) => {
-    return customerRepo.create(data)
+  safeHandle('customers:create', (_event, data) => {
+    const validated = validate(customerFormSchema, data)
+    const result = customerRepo.create(validated as Parameters<typeof customerRepo.create>[0])
+    writeAuditLog({
+      action: 'create',
+      entityType: 'customer',
+      entityId: result.id,
+      newValue: { name: result.name }
+    })
+    return result
   })
 
-  ipcMain.handle('customers:update', (_event, id: number, data) => {
-    return customerRepo.update(id, data)
+  safeHandle('customers:update', (_event, id, data) => {
+    const validId = validate(idSchema, id)
+    const validated = validate(customerFormSchema, data)
+    const result = customerRepo.update(
+      validId,
+      validated as Parameters<typeof customerRepo.update>[1]
+    )
+    writeAuditLog({
+      action: 'update',
+      entityType: 'customer',
+      entityId: validId,
+      newValue: { name: result.name }
+    })
+    return result
   })
 
-  ipcMain.handle('customers:getWithCredit', () => {
+  safeHandle('customers:getWithCredit', () => {
     return customerRepo.getWithCredit()
   })
 
-  ipcMain.handle('customers:getTotalCredit', () => {
+  safeHandle('customers:getTotalCredit', () => {
     return customerRepo.getTotalCredit()
   })
 
   // ---- Customer Analytics ----
-  ipcMain.handle('customers:getTopByRevenue', (_event, limit?: number) => {
-    return customerRepo.getTopCustomersByRevenue(limit)
+  safeHandle('customers:getTopByRevenue', (_event, limit?) => {
+    return customerRepo.getTopCustomersByRevenue(validate(limitSchema, limit))
   })
 
-  ipcMain.handle('customers:getFrequency', () => {
+  safeHandle('customers:getFrequency', () => {
     return customerRepo.getCustomerFrequency()
   })
 
-  ipcMain.handle('customers:getCreditRisk', () => {
+  safeHandle('customers:getCreditRisk', () => {
     return customerRepo.getCreditRiskScoring()
   })
 
-  ipcMain.handle('customers:getCreditAging', () => {
+  safeHandle('customers:getCreditAging', () => {
     return customerRepo.getCreditAging()
   })
 
-  ipcMain.handle('customers:getCreditAgingSummary', () => {
+  safeHandle('customers:getCreditAgingSummary', () => {
     return customerRepo.getCreditAgingSummary()
   })
 
   // ---- Credit Payments ----
-  ipcMain.handle('credit:recordPayment', (_event, data) => {
-    return creditPaymentRepo.recordPayment(data)
+  safeHandle('credit:recordPayment', (_event, data) => {
+    const validated = validate(creditPaymentSchema, data)
+    const result = creditPaymentRepo.recordPayment(
+      validated as Parameters<typeof creditPaymentRepo.recordPayment>[0]
+    )
+    writeAuditLog({
+      action: 'create',
+      entityType: 'credit_payment',
+      entityId: result.id,
+      newValue: { customerId: validated.customerId, amount: validated.amount }
+    })
+    return result
   })
 
-  ipcMain.handle('credit:getById', (_event, id: number) => {
-    return creditPaymentRepo.getById(id)
+  safeHandle('credit:getById', (_event, id) => {
+    return creditPaymentRepo.getById(validate(idSchema, id))
   })
 
-  ipcMain.handle('credit:getByCustomer', (_event, customerId: number, limit?: number) => {
-    return creditPaymentRepo.getByCustomer(customerId, limit)
+  safeHandle('credit:getByCustomer', (_event, customerId, limit?) => {
+    return creditPaymentRepo.getByCustomer(
+      validate(idSchema, customerId),
+      validate(limitSchema, limit)
+    )
   })
 
-  ipcMain.handle('credit:getAll', (_event, filters) => {
-    return creditPaymentRepo.getAll(filters)
+  safeHandle('credit:getAll', (_event, filters) => {
+    return creditPaymentRepo.getAll(validate(creditFiltersSchema, filters))
   })
 
-  ipcMain.handle('credit:getLedger', (_event, customerId: number) => {
-    return creditPaymentRepo.getCreditLedger(customerId)
+  safeHandle('credit:getLedger', (_event, customerId) => {
+    return creditPaymentRepo.getCreditLedger(validate(idSchema, customerId))
   })
 
-  ipcMain.handle('credit:getCollectionSummary', (_event, dateFrom: string, dateTo: string) => {
-    return creditPaymentRepo.getCollectionSummary(dateFrom, dateTo)
+  safeHandle('credit:getCollectionSummary', (_event, dateFrom, dateTo) => {
+    return creditPaymentRepo.getCollectionSummary(
+      validate(dateSchema, dateFrom),
+      validate(dateSchema, dateTo)
+    )
   })
 
-  ipcMain.handle('credit:deletePayment', (_event, id: number) => {
-    return creditPaymentRepo.deletePayment(id)
+  safeHandle('credit:deletePayment', (_event, id) => {
+    const validId = validate(idSchema, id)
+    writeAuditLog({ action: 'delete', entityType: 'credit_payment', entityId: validId })
+    return creditPaymentRepo.deletePayment(validId)
   })
 
   // ---- Report PDF Generation ----
-  ipcMain.handle('report:generateDailyPdf', async (_event, date: string) => {
-    try {
-      const summary = billRepo.getDailySummary(date)
-      const allBills = billRepo.getAllBills({ page: 1, pageSize: 500, dateFrom: date, dateTo: date })
-      const billRows = allBills.data.map((b) => ({
-        billNumber: b.billNumber || b.billNo || '',
-        time: b.time || '',
-        customerName: b.customerName || null,
-        totalItems: b.totalItems || 0,
-        paymentMode: b.paymentMode || 'cash',
-        grandTotal: b.grandTotal || 0,
-        status: b.status || 'completed'
-      }))
-      return pdfReportService.generateDailyReport(date, summary, billRows)
-    } catch (err) {
-      log.error('Daily PDF report failed:', err)
-      return { success: false, path: '' }
-    }
+  safeHandle('report:generateDailyPdf', async (_event, date) => {
+    const validDate = validate(dateSchema, date)
+    const summary = billRepo.getDailySummary(validDate)
+    const allBills = billRepo.getAllBills({
+      page: 1,
+      pageSize: 500,
+      dateFrom: validDate,
+      dateTo: validDate
+    })
+    const billRows = allBills.data.map((b) => ({
+      billNumber: b.billNumber || b.billNo || '',
+      time: b.time || '',
+      customerName: b.customerName || null,
+      totalItems: b.totalItems || 0,
+      paymentMode: b.paymentMode || 'cash',
+      grandTotal: b.grandTotal || 0,
+      status: b.status || 'completed'
+    }))
+    return pdfReportService.generateDailyReport(validDate, summary, billRows)
   })
 
-  ipcMain.handle('report:generateWeeklyPdf', async (_event, endDate?: string) => {
-    try {
-      const report = billRepo.getWeeklySummary(endDate)
-      const ed = endDate || new Date().toISOString().slice(0, 10)
-      return pdfReportService.generateWeeklyReport(ed, report)
-    } catch (err) {
-      log.error('Weekly PDF report failed:', err)
-      return { success: false, path: '' }
-    }
+  safeHandle('report:generateWeeklyPdf', async (_event, endDate?) => {
+    const ed = endDate ? validate(dateSchema, endDate) : undefined
+    const report = billRepo.getWeeklySummary(ed)
+    const dateStr = ed || new Date().toISOString().slice(0, 10)
+    return pdfReportService.generateWeeklyReport(dateStr, report)
   })
 
-  ipcMain.handle('report:generateMonthlyPdf', async (_event, yearMonth?: string) => {
-    try {
-      const ym = yearMonth || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
-      const report = billRepo.getMonthlySummary(yearMonth)
-      return pdfReportService.generateMonthlyReport(ym, report)
-    } catch (err) {
-      log.error('Monthly PDF report failed:', err)
-      return { success: false, path: '' }
-    }
+  safeHandle('report:generateMonthlyPdf', async (_event, yearMonth?) => {
+    const ym = yearMonth
+      ? validate(z.string().max(7), yearMonth)
+      : `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
+    const report = billRepo.getMonthlySummary(yearMonth ? ym : undefined)
+    return pdfReportService.generateMonthlyReport(ym, report)
   })
 
-  ipcMain.handle('report:generateYearlyPdf', async (_event, year?: number) => {
-    try {
-      const y = year || new Date().getFullYear()
-      const report = billRepo.getYearlySummary(year)
-      return pdfReportService.generateYearlyReport(y, report)
-    } catch (err) {
-      log.error('Yearly PDF report failed:', err)
-      return { success: false, path: '' }
-    }
+  safeHandle('report:generateYearlyPdf', async (_event, year?) => {
+    const y = year ? validate(z.number().int().positive(), year) : new Date().getFullYear()
+    const report = billRepo.getYearlySummary(year ? y : undefined)
+    return pdfReportService.generateYearlyReport(y, report)
   })
 
-  ipcMain.handle('report:openFile', async (_event, filePath: string) => {
-    try {
-      await shell.openPath(filePath)
-      return true
-    } catch (err) {
-      log.error('Failed to open file:', err)
-      return false
+  safeHandle('report:openFile', async (_event, filePath) => {
+    const validPath = validate(z.string().min(1).max(500), filePath)
+    // Security: only allow opening files inside the reports directory
+    const reportsDir = pdfReportService.getReportsDir()
+    const { resolve } = await import('path')
+    const resolved = resolve(validPath)
+    if (!resolved.startsWith(reportsDir)) {
+      throw new Error('Access denied: path outside reports directory')
     }
+    await shell.openPath(resolved)
+    return true
   })
 
-  ipcMain.handle('report:getReportsDir', () => {
+  safeHandle('report:getReportsDir', () => {
     return pdfReportService.getReportsDir()
   })
 
   // ---- Expenses ----
-  ipcMain.handle('expenses:create', (_event, data) => {
-    return expenseRepo.create(data)
+  safeHandle('expenses:create', (_event, data) => {
+    const validated = validate(expenseFormSchema, data)
+    const result = expenseRepo.create(validated as Parameters<typeof expenseRepo.create>[0])
+    writeAuditLog({
+      action: 'create',
+      entityType: 'expense',
+      entityId: result.id,
+      newValue: { category: validated.category, amount: validated.amount }
+    })
+    return result
   })
 
-  ipcMain.handle('expenses:getAll', (_event, filters) => {
-    return expenseRepo.getAll(filters)
+  safeHandle('expenses:getAll', (_event, filters) => {
+    const validFilters = validate(expenseFiltersSchema, filters)
+    return expenseRepo.getAll(validFilters)
   })
 
-  ipcMain.handle('expenses:getByDate', (_event, date: string) => {
-    return expenseRepo.getByDate(date)
+  safeHandle('expenses:getByDate', (_event, date) => {
+    return expenseRepo.getByDate(validate(dateSchema, date))
   })
 
-  ipcMain.handle('expenses:update', (_event, id: number, data) => {
-    return expenseRepo.update(id, data)
+  safeHandle('expenses:update', (_event, id, data) => {
+    const validId = validate(idSchema, id)
+    const validated = validate(expenseFormSchema, data)
+    const result = expenseRepo.update(
+      validId,
+      validated as Parameters<typeof expenseRepo.update>[1]
+    )
+    writeAuditLog({ action: 'update', entityType: 'expense', entityId: validId })
+    return result
   })
 
-  ipcMain.handle('expenses:delete', (_event, id: number) => {
-    return expenseRepo.delete(id)
+  safeHandle('expenses:delete', (_event, id) => {
+    const validId = validate(idSchema, id)
+    writeAuditLog({ action: 'delete', entityType: 'expense', entityId: validId })
+    return expenseRepo.delete(validId)
   })
 
-  ipcMain.handle('expenses:getCategories', () => {
+  safeHandle('expenses:getCategories', () => {
     return expenseRepo.getCategories()
   })
 
-  ipcMain.handle('expenses:getSummary', (_event, dateFrom: string, dateTo: string) => {
-    return expenseRepo.getSummary(dateFrom, dateTo)
+  safeHandle('expenses:getSummary', (_event, dateFrom, dateTo) => {
+    return expenseRepo.getSummary(validate(dateSchema, dateFrom), validate(dateSchema, dateTo))
   })
 
   // ---- GST & P&L Reports ----
-  ipcMain.handle('reports:getGstReport', (_event, dateFrom: string, dateTo: string) => {
-    return reportRepo.getGstReport(dateFrom, dateTo)
+  safeHandle('reports:getGstReport', (_event, dateFrom, dateTo) => {
+    return reportRepo.getGstReport(validate(dateSchema, dateFrom), validate(dateSchema, dateTo))
   })
 
-  ipcMain.handle('reports:getProfitLoss', (_event, dateFrom: string, dateTo: string) => {
-    return reportRepo.getProfitLossReport(dateFrom, dateTo)
+  safeHandle('reports:getProfitLoss', (_event, dateFrom, dateTo) => {
+    return reportRepo.getProfitLossReport(
+      validate(dateSchema, dateFrom),
+      validate(dateSchema, dateTo)
+    )
   })
 
-  ipcMain.handle('reports:getDashboardData', (_event, date: string) => {
-    return reportRepo.getDashboardData(date)
+  safeHandle('reports:getDashboardData', (_event, date) => {
+    return reportRepo.getDashboardData(validate(dateSchema, date))
+  })
+
+  // ---- Bill Returns / Exchanges ----
+  safeHandle('billing:processReturn', (_event, data) => {
+    const validated = validate(billReturnSchema, data)
+    const result = billRepo.processReturn(validated as Parameters<typeof billRepo.processReturn>[0])
+    writeAuditLog({
+      action: 'return',
+      entityType: 'bill',
+      entityId: validated.originalBillId,
+      newValue: { type: validated.type, reason: validated.reason }
+    })
+    return result
+  })
+
+  safeHandle('billing:getReturnHistory', (_event, billId) => {
+    return billRepo.getReturnHistory(validate(idSchema, billId))
+  })
+
+  safeHandle('billing:getReturnedQtyMap', (_event, billId) => {
+    return billRepo.getReturnedQtyMap(validate(idSchema, billId))
   })
 
   // ---- WhatsApp ----
-  ipcMain.handle('whatsapp:sendBillReceipt', (_event, billId: number, phone: string) => {
-    return whatsappService.sendBillReceipt(billId, phone)
+  safeHandle('whatsapp:sendBillReceipt', (_event, billId, phone) => {
+    return whatsappService.sendBillReceipt(
+      validate(idSchema, billId),
+      validate(z.string().min(1), phone)
+    )
   })
 
-  ipcMain.handle('whatsapp:sendCreditReminder', (_event, phone: string, customerName: string, currentBalance: number) => {
-    return whatsappService.sendCreditReminder(phone, customerName, currentBalance)
+  safeHandle('whatsapp:sendCreditReminder', (_event, phone, customerName, currentBalance) => {
+    return whatsappService.sendCreditReminder(
+      validate(z.string().min(1), phone),
+      validate(z.string().min(1), customerName),
+      validate(z.number(), currentBalance)
+    )
   })
 
-  ipcMain.handle('whatsapp:sendPaymentConfirmation', (_event, phone: string, customerName: string, amountPaid: number, remainingBalance: number, paymentMode: string, date: string) => {
-    return whatsappService.sendPaymentConfirmation(phone, customerName, amountPaid, remainingBalance, paymentMode, date)
-  })
+  safeHandle(
+    'whatsapp:sendPaymentConfirmation',
+    (_event, phone, customerName, amountPaid, remainingBalance, paymentMode, date) => {
+      return whatsappService.sendPaymentConfirmation(
+        validate(z.string().min(1), phone),
+        validate(z.string().min(1), customerName),
+        validate(z.number(), amountPaid),
+        validate(z.number(), remainingBalance),
+        validate(z.string().min(1), paymentMode),
+        validate(z.string().min(1), date)
+      )
+    }
+  )
 }

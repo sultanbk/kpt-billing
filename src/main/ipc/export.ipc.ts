@@ -1,58 +1,36 @@
 // ============================================================================
-// KPT Billing - Export IPC Handlers
+// KPT Billing - Export IPC Handlers (secured with validation)
 // ============================================================================
-import { ipcMain } from 'electron'
 import { exportService } from '../services/export.service'
-import log from 'electron-log'
+import { safeHandle, validate } from './ipc-guard'
+import { dateSchema } from './validation'
 
 export function registerExportIpc(): void {
-  ipcMain.handle('export:dailyReport', async (_event, date: string) => {
-    try {
-      const path = await exportService.exportDailyReport(date)
-      return { success: true, path }
-    } catch (err) {
-      log.error('Export daily report failed:', err)
-      return { success: false, error: String(err) }
-    }
+  safeHandle('export:dailyReport', async (_event, date) => {
+    const validDate = validate(dateSchema, date)
+    const path = await exportService.exportDailyReport(validDate)
+    return { success: true, path }
   })
 
-  ipcMain.handle('export:billHistory', async (_event, dateFrom: string, dateTo: string) => {
-    try {
-      const path = await exportService.exportBillHistory(dateFrom, dateTo)
-      return { success: true, path }
-    } catch (err) {
-      log.error('Export bill history failed:', err)
-      return { success: false, error: String(err) }
-    }
+  safeHandle('export:billHistory', async (_event, dateFrom, dateTo) => {
+    const validFrom = validate(dateSchema, dateFrom)
+    const validTo = validate(dateSchema, dateTo)
+    const path = await exportService.exportBillHistory(validFrom, validTo)
+    return { success: true, path }
   })
 
-  ipcMain.handle('export:stockReport', async () => {
-    try {
-      const path = await exportService.exportStockReport()
-      return { success: true, path }
-    } catch (err) {
-      log.error('Export stock report failed:', err)
-      return { success: false, error: String(err) }
-    }
+  safeHandle('export:stockReport', async () => {
+    const path = await exportService.exportStockReport()
+    return { success: true, path }
   })
 
-  ipcMain.handle('export:customerReport', async () => {
-    try {
-      const path = await exportService.exportCustomerReport()
-      return { success: true, path }
-    } catch (err) {
-      log.error('Export customer report failed:', err)
-      return { success: false, error: String(err) }
-    }
+  safeHandle('export:customerReport', async () => {
+    const path = await exportService.exportCustomerReport()
+    return { success: true, path }
   })
 
-  ipcMain.handle('export:fullData', async () => {
-    try {
-      const path = await exportService.exportFullData()
-      return { success: true, path }
-    } catch (err) {
-      log.error('Full data export failed:', err)
-      return { success: false, error: String(err) }
-    }
+  safeHandle('export:fullData', async () => {
+    const path = await exportService.exportFullData()
+    return { success: true, path }
   })
 }

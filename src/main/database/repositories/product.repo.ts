@@ -3,7 +3,13 @@
 // ============================================================================
 import { getSqlite } from '../connection'
 import { mapRow, mapRows } from '../utils'
-import type { Product, ProductFormData, ProductFilters, PaginatedResult, ImportResult } from '../../../shared/types'
+import type {
+  Product,
+  ProductFormData,
+  ProductFilters,
+  PaginatedResult,
+  ImportResult
+} from '../../../shared/types'
 
 export class ProductRepository {
   private generateSku(categoryId: number | null): string {
@@ -48,7 +54,16 @@ export class ProductRepository {
 
   getAll(filters: ProductFilters = {}): PaginatedResult<Product> {
     const db = getSqlite()
-    const { search, categoryId, stockStatus, isActive, page = 1, pageSize = 50, sortBy = 'name', sortOrder = 'asc' } = filters
+    const {
+      search,
+      categoryId,
+      stockStatus,
+      isActive,
+      page = 1,
+      pageSize = 50,
+      sortBy = 'name',
+      sortOrder = 'asc'
+    } = filters
 
     let where = 'WHERE 1=1'
     const params: unknown[] = []
@@ -63,7 +78,8 @@ export class ProductRepository {
       params.push(categoryId)
     }
     if (stockStatus === 'low') {
-      where += ' AND p.low_stock_alert IS NOT NULL AND p.current_stock <= p.low_stock_alert AND p.current_stock > 0'
+      where +=
+        ' AND p.low_stock_alert IS NOT NULL AND p.current_stock <= p.low_stock_alert AND p.current_stock > 0'
     } else if (stockStatus === 'out') {
       where += ' AND p.current_stock <= 0'
     } else if (stockStatus === 'in') {
@@ -87,7 +103,9 @@ export class ProductRepository {
     const order = sortOrder === 'desc' ? 'DESC' : 'ASC'
 
     const countResult = db
-      .prepare(`SELECT COUNT(*) as total FROM products p LEFT JOIN categories c ON p.category_id = c.id ${where}`)
+      .prepare(
+        `SELECT COUNT(*) as total FROM products p LEFT JOIN categories c ON p.category_id = c.id ${where}`
+      )
       .get(...params) as { total: number }
 
     const offset = (page - 1) * pageSize
@@ -187,30 +205,68 @@ export class ProductRepository {
 
     db.transaction(() => {
       // Fetch current product to track price changes
-      const current = db.prepare('SELECT purchase_price, selling_price, wholesale_price FROM products WHERE id = ?')
-        .get(id) as { purchase_price: number; selling_price: number; wholesale_price: number | null } | undefined
+      const current = db
+        .prepare('SELECT purchase_price, selling_price, wholesale_price FROM products WHERE id = ?')
+        .get(id) as
+        | { purchase_price: number; selling_price: number; wholesale_price: number | null }
+        | undefined
 
       const fields: string[] = []
       const values: unknown[] = []
 
-      if (data.name !== undefined) { fields.push('name = ?'); values.push(data.name) }
-      if (data.shortName !== undefined) { fields.push('short_name = ?'); values.push(data.shortName || null) }
-      if (data.barcode !== undefined) { fields.push('barcode = ?'); values.push(data.barcode || null) }
-      if (data.categoryId !== undefined) { fields.push('category_id = ?'); values.push(data.categoryId || null) }
-      if (data.subCategory !== undefined) { fields.push('sub_category = ?'); values.push(data.subCategory || null) }
-      if (data.brand !== undefined) { fields.push('brand = ?'); values.push(data.brand || null) }
-      if (data.hsnCode !== undefined) { fields.push('hsn_code = ?'); values.push(data.hsnCode) }
-      if (data.costPrice !== undefined) { fields.push('purchase_price = ?'); values.push(data.costPrice) }
-      if (data.sellingPrice !== undefined) { fields.push('selling_price = ?'); values.push(data.sellingPrice) }
-      if (data.wholesalePrice !== undefined) { fields.push('wholesale_price = ?'); values.push(data.wholesalePrice || null) }
-      if (data.gstRate !== undefined) { fields.push('gst_rate = ?'); values.push(data.gstRate) }
+      if (data.name !== undefined) {
+        fields.push('name = ?')
+        values.push(data.name)
+      }
+      if (data.shortName !== undefined) {
+        fields.push('short_name = ?')
+        values.push(data.shortName || null)
+      }
+      if (data.barcode !== undefined) {
+        fields.push('barcode = ?')
+        values.push(data.barcode || null)
+      }
+      if (data.categoryId !== undefined) {
+        fields.push('category_id = ?')
+        values.push(data.categoryId || null)
+      }
+      if (data.subCategory !== undefined) {
+        fields.push('sub_category = ?')
+        values.push(data.subCategory || null)
+      }
+      if (data.brand !== undefined) {
+        fields.push('brand = ?')
+        values.push(data.brand || null)
+      }
+      if (data.hsnCode !== undefined) {
+        fields.push('hsn_code = ?')
+        values.push(data.hsnCode)
+      }
+      if (data.costPrice !== undefined) {
+        fields.push('purchase_price = ?')
+        values.push(data.costPrice)
+      }
+      if (data.sellingPrice !== undefined) {
+        fields.push('selling_price = ?')
+        values.push(data.sellingPrice)
+      }
+      if (data.wholesalePrice !== undefined) {
+        fields.push('wholesale_price = ?')
+        values.push(data.wholesalePrice || null)
+      }
+      if (data.gstRate !== undefined) {
+        fields.push('gst_rate = ?')
+        values.push(data.gstRate)
+      }
       if (data.stock !== undefined) {
         // Track stock change in ledger when editing via product form
-        const currentProduct = db.prepare('SELECT current_stock FROM products WHERE id = ?')
+        const currentProduct = db
+          .prepare('SELECT current_stock FROM products WHERE id = ?')
           .get(id) as { current_stock: number } | undefined
         const oldStock = currentProduct?.current_stock ?? 0
         const delta = data.stock - oldStock
-        fields.push('current_stock = ?'); values.push(data.stock)
+        fields.push('current_stock = ?')
+        values.push(data.stock)
         if (delta !== 0) {
           db.prepare(
             `INSERT INTO stock_ledger (product_id, type, qty, reference_type, notes)
@@ -218,13 +274,34 @@ export class ProductRepository {
           ).run(id, delta, `Stock adjusted from ${oldStock} to ${data.stock}`)
         }
       }
-      if (data.lowStockThreshold !== undefined) { fields.push('low_stock_alert = ?'); values.push(data.lowStockThreshold ?? null) }
-      if (data.location !== undefined) { fields.push('location = ?'); values.push(data.location || null) }
-      if (data.color !== undefined) { fields.push('color = ?'); values.push(data.color || null) }
-      if (data.size !== undefined) { fields.push('size = ?'); values.push(data.size || null) }
-      if (data.material !== undefined) { fields.push('material = ?'); values.push(data.material || null) }
-      if (data.description !== undefined) { fields.push('notes = ?'); values.push(data.description ?? null) }
-      if (data.isActive !== undefined) { fields.push('is_active = ?'); values.push(data.isActive ? 1 : 0) }
+      if (data.lowStockThreshold !== undefined) {
+        fields.push('low_stock_alert = ?')
+        values.push(data.lowStockThreshold ?? null)
+      }
+      if (data.location !== undefined) {
+        fields.push('location = ?')
+        values.push(data.location || null)
+      }
+      if (data.color !== undefined) {
+        fields.push('color = ?')
+        values.push(data.color || null)
+      }
+      if (data.size !== undefined) {
+        fields.push('size = ?')
+        values.push(data.size || null)
+      }
+      if (data.material !== undefined) {
+        fields.push('material = ?')
+        values.push(data.material || null)
+      }
+      if (data.description !== undefined) {
+        fields.push('notes = ?')
+        values.push(data.description ?? null)
+      }
+      if (data.isActive !== undefined) {
+        fields.push('is_active = ?')
+        values.push(data.isActive ? 1 : 0)
+      }
 
       fields.push("updated_at = datetime('now','localtime')")
       values.push(id)
@@ -245,8 +322,16 @@ export class ProductRepository {
         if (data.sellingPrice !== undefined && data.sellingPrice !== current.selling_price) {
           insertHistory.run(id, 'selling_price', current.selling_price, data.sellingPrice)
         }
-        if (data.wholesalePrice !== undefined && (data.wholesalePrice || 0) !== (current.wholesale_price || 0)) {
-          insertHistory.run(id, 'wholesale_price', current.wholesale_price || 0, data.wholesalePrice || 0)
+        if (
+          data.wholesalePrice !== undefined &&
+          (data.wholesalePrice || 0) !== (current.wholesale_price || 0)
+        ) {
+          insertHistory.run(
+            id,
+            'wholesale_price',
+            current.wholesale_price || 0,
+            data.wholesalePrice || 0
+          )
         }
       }
     })()
@@ -317,7 +402,7 @@ export class ProductRepository {
     const db = getSqlite()
     db.transaction(() => {
       db.prepare(
-        'UPDATE products SET current_stock = current_stock + ?, updated_at = datetime(\'now\',\'localtime\') WHERE id = ?'
+        "UPDATE products SET current_stock = current_stock + ?, updated_at = datetime('now','localtime') WHERE id = ?"
       ).run(quantity, productId)
       db.prepare(
         `INSERT INTO stock_ledger (product_id, type, qty, reference_type, notes)
@@ -355,9 +440,7 @@ export class ProductRepository {
       .all(productId, limit) as Record<string, unknown>[]
   }
 
-  bulkStockUpdate(
-    items: { sku?: string; barcode?: string; stock: number }[]
-  ): ImportResult {
+  bulkStockUpdate(items: { sku?: string; barcode?: string; stock: number }[]): ImportResult {
     const db = getSqlite()
     let imported = 0
     let skipped = 0
@@ -382,7 +465,9 @@ export class ProductRepository {
 
           if (!product) {
             skipped++
-            errors.push(`Row ${i + 1}: Product not found (SKU: ${item.sku || '-'}, Barcode: ${item.barcode || '-'})`)
+            errors.push(
+              `Row ${i + 1}: Product not found (SKU: ${item.sku || '-'}, Barcode: ${item.barcode || '-'})`
+            )
             continue
           }
 

@@ -320,4 +320,46 @@ The billing page uses the `useBillingStore` (Zustand + Immer):
 
 ---
 
+## Quick Bill Search (Ctrl+K)
+
+The Quick Bill Search is a command-palette accessible from anywhere via **Ctrl+K** or the sidebar search button. It provides rapid access to any bill for viewing, printing, downloading, WhatsApp sharing, and return/exchange processing.
+
+### Features
+- **Recent Bills** — 15 most recent bills shown on open (no typing needed)
+- **Search** — Type 2+ characters to search by bill number, customer name, or phone
+- **3-Mode Interface** — List → Actions → View, fully keyboard-navigable
+- **5 Quick Actions** — View (V), Print (P), Download PDF (D), WhatsApp (W), Return/Exchange (R)
+- **Bill Detail View** — Full items table with GST, totals, return history, and inline action buttons
+
+See [SHORTCUTS.md](SHORTCUTS.md) for complete keyboard shortcut reference.
+
+---
+
+## Return & Exchange
+
+Bills can be returned or exchanged through the Quick Bill Search (Ctrl+K → R) or from the Reports page.
+
+### Return Flow
+1. Search and select the original bill
+2. Select items and quantities to return
+3. Choose refund mode (Cash, Credit, or Adjust)
+4. Enter reason for return
+5. Confirm — stock is restored, original bill is recalculated, refund is processed
+
+### Exchange Flow
+1. Search and select the original bill
+2. Select items to return
+3. Switch to Exchange mode
+4. Add replacement items (search products or add custom "Other" items)
+5. Confirm — original bill recalculated, new bill created for exchange items, net amount settled
+
+### After Return/Exchange
+- Original bill quantities and amounts are recalculated based on remaining items
+- Stock is restored for returned items
+- PDF and thermal receipts show return annotations on affected items
+- Return history is tracked in `bill_returns` and `bill_return_items` tables
+- An optional new bill is created for exchange items
+
+---
+
 *Developed by [Sultan Kabadi](https://sultanbk.com) — KPT Billing v1.0.0*

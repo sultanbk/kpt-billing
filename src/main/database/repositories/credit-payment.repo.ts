@@ -4,7 +4,11 @@
 // ============================================================================
 import { getSqlite } from '../connection'
 import { mapRow, mapRows } from '../utils'
-import type { CreditPayment, CreditPaymentCreateData, CreditLedgerEntry } from '../../../shared/types'
+import type {
+  CreditPayment,
+  CreditPaymentCreateData,
+  CreditLedgerEntry
+} from '../../../shared/types'
 import { getLocalDateString } from '../../../shared/constants'
 
 export class CreditPaymentRepository {
@@ -26,9 +30,7 @@ export class CreditPaymentRepository {
       if (balanceBefore <= 0) throw new Error('Customer has no outstanding credit')
       if (data.amount <= 0) throw new Error('Payment amount must be positive')
       if (data.amount > balanceBefore) {
-        throw new Error(
-          `Payment ₹${data.amount} exceeds outstanding balance ₹${balanceBefore}`
-        )
+        throw new Error(`Payment ₹${data.amount} exceeds outstanding balance ₹${balanceBefore}`)
       }
 
       const balanceAfter = Math.round((balanceBefore - data.amount) * 100) / 100
@@ -132,9 +134,7 @@ export class CreditPaymentRepository {
     const pageSize = filters?.pageSize || 50
 
     const countResult = db
-      .prepare(
-        `SELECT COUNT(*) as total FROM credit_payments cp ${whereClause}`
-      )
+      .prepare(`SELECT COUNT(*) as total FROM credit_payments cp ${whereClause}`)
       .get(...params) as { total: number }
 
     const rows = db
@@ -309,9 +309,9 @@ export class CreditPaymentRepository {
   deletePayment(id: number): boolean {
     const db = getSqlite()
     const txn = db.transaction(() => {
-      const payment = db
-        .prepare('SELECT * FROM credit_payments WHERE id = ?')
-        .get(id) as Record<string, unknown> | undefined
+      const payment = db.prepare('SELECT * FROM credit_payments WHERE id = ?').get(id) as
+        | Record<string, unknown>
+        | undefined
       if (!payment) throw new Error('Payment not found')
 
       // Restore customer balance

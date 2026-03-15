@@ -12,7 +12,8 @@ import {
   LockOpen,
   TrendingUp,
   Clock,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Search
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { useAuthStore } from '../../stores/auth.store'
@@ -30,7 +31,13 @@ const navSections: { label: string; items: NavItem[] }[] = [
     label: '',
     items: [
       { to: '/', label: 'Billing', icon: ShoppingCart, shortcut: 'F2', protected: false },
-      { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, shortcut: 'F1', protected: true }
+      {
+        to: '/dashboard',
+        label: 'Dashboard',
+        icon: LayoutDashboard,
+        shortcut: 'F1',
+        protected: true
+      }
     ]
   },
   {
@@ -45,9 +52,21 @@ const navSections: { label: string; items: NavItem[] }[] = [
     label: 'Insights',
     items: [
       { to: '/reports', label: 'Reports', icon: BarChart3, shortcut: 'F7', protected: true },
-      { to: '/customer-analytics', label: 'Analytics', icon: TrendingUp, shortcut: '', protected: true },
+      {
+        to: '/customer-analytics',
+        label: 'Analytics',
+        icon: TrendingUp,
+        shortcut: '',
+        protected: true
+      },
       { to: '/credit-aging', label: 'Credit Aging', icon: Clock, shortcut: '', protected: true },
-      { to: '/data-export', label: 'Data Export', icon: FileSpreadsheet, shortcut: '', protected: true }
+      {
+        to: '/data-export',
+        label: 'Data Export',
+        icon: FileSpreadsheet,
+        shortcut: '',
+        protected: true
+      }
     ]
   },
   {
@@ -58,7 +77,7 @@ const navSections: { label: string; items: NavItem[] }[] = [
   }
 ]
 
-export function Sidebar(): React.JSX.Element {
+export function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void }): React.JSX.Element {
   const { isUnlocked, user, lock } = useAuthStore()
 
   return (
@@ -76,6 +95,20 @@ export function Sidebar(): React.JSX.Element {
             Textiles
           </span>
         </div>
+      </div>
+
+      {/* Search Bills Button */}
+      <div className="px-3 pb-3">
+        <button
+          onClick={onOpenSearch}
+          className="flex w-full items-center gap-2.5 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-sm text-muted-foreground hover:bg-accent/50 hover:text-foreground hover:border-border transition-all duration-150 group"
+        >
+          <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60 group-hover:text-foreground" />
+          <span className="flex-1 text-left text-xs">Search bills...</span>
+          <kbd className="rounded-md bg-muted/80 border border-border/40 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground/60">
+            Ctrl+K
+          </kbd>
+        </button>
       </div>
 
       {/* Navigation */}
@@ -110,7 +143,14 @@ export function Sidebar(): React.JSX.Element {
                       {isActive && (
                         <div className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full bg-primary" />
                       )}
-                      <item.icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground')} />
+                      <item.icon
+                        className={cn(
+                          'h-4 w-4 shrink-0',
+                          isActive
+                            ? 'text-primary'
+                            : 'text-muted-foreground group-hover:text-foreground'
+                        )}
+                      />
                       <span className="flex-1">{item.label}</span>
                       {item.protected && !isUnlocked && (
                         <Lock className="h-3 w-3 text-muted-foreground/40" />
@@ -143,11 +183,13 @@ export function Sidebar(): React.JSX.Element {
               <div className="text-[11px] font-semibold leading-tight">Lock Screen</div>
               <div className="text-[9px] text-amber-600/70 leading-tight">{user?.name}</div>
             </div>
-            <kbd className="rounded-md bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 text-[9px] font-mono text-amber-600/80">Alt+L</kbd>
+            <kbd className="rounded-md bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 text-[9px] font-mono text-amber-600/80">
+              Alt+L
+            </kbd>
           </button>
         )}
         <div className="text-center text-[10px] text-muted-foreground/50 font-medium">
-          KPT Billing v1.0.0
+          KPT Billing v1.0.1
         </div>
       </div>
     </aside>

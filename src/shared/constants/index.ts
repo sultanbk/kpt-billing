@@ -29,8 +29,8 @@ export const COMMON_HSN_CODES = [
   { code: '5801', description: 'Woven pile fabrics and chenille fabrics' },
   { code: '5806', description: 'Narrow woven fabrics' },
   { code: '6117', description: 'Made up clothing accessories, knitted' },
-  { code: '6205', description: 'Men\'s shirts' },
-  { code: '6206', description: 'Women\'s blouses, shirts' },
+  { code: '6205', description: "Men's shirts" },
+  { code: '6206', description: "Women's blouses, shirts" },
   { code: '6214', description: 'Shawls, scarves, veils' },
   { code: '6302', description: 'Bed/table/toilet/kitchen linen' },
   { code: '6307', description: 'Other made up articles' }

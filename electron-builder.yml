@@ -14,7 +14,9 @@ asarUnpack:
   - node_modules/better-sqlite3/**
 win:
   executableName: KPT-Billing
+  icon: build/icon.ico
   signAndEditExecutable: false
+afterPack: scripts/afterPack.js
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
@@ -40,6 +42,8 @@ linux:
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
-publish:
-  provider: generic
-  url: https://example.com/auto-updates
+# Auto-update: disabled until a real update server is configured.
+# To enable, replace with your actual update server URL:
+# publish:
+#   provider: generic
+#   url: https://your-update-server.com/releases

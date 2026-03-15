@@ -50,6 +50,7 @@ export default function SettingsPage(): React.JSX.Element {
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadSettings()
     loadPrinters()
   }, [loadSettings, loadPrinters])
@@ -63,7 +64,7 @@ export default function SettingsPage(): React.JSX.Element {
     try {
       await window.api.settings.setMany(settings)
       toast.success('Settings saved successfully')
-    } catch (err) {
+    } catch {
       toast.error('Failed to save settings')
     }
     setSaving(false)
@@ -96,11 +97,17 @@ export default function SettingsPage(): React.JSX.Element {
   }
 
   // ---- Cloud Backup State & Handlers ----
-  const [cloudStatus, setCloudStatus] = useState<{ configured: boolean; authenticated: boolean; hasRefreshToken: boolean }>({ configured: false, authenticated: false, hasRefreshToken: false })
+  const [cloudStatus, setCloudStatus] = useState<{
+    configured: boolean
+    authenticated: boolean
+    hasRefreshToken: boolean
+  }>({ configured: false, authenticated: false, hasRefreshToken: false })
   const [cloudClientId, setCloudClientId] = useState('')
   const [cloudClientSecret, setCloudClientSecret] = useState('')
   const [cloudLoading, setCloudLoading] = useState(false)
-  const [cloudBackups, setCloudBackups] = useState<{ id: string; name: string; modifiedTime: string; size: string }[]>([])
+  const [cloudBackups, setCloudBackups] = useState<
+    { id: string; name: string; modifiedTime: string; size: string }[]
+  >([])
 
   const loadCloudStatus = useCallback(async () => {
     try {
@@ -115,12 +122,17 @@ export default function SettingsPage(): React.JSX.Element {
         try {
           const backups = await window.api.cloud.listBackups()
           setCloudBackups(backups)
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadCloudStatus()
   }, [loadCloudStatus])
 
@@ -133,7 +145,9 @@ export default function SettingsPage(): React.JSX.Element {
       await window.api.cloud.saveConfig(cloudClientId.trim(), cloudClientSecret.trim())
       toast.success('Google Drive config saved')
       loadCloudStatus()
-    } catch { toast.error('Failed to save config') }
+    } catch {
+      toast.error('Failed to save config')
+    }
   }
 
   const handleCloudAuth = async (): Promise<void> => {
@@ -146,7 +160,9 @@ export default function SettingsPage(): React.JSX.Element {
       } else {
         toast.error(result.error || 'Authentication failed')
       }
-    } catch { toast.error('Authentication failed') }
+    } catch {
+      toast.error('Authentication failed')
+    }
     setCloudLoading(false)
   }
 
@@ -156,7 +172,9 @@ export default function SettingsPage(): React.JSX.Element {
       toast.success('Disconnected from Google Drive')
       setCloudBackups([])
       loadCloudStatus()
-    } catch { toast.error('Disconnect failed') }
+    } catch {
+      toast.error('Disconnect failed')
+    }
   }
 
   const handleCloudBackup = async (): Promise<void> => {
@@ -169,7 +187,9 @@ export default function SettingsPage(): React.JSX.Element {
       } else {
         toast.error(result.error || 'Cloud backup failed')
       }
-    } catch { toast.error('Cloud backup failed') }
+    } catch {
+      toast.error('Cloud backup failed')
+    }
     setCloudLoading(false)
   }
 
@@ -182,7 +202,9 @@ export default function SettingsPage(): React.JSX.Element {
       } else {
         toast.error(result.error || 'Download failed')
       }
-    } catch { toast.error('Download failed') }
+    } catch {
+      toast.error('Download failed')
+    }
     setCloudLoading(false)
   }
 
@@ -190,23 +212,27 @@ export default function SettingsPage(): React.JSX.Element {
     try {
       const dir = await window.api.billing.getReceiptsDir()
       await window.api.dialog.openFolder(dir)
-    } catch { toast.error('Could not open folder') }
+    } catch {
+      toast.error('Could not open folder')
+    }
   }
 
   const handleOpenBackups = async (): Promise<void> => {
     try {
       const dir = await window.api.backup.getDir()
       await window.api.dialog.openFolder(dir)
-    } catch { toast.error('Could not open folder') }
+    } catch {
+      toast.error('Could not open folder')
+    }
   }
 
   const handleRestore = async (): Promise<void> => {
     // Confirmation
     const confirmed = window.confirm(
       'WARNING: Restoring from a backup will REPLACE all current data with the backup data.\n\n' +
-      'A safety backup of your current data will be created automatically before restoring.\n\n' +
-      'The app will reload after restoration.\n\n' +
-      'Are you sure you want to continue?'
+        'A safety backup of your current data will be created automatically before restoring.\n\n' +
+        'The app will reload after restoration.\n\n' +
+        'Are you sure you want to continue?'
     )
     if (!confirmed) return
 
@@ -225,7 +251,7 @@ export default function SettingsPage(): React.JSX.Element {
           toast.error(result.error || 'Restore failed')
         }
       }
-    } catch (err) {
+    } catch {
       toast.error('Restore failed unexpectedly')
     }
     setRestoring(false)
@@ -235,7 +261,9 @@ export default function SettingsPage(): React.JSX.Element {
     try {
       const dir = await window.api.report.getReportsDir()
       await window.api.dialog.openFolder(dir)
-    } catch { toast.error('Could not open folder') }
+    } catch {
+      toast.error('Could not open folder')
+    }
   }
 
   // ---- PIN Change State & Handlers ----
@@ -278,9 +306,9 @@ export default function SettingsPage(): React.JSX.Element {
     { id: 'general', label: 'General', icon: Store, description: 'Shop details & printer' },
     { id: 'backup', label: 'Backup', icon: Database, description: 'Local & cloud backups' },
     { id: 'security', label: 'Security', icon: Shield, description: 'PIN & access control' },
-    { id: 'shortcuts', label: 'Shortcuts', icon: Keyboard, description: 'Keyboard shortcuts' },
+    { id: 'shortcuts', label: 'Shortcuts', icon: Keyboard, description: 'Keyboard shortcuts' }
   ] as const
-  type TabId = typeof TABS[number]['id']
+  type TabId = (typeof TABS)[number]['id']
   const [activeTab, setActiveTab] = useState<TabId>('general')
 
   return (
@@ -310,7 +338,9 @@ export default function SettingsPage(): React.JSX.Element {
                   : 'text-muted-foreground hover:bg-accent/70 hover:text-foreground'
               }`}
             >
-              <tab.icon className={`h-4 w-4 shrink-0 ${activeTab === tab.id ? 'text-primary' : ''}`} />
+              <tab.icon
+                className={`h-4 w-4 shrink-0 ${activeTab === tab.id ? 'text-primary' : ''}`}
+              />
               <div className="min-w-0">
                 <div className="text-sm font-medium truncate">{tab.label}</div>
                 <div className="text-[10px] text-muted-foreground truncate">{tab.description}</div>
@@ -322,311 +352,373 @@ export default function SettingsPage(): React.JSX.Element {
         {/* Tab Content */}
         <div className="flex-1 overflow-auto p-6">
           <div className="max-w-[800px] mx-auto space-y-6">
+            {/* ===================== GENERAL TAB ===================== */}
+            {activeTab === 'general' && (
+              <>
+                {/* Shop Details */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Store className="h-5 w-5" />
+                      Shop Details
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Shop Name</Label>
+                      <Input
+                        value={settings.shopName || ''}
+                        onChange={(e) => updateSetting('shopName', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>GSTIN</Label>
+                      <Input
+                        value={settings.gstin || ''}
+                        onChange={(e) => updateSetting('gstin', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2 col-span-2">
+                      <Label>Address</Label>
+                      <Input
+                        value={settings.shopAddress || ''}
+                        onChange={(e) => updateSetting('shopAddress', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Phone</Label>
+                      <Input
+                        value={settings.shopPhone || ''}
+                        onChange={(e) => updateSetting('shopPhone', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Receipt Footer</Label>
+                      <Input
+                        value={settings.receiptFooter || ''}
+                        onChange={(e) => updateSetting('receiptFooter', e.target.value)}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
 
-          {/* ===================== GENERAL TAB ===================== */}
-          {activeTab === 'general' && (
-            <>
-              {/* Shop Details */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Store className="h-5 w-5" />
-                    Shop Details
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Shop Name</Label>
-                    <Input
-                      value={settings.shopName || ''}
-                      onChange={(e) => updateSetting('shopName', e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>GSTIN</Label>
-                    <Input
-                      value={settings.gstin || ''}
-                      onChange={(e) => updateSetting('gstin', e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2 col-span-2">
-                    <Label>Address</Label>
-                    <Input
-                      value={settings.shopAddress || ''}
-                      onChange={(e) => updateSetting('shopAddress', e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Phone</Label>
-                    <Input
-                      value={settings.shopPhone || ''}
-                      onChange={(e) => updateSetting('shopPhone', e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Receipt Footer</Label>
-                    <Input
-                      value={settings.receiptFooter || ''}
-                      onChange={(e) => updateSetting('receiptFooter', e.target.value)}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+                {/* Printer Settings */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Printer className="h-5 w-5" />
+                      Printer Settings
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Receipt Printer</Label>
+                      <div className="flex gap-2">
+                        <select
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          value={settings.receiptPrinterName || ''}
+                          onChange={(e) => updateSetting('receiptPrinterName', e.target.value)}
+                        >
+                          <option value="">Select printer...</option>
+                          {printers.map((p) => (
+                            <option key={p} value={p}>
+                              {p}
+                            </option>
+                          ))}
+                        </select>
+                        <Button variant="outline" onClick={handleTestPrint}>
+                          Test Print
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 opacity-50">
+                      <input
+                        type="checkbox"
+                        id="autoPrint"
+                        checked={false}
+                        disabled
+                        className="h-4 w-4 rounded border-input"
+                      />
+                      <Label htmlFor="autoPrint" className="text-muted-foreground">
+                        Auto-print receipt after billing (disabled)
+                      </Label>
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            )}
 
-              {/* Printer Settings */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Printer className="h-5 w-5" />
-                    Printer Settings
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Receipt Printer</Label>
-                    <div className="flex gap-2">
-                      <select
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                        value={settings.receiptPrinterName || ''}
-                        onChange={(e) => updateSetting('receiptPrinterName', e.target.value)}
+            {/* ===================== BACKUP TAB ===================== */}
+            {activeTab === 'backup' && (
+              <>
+                {/* Local Backup */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Database className="h-5 w-5" />
+                      Local Backup & Data
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      <Button
+                        variant="outline"
+                        onClick={handleBackup}
+                        className="gap-2 h-auto py-3 flex-col"
                       >
-                        <option value="">Select printer...</option>
-                        {printers.map((p) => (
-                          <option key={p} value={p}>{p}</option>
-                        ))}
-                      </select>
-                      <Button variant="outline" onClick={handleTestPrint}>
-                        Test Print
+                        <Database className="h-4 w-4" />
+                        <span className="text-xs">Create Backup</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleRestore}
+                        disabled={restoring}
+                        className="gap-2 h-auto py-3 flex-col text-amber-700 border-amber-300 hover:bg-amber-50"
+                      >
+                        {restoring ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <RotateCcw className="h-4 w-4" />
+                        )}
+                        <span className="text-xs">
+                          {restoring ? 'Restoring...' : 'Restore Backup'}
+                        </span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleOpenBackups}
+                        className="gap-2 h-auto py-3 flex-col"
+                      >
+                        <FolderOpen className="h-4 w-4" />
+                        <span className="text-xs">Backups Folder</span>
                       </Button>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="autoPrint"
-                      checked={settings.autoPrintReceipt === 'true'}
-                      onChange={(e) => updateSetting('autoPrintReceipt', e.target.checked ? 'true' : 'false')}
-                      className="h-4 w-4 rounded border-input"
-                    />
-                    <Label htmlFor="autoPrint">Auto-print receipt after billing</Label>
-                  </div>
-                </CardContent>
-              </Card>
-            </>
-          )}
-
-          {/* ===================== BACKUP TAB ===================== */}
-          {activeTab === 'backup' && (
-            <>
-              {/* Local Backup */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Database className="h-5 w-5" />
-                    Local Backup & Data
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    <Button variant="outline" onClick={handleBackup} className="gap-2 h-auto py-3 flex-col">
-                      <Database className="h-4 w-4" />
-                      <span className="text-xs">Create Backup</span>
-                    </Button>
-                    <Button variant="outline" onClick={handleRestore} disabled={restoring} className="gap-2 h-auto py-3 flex-col text-amber-700 border-amber-300 hover:bg-amber-50">
-                      {restoring ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
-                      <span className="text-xs">{restoring ? 'Restoring...' : 'Restore Backup'}</span>
-                    </Button>
-                    <Button variant="outline" onClick={handleOpenBackups} className="gap-2 h-auto py-3 flex-col">
-                      <FolderOpen className="h-4 w-4" />
-                      <span className="text-xs">Backups Folder</span>
-                    </Button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Button variant="outline" onClick={handleOpenReceipts} className="gap-2">
-                      <FolderOpen className="h-4 w-4" />
-                      Open Receipts Folder
-                    </Button>
-                    <Button variant="outline" onClick={handleOpenReports} className="gap-2">
-                      <FolderOpen className="h-4 w-4" />
-                      Open Reports Folder
-                    </Button>
-                  </div>
-                  <Separator />
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Auto-Backup Frequency</Label>
-                      <select
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                        value={settings.backupFrequency || '4hours'}
-                        onChange={(e) => updateSetting('backupFrequency', e.target.value)}
-                      >
-                        <option value="hourly">Every Hour</option>
-                        <option value="4hours">Every 4 Hours</option>
-                        <option value="daily">Daily</option>
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Keep Backups (days)</Label>
-                      <Input
-                        type="number"
-                        value={settings.backupRetention || '30'}
-                        onChange={(e) => updateSetting('backupRetention', e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Cloud Backup (Google Drive) */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Cloud className="h-5 w-5" />
-                    Cloud Backup (Google Drive)
-                    {cloudStatus.authenticated ? (
-                      <Badge className="ml-2 gap-1 bg-green-100 text-green-700"><CheckCircle2 className="h-3 w-3" />Connected</Badge>
-                    ) : cloudStatus.configured ? (
-                      <Badge variant="secondary" className="ml-2 gap-1"><AlertCircle className="h-3 w-3" />Not Connected</Badge>
-                    ) : null}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Google OAuth Client ID</Label>
-                      <Input
-                        value={cloudClientId}
-                        onChange={(e) => setCloudClientId(e.target.value)}
-                        placeholder="xxxxxxxxxx.apps.googleusercontent.com"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Google OAuth Client Secret</Label>
-                      <Input
-                        type="password"
-                        value={cloudClientSecret}
-                        onChange={(e) => setCloudClientSecret(e.target.value)}
-                        placeholder="GOCSPX-..."
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={handleSaveCloudConfig}>
-                      <Save className="mr-2 h-4 w-4" />Save Config
-                    </Button>
-                    {cloudStatus.configured && !cloudStatus.authenticated && (
-                      <Button size="sm" onClick={handleCloudAuth} disabled={cloudLoading}>
-                        {cloudLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Link className="mr-2 h-4 w-4" />}
-                        Connect to Google Drive
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button variant="outline" onClick={handleOpenReceipts} className="gap-2">
+                        <FolderOpen className="h-4 w-4" />
+                        Open Receipts Folder
                       </Button>
-                    )}
-                    {cloudStatus.authenticated && (
+                      <Button variant="outline" onClick={handleOpenReports} className="gap-2">
+                        <FolderOpen className="h-4 w-4" />
+                        Open Reports Folder
+                      </Button>
+                    </div>
+                    <Separator />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Auto-Backup Frequency</Label>
+                        <select
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          value={settings.backupFrequency || '4hours'}
+                          onChange={(e) => updateSetting('backupFrequency', e.target.value)}
+                        >
+                          <option value="hourly">Every Hour</option>
+                          <option value="4hours">Every 4 Hours</option>
+                          <option value="daily">Daily</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Keep Backups (days)</Label>
+                        <Input
+                          type="number"
+                          value={settings.backupRetention || '30'}
+                          onChange={(e) => updateSetting('backupRetention', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Cloud Backup (Google Drive) */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Cloud className="h-5 w-5" />
+                      Cloud Backup (Google Drive)
+                      {cloudStatus.authenticated ? (
+                        <Badge className="ml-2 gap-1 bg-green-100 text-green-700">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Connected
+                        </Badge>
+                      ) : cloudStatus.configured ? (
+                        <Badge variant="secondary" className="ml-2 gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          Not Connected
+                        </Badge>
+                      ) : null}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Google OAuth Client ID</Label>
+                        <Input
+                          value={cloudClientId}
+                          onChange={(e) => setCloudClientId(e.target.value)}
+                          placeholder="xxxxxxxxxx.apps.googleusercontent.com"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Google OAuth Client Secret</Label>
+                        <Input
+                          type="password"
+                          value={cloudClientSecret}
+                          onChange={(e) => setCloudClientSecret(e.target.value)}
+                          placeholder="GOCSPX-..."
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={handleSaveCloudConfig}>
+                        <Save className="mr-2 h-4 w-4" />
+                        Save Config
+                      </Button>
+                      {cloudStatus.configured && !cloudStatus.authenticated && (
+                        <Button size="sm" onClick={handleCloudAuth} disabled={cloudLoading}>
+                          {cloudLoading ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Link className="mr-2 h-4 w-4" />
+                          )}
+                          Connect to Google Drive
+                        </Button>
+                      )}
+                      {cloudStatus.authenticated && (
+                        <>
+                          <Button
+                            size="sm"
+                            onClick={handleCloudBackup}
+                            disabled={cloudLoading}
+                            className="gap-2"
+                          >
+                            {cloudLoading ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <CloudUpload className="h-4 w-4" />
+                            )}
+                            Backup to Cloud
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleCloudDisconnect}
+                            className="gap-2 text-destructive"
+                          >
+                            <Unlink className="h-4 w-4" />
+                            Disconnect
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                    {cloudBackups.length > 0 && (
                       <>
-                        <Button size="sm" onClick={handleCloudBackup} disabled={cloudLoading} className="gap-2">
-                          {cloudLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CloudUpload className="h-4 w-4" />}
-                          Backup to Cloud
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={handleCloudDisconnect} className="gap-2 text-destructive">
-                          <Unlink className="h-4 w-4" />Disconnect
-                        </Button>
+                        <Separator />
+                        <div className="space-y-1">
+                          <Label className="text-sm font-medium">Cloud Backups</Label>
+                          <div className="rounded-md border max-h-48 overflow-auto">
+                            {cloudBackups.map((b) => (
+                              <div
+                                key={b.id}
+                                className="flex items-center justify-between px-3 py-2 border-b last:border-b-0 text-sm"
+                              >
+                                <div>
+                                  <span className="font-medium">{b.name}</span>
+                                  <span className="text-muted-foreground ml-2">({b.size})</span>
+                                  <span className="text-muted-foreground ml-2 text-xs">
+                                    {new Date(b.modifiedTime).toLocaleString()}
+                                  </span>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleCloudDownload(b.id, b.name)}
+                                >
+                                  <CloudDownload className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       </>
                     )}
+                    <p className="text-xs text-muted-foreground">
+                      To set up Google Drive backup: create a project in Google Cloud Console,
+                      enable the Drive API, create OAuth 2.0 Desktop credentials, and enter the
+                      Client ID & Secret above.
+                    </p>
+                  </CardContent>
+                </Card>
+              </>
+            )}
+
+            {/* ===================== SECURITY TAB ===================== */}
+            {activeTab === 'security' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Shield className="h-5 w-5" />
+                    Change PIN
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="rounded-lg bg-muted/50 p-3">
+                    <p className="text-sm text-muted-foreground">
+                      This PIN is required to access Dashboard, Products, Purchases, Customers,
+                      Reports and Settings. The Billing page is always accessible without a PIN.
+                    </p>
                   </div>
-                  {cloudBackups.length > 0 && (
-                    <>
-                      <Separator />
-                      <div className="space-y-1">
-                        <Label className="text-sm font-medium">Cloud Backups</Label>
-                        <div className="rounded-md border max-h-48 overflow-auto">
-                          {cloudBackups.map((b) => (
-                            <div key={b.id} className="flex items-center justify-between px-3 py-2 border-b last:border-b-0 text-sm">
-                              <div>
-                                <span className="font-medium">{b.name}</span>
-                                <span className="text-muted-foreground ml-2">({b.size})</span>
-                                <span className="text-muted-foreground ml-2 text-xs">{new Date(b.modifiedTime).toLocaleString()}</span>
-                              </div>
-                              <Button variant="ghost" size="sm" onClick={() => handleCloudDownload(b.id, b.name)}>
-                                <CloudDownload className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    To set up Google Drive backup: create a project in Google Cloud Console, enable the Drive API,
-                    create OAuth 2.0 Desktop credentials, and enter the Client ID & Secret above.
-                  </p>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>Current PIN</Label>
+                      <Input
+                        type="password"
+                        inputMode="numeric"
+                        maxLength={8}
+                        value={currentPin}
+                        onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, ''))}
+                        placeholder="••••"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>New PIN</Label>
+                      <Input
+                        type="password"
+                        inputMode="numeric"
+                        maxLength={8}
+                        value={newPin}
+                        onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))}
+                        placeholder="Min 4 digits"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Confirm New PIN</Label>
+                      <Input
+                        type="password"
+                        inputMode="numeric"
+                        maxLength={8}
+                        value={confirmPin}
+                        onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))}
+                        placeholder="Re-enter new PIN"
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    onClick={handleChangePin}
+                    disabled={pinChanging}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <Shield className="h-4 w-4" />
+                    {pinChanging ? 'Changing...' : 'Change PIN'}
+                  </Button>
                 </CardContent>
               </Card>
-            </>
-          )}
+            )}
 
-          {/* ===================== SECURITY TAB ===================== */}
-          {activeTab === 'security' && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Shield className="h-5 w-5" />
-                  Change PIN
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="rounded-lg bg-muted/50 p-3">
-                  <p className="text-sm text-muted-foreground">
-                    This PIN is required to access Dashboard, Products, Purchases, Customers, Reports and Settings.
-                    The Billing page is always accessible without a PIN.
-                  </p>
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label>Current PIN</Label>
-                    <Input
-                      type="password"
-                      inputMode="numeric"
-                      maxLength={8}
-                      value={currentPin}
-                      onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, ''))}
-                      placeholder="••••"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>New PIN</Label>
-                    <Input
-                      type="password"
-                      inputMode="numeric"
-                      maxLength={8}
-                      value={newPin}
-                      onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))}
-                      placeholder="Min 4 digits"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Confirm New PIN</Label>
-                    <Input
-                      type="password"
-                      inputMode="numeric"
-                      maxLength={8}
-                      value={confirmPin}
-                      onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))}
-                      placeholder="Re-enter new PIN"
-                    />
-                  </div>
-                </div>
-                <Button onClick={handleChangePin} disabled={pinChanging} variant="outline" className="gap-2">
-                  <Shield className="h-4 w-4" />
-                  {pinChanging ? 'Changing...' : 'Change PIN'}
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* ===================== SHORTCUTS TAB ===================== */}
-          {activeTab === 'shortcuts' && (
-            <KeyboardShortcutsCard settings={settings} updateSetting={updateSetting} />
-          )}
-
+            {/* ===================== SHORTCUTS TAB ===================== */}
+            {activeTab === 'shortcuts' && (
+              <KeyboardShortcutsCard settings={settings} updateSetting={updateSetting} />
+            )}
           </div>
         </div>
       </div>
@@ -636,9 +728,24 @@ export default function SettingsPage(): React.JSX.Element {
 
 // ---- System-reserved shortcuts that cannot be reassigned ----
 const SYSTEM_SHORTCUTS = new Set([
-  'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12',
-  'Ctrl+K', 'Ctrl+L', 'Ctrl+N', 'Ctrl+B',
-  'Ctrl+Shift+R', 'Ctrl+Shift+D',
+  'F1',
+  'F2',
+  'F3',
+  'F4',
+  'F5',
+  'F6',
+  'F7',
+  'F8',
+  'F9',
+  'F10',
+  'F11',
+  'F12',
+  'Ctrl+K',
+  'Ctrl+L',
+  'Ctrl+N',
+  'Ctrl+B',
+  'Ctrl+Shift+R',
+  'Ctrl+Shift+D',
   'Escape'
 ])
 
@@ -658,7 +765,7 @@ const AVAILABLE_SHORTCUTS = [
   { value: 'Alt+2', label: 'Alt + 2' },
   { value: 'Alt+3', label: 'Alt + 3' },
   { value: 'Alt+4', label: 'Alt + 4' },
-  { value: 'Alt+5', label: 'Alt + 5' },
+  { value: 'Alt+5', label: 'Alt + 5' }
 ]
 
 const CONFIGURABLE_SHORTCUTS = [
@@ -704,25 +811,64 @@ function KeyboardShortcutsCard({
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Customize billing page shortcuts. Navigation shortcuts (F1–F10) and system shortcuts are fixed.
+          Customize billing page shortcuts. Navigation shortcuts (F1–F10) and system shortcuts are
+          fixed.
         </p>
 
         {/* Fixed shortcuts reference */}
         <div className="rounded-lg bg-muted/50 p-3 space-y-1.5">
-          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">System Shortcuts (Fixed)</Label>
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            System Shortcuts (Fixed)
+          </Label>
           <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-muted-foreground">
-            <div className="flex justify-between"><span>Dashboard</span><kbd className="font-mono bg-background px-1.5 rounded border text-[10px]">F1</kbd></div>
-            <div className="flex justify-between"><span>Billing</span><kbd className="font-mono bg-background px-1.5 rounded border text-[10px]">F2</kbd></div>
-            <div className="flex justify-between"><span>Products</span><kbd className="font-mono bg-background px-1.5 rounded border text-[10px]">F3</kbd></div>
-            <div className="flex justify-between"><span>Purchases</span><kbd className="font-mono bg-background px-1.5 rounded border text-[10px]">F4</kbd></div>
-            <div className="flex justify-between"><span>Customers</span><kbd className="font-mono bg-background px-1.5 rounded border text-[10px]">F5</kbd></div>
-            <div className="flex justify-between"><span>Hold Bill</span><kbd className="font-mono bg-background px-1.5 rounded border text-[10px]">F6</kbd></div>
-            <div className="flex justify-between"><span>Reports</span><kbd className="font-mono bg-background px-1.5 rounded border text-[10px]">F7</kbd></div>
-            <div className="flex justify-between"><span>Recall Bill</span><kbd className="font-mono bg-background px-1.5 rounded border text-[10px]">F8</kbd></div>
-            <div className="flex justify-between"><span>Clear Cart</span><kbd className="font-mono bg-background px-1.5 rounded border text-[10px]">F9</kbd></div>
-            <div className="flex justify-between"><span>Settings</span><kbd className="font-mono bg-background px-1.5 rounded border text-[10px]">F10</kbd></div>
-            <div className="flex justify-between"><span>Pay & Print</span><kbd className="font-mono bg-background px-1.5 rounded border text-[10px]">F11</kbd></div>
-            <div className="flex justify-between"><span>Shortcuts Help</span><kbd className="font-mono bg-background px-1.5 rounded border text-[10px]">F12</kbd></div>
+            <div className="flex justify-between">
+              <span>Dashboard</span>
+              <kbd className="font-mono bg-background px-1.5 rounded border text-[10px]">F1</kbd>
+            </div>
+            <div className="flex justify-between">
+              <span>Billing</span>
+              <kbd className="font-mono bg-background px-1.5 rounded border text-[10px]">F2</kbd>
+            </div>
+            <div className="flex justify-between">
+              <span>Products</span>
+              <kbd className="font-mono bg-background px-1.5 rounded border text-[10px]">F3</kbd>
+            </div>
+            <div className="flex justify-between">
+              <span>Purchases</span>
+              <kbd className="font-mono bg-background px-1.5 rounded border text-[10px]">F4</kbd>
+            </div>
+            <div className="flex justify-between">
+              <span>Customers</span>
+              <kbd className="font-mono bg-background px-1.5 rounded border text-[10px]">F5</kbd>
+            </div>
+            <div className="flex justify-between">
+              <span>Hold Bill</span>
+              <kbd className="font-mono bg-background px-1.5 rounded border text-[10px]">F6</kbd>
+            </div>
+            <div className="flex justify-between">
+              <span>Reports</span>
+              <kbd className="font-mono bg-background px-1.5 rounded border text-[10px]">F7</kbd>
+            </div>
+            <div className="flex justify-between">
+              <span>Recall Bill</span>
+              <kbd className="font-mono bg-background px-1.5 rounded border text-[10px]">F8</kbd>
+            </div>
+            <div className="flex justify-between">
+              <span>Clear Cart</span>
+              <kbd className="font-mono bg-background px-1.5 rounded border text-[10px]">F9</kbd>
+            </div>
+            <div className="flex justify-between">
+              <span>Settings</span>
+              <kbd className="font-mono bg-background px-1.5 rounded border text-[10px]">F10</kbd>
+            </div>
+            <div className="flex justify-between">
+              <span>Pay & Print</span>
+              <kbd className="font-mono bg-background px-1.5 rounded border text-[10px]">F11</kbd>
+            </div>
+            <div className="flex justify-between">
+              <span>Shortcuts Help</span>
+              <kbd className="font-mono bg-background px-1.5 rounded border text-[10px]">F12</kbd>
+            </div>
           </div>
         </div>
 
@@ -730,7 +876,9 @@ function KeyboardShortcutsCard({
 
         {/* Configurable shortcuts */}
         <div className="space-y-4">
-          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Customizable Shortcuts</Label>
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            Customizable Shortcuts
+          </Label>
           {CONFIGURABLE_SHORTCUTS.map((sc) => {
             const currentValue = settings[sc.key] || sc.defaultValue
             const assigned = getAssignedShortcuts(sc.key)
@@ -750,12 +898,10 @@ function KeyboardShortcutsCard({
                     const isSystem = SYSTEM_SHORTCUTS.has(opt.value)
                     const disabled = isAssigned || isSystem
                     return (
-                      <option
-                        key={opt.value}
-                        value={opt.value}
-                        disabled={disabled}
-                      >
-                        {opt.label}{isAssigned ? ' (in use)' : ''}{isSystem ? ' (system)' : ''}
+                      <option key={opt.value} value={opt.value} disabled={disabled}>
+                        {opt.label}
+                        {isAssigned ? ' (in use)' : ''}
+                        {isSystem ? ' (system)' : ''}
                       </option>
                     )
                   })}
@@ -766,7 +912,8 @@ function KeyboardShortcutsCard({
         </div>
 
         <p className="text-xs text-muted-foreground mt-2">
-          Changes take effect after saving settings. Only Alt-key combinations are available to avoid conflicts with system shortcuts.
+          Changes take effect after saving settings. Only Alt-key combinations are available to
+          avoid conflicts with system shortcuts.
         </p>
       </CardContent>
     </Card>

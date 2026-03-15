@@ -9,9 +9,7 @@ export class SupplierRepository {
   getAll(activeOnly = true): Supplier[] {
     const db = getSqlite()
     const where = activeOnly ? 'WHERE is_active = 1' : ''
-    const rows = db
-      .prepare(`SELECT * FROM suppliers ${where} ORDER BY name`)
-      .all()
+    const rows = db.prepare(`SELECT * FROM suppliers ${where} ORDER BY name`).all()
     return mapRows<Supplier>(rows as Record<string, unknown>[])
   }
 

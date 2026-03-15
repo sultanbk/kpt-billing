@@ -83,13 +83,15 @@ const api = {
     getHeldBills: () => ipcRenderer.invoke('billing:getHeldBills'),
     recallHeldBill: (id: string) => ipcRenderer.invoke('billing:recallHeldBill', id),
     deleteHeldBill: (id: string) => ipcRenderer.invoke('billing:deleteHeldBill', id),
+    // Return / Exchange
+    processReturn: (data: unknown) => ipcRenderer.invoke('billing:processReturn', data),
+    getReturnHistory: (billId: number) => ipcRenderer.invoke('billing:getReturnHistory', billId),
+    getReturnedQtyMap: (billId: number) => ipcRenderer.invoke('billing:getReturnedQtyMap', billId),
     // Period summaries
-    getWeeklySummary: (endDate?: string) =>
-      ipcRenderer.invoke('billing:getWeeklySummary', endDate),
+    getWeeklySummary: (endDate?: string) => ipcRenderer.invoke('billing:getWeeklySummary', endDate),
     getMonthlySummary: (yearMonth?: string) =>
       ipcRenderer.invoke('billing:getMonthlySummary', yearMonth),
-    getYearlySummary: (year?: number) =>
-      ipcRenderer.invoke('billing:getYearlySummary', year),
+    getYearlySummary: (year?: number) => ipcRenderer.invoke('billing:getYearlySummary', year),
     getPeriodSummary: (dateFrom: string, dateTo: string) =>
       ipcRenderer.invoke('billing:getPeriodSummary', dateFrom, dateTo)
   },
@@ -125,8 +127,7 @@ const api = {
     get: (key: string) => ipcRenderer.invoke('settings:get', key),
     set: (key: string, value: string) => ipcRenderer.invoke('settings:set', key, value),
     getAll: () => ipcRenderer.invoke('settings:getAll'),
-    setMany: (settings: Record<string, string>) =>
-      ipcRenderer.invoke('settings:setMany', settings)
+    setMany: (settings: Record<string, string>) => ipcRenderer.invoke('settings:setMany', settings)
   },
   // Backup
   backup: {
@@ -178,8 +179,7 @@ const api = {
       ipcRenderer.invoke('report:generateWeeklyPdf', endDate),
     generateMonthlyPdf: (yearMonth?: string) =>
       ipcRenderer.invoke('report:generateMonthlyPdf', yearMonth),
-    generateYearlyPdf: (year?: number) =>
-      ipcRenderer.invoke('report:generateYearlyPdf', year),
+    generateYearlyPdf: (year?: number) => ipcRenderer.invoke('report:generateYearlyPdf', year),
     openFile: (filePath: string) => ipcRenderer.invoke('report:openFile', filePath),
     getReportsDir: () => ipcRenderer.invoke('report:getReportsDir')
   },
@@ -200,8 +200,7 @@ const api = {
       ipcRenderer.invoke('reports:getGstReport', dateFrom, dateTo),
     getProfitLoss: (dateFrom: string, dateTo: string) =>
       ipcRenderer.invoke('reports:getProfitLoss', dateFrom, dateTo),
-    getDashboardData: (date: string) =>
-      ipcRenderer.invoke('reports:getDashboardData', date)
+    getDashboardData: (date: string) => ipcRenderer.invoke('reports:getDashboardData', date)
   },
   // WhatsApp Notifications
   whatsapp: {
@@ -209,8 +208,23 @@ const api = {
       ipcRenderer.invoke('whatsapp:sendBillReceipt', billId, phone),
     sendCreditReminder: (phone: string, customerName: string, currentBalance: number) =>
       ipcRenderer.invoke('whatsapp:sendCreditReminder', phone, customerName, currentBalance),
-    sendPaymentConfirmation: (phone: string, customerName: string, amountPaid: number, remainingBalance: number, paymentMode: string, date: string) =>
-      ipcRenderer.invoke('whatsapp:sendPaymentConfirmation', phone, customerName, amountPaid, remainingBalance, paymentMode, date)
+    sendPaymentConfirmation: (
+      phone: string,
+      customerName: string,
+      amountPaid: number,
+      remainingBalance: number,
+      paymentMode: string,
+      date: string
+    ) =>
+      ipcRenderer.invoke(
+        'whatsapp:sendPaymentConfirmation',
+        phone,
+        customerName,
+        amountPaid,
+        remainingBalance,
+        paymentMode,
+        date
+      )
   },
   // Auth
   auth: {

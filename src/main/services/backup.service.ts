@@ -1,8 +1,23 @@
 // ============================================================================
 // KPT Billing - Backup Service  (SQL Dump format)
 // ============================================================================
-import { getSqlite, getDbPath, getBackupDir, closeDatabase, initializeDatabase } from '../database/connection'
-import { existsSync, mkdirSync, readdirSync, unlinkSync, statSync, writeFileSync, readFileSync, copyFileSync } from 'fs'
+import {
+  getSqlite,
+  getDbPath,
+  getBackupDir,
+  closeDatabase,
+  initializeDatabase
+} from '../database/connection'
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  unlinkSync,
+  statSync,
+  writeFileSync,
+  readFileSync,
+  copyFileSync
+} from 'fs'
 import { join } from 'path'
 import log from 'electron-log'
 import Database from 'better-sqlite3'
@@ -24,12 +39,7 @@ export class BackupService {
       }
 
       const now = new Date()
-      const ts = now
-        .toISOString()
-        .replace(/[:.]/g, '-')
-        .split('T')
-        .join('_')
-        .substring(0, 19)
+      const ts = now.toISOString().replace(/[:.]/g, '-').split('T').join('_').substring(0, 19)
       const backupFileName = `kpt_billing_${ts}.sql`
       const backupPath = join(backupDir, backupFileName)
 
@@ -57,7 +67,10 @@ export class BackupService {
         lines.push('')
 
         // Dump rows
-        const rows = sqlite.prepare(`SELECT * FROM "${tbl.name}"`).all() as Record<string, unknown>[]
+        const rows = sqlite.prepare(`SELECT * FROM "${tbl.name}"`).all() as Record<
+          string,
+          unknown
+        >[]
         for (const row of rows) {
           const cols = Object.keys(row)
           const vals = cols.map((c) => sqlEscape(row[c]))
@@ -197,9 +210,14 @@ export class BackupService {
       log.info(`Restoring database from: ${sqlFilePath}`)
 
       // Step 1: Create a safety backup of the current DB file
-      const ts = new Date().toISOString().replace(/[:.]/g, '-').split('T').join('_').substring(0, 19)
+      const ts = new Date()
+        .toISOString()
+        .replace(/[:.]/g, '-')
+        .split('T')
+        .join('_')
+        .substring(0, 19)
       safetyBackupPath = join(getBackupDir(), `kpt_billing_pre_restore_${ts}.db`)
-      
+
       // Close the current connection first
       closeDatabase()
 

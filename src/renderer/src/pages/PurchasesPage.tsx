@@ -33,13 +33,7 @@ import {
 } from 'lucide-react'
 import { formatCurrency } from '../lib/utils'
 import { toast } from 'sonner'
-import type {
-  Product,
-  Supplier,
-  PurchaseItem,
-  PurchaseCreateData,
-  Purchase
-} from '@shared/types'
+import type { Product, Supplier, PurchaseItem, PurchaseCreateData, Purchase } from '@shared/types'
 
 // Barcode scanner detection - scanners type fast then press Enter
 const BARCODE_THRESHOLD_MS = 80
@@ -63,9 +57,7 @@ export default function PurchasesPage(): React.JSX.Element {
   const [supplierName, setSupplierName] = useState('')
   const [city, setCity] = useState('')
   const [invoiceNo, setInvoiceNo] = useState('')
-  const [invoiceDate, setInvoiceDate] = useState(
-    new Date().toISOString().split('T')[0]
-  )
+  const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0])
   const [paymentMode, setPaymentMode] = useState('cash')
   const [paymentStatus, setPaymentStatus] = useState('paid')
   const [amountPaid, setAmountPaid] = useState(0)
@@ -86,6 +78,7 @@ export default function PurchasesPage(): React.JSX.Element {
   // History
   const [purchases, setPurchases] = useState<Purchase[]>([])
   const [viewPurchase, setViewPurchase] = useState<Purchase | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
 
   // Cities
   const [cities, setCities] = useState<string[]>([])
@@ -97,29 +90,29 @@ export default function PurchasesPage(): React.JSX.Element {
   const lastKeypressRef = useRef(0)
   const searchRef = useRef<HTMLInputElement>(null)
 
-  // Load cities + recent purchases on mount
-  useEffect(() => {
-    loadCities()
-    if (tab === 'history') loadPurchases()
-  }, [tab])
-
-  const loadCities = async (): Promise<void> => {
+  const loadCities = useCallback(async (): Promise<void> => {
     try {
       const c = await window.api.suppliers.getCities()
       setCities(c)
     } catch {
       /* ignore */
     }
-  }
+  }, [])
 
-  const loadPurchases = async (): Promise<void> => {
+  const loadPurchases = useCallback(async (): Promise<void> => {
     try {
       const result = await window.api.purchases.getAll({ pageSize: 100 })
       setPurchases(result.data)
     } catch {
       /* ignore */
     }
-  }
+  }, [])
+
+  // Load cities + recent purchases on mount
+  useEffect(() => {
+    loadCities()
+    if (tab === 'history') loadPurchases()
+  }, [tab, loadCities, loadPurchases])
 
   // ---- Barcode Scanner Detection (global keydown) ----
   useEffect(() => {
@@ -127,10 +120,7 @@ export default function PurchasesPage(): React.JSX.Element {
       // Don't capture if typing in an input/textarea (except the search bar)
       const target = e.target as HTMLElement
       const isSearchBar = target === searchRef.current
-      if (
-        !isSearchBar &&
-        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')
-      ) {
+      if (!isSearchBar && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
         return
       }
 
@@ -141,6 +131,7 @@ export default function PurchasesPage(): React.JSX.Element {
         e.preventDefault()
         const barcode = scanBufferRef.current.trim()
         scanBufferRef.current = ''
+        // eslint-disable-next-line react-hooks/immutability
         handleBarcodeScan(barcode)
         return
       }
@@ -223,11 +214,7 @@ export default function PurchasesPage(): React.JSX.Element {
     // Check if already in items
     const existing = items.find((i) => i.productId === product.id)
     if (existing) {
-      setItems(
-        items.map((i) =>
-          i._uid === existing._uid ? { ...i, qty: i.qty + 1 } : i
-        )
-      )
+      setItems(items.map((i) => (i._uid === existing._uid ? { ...i, qty: i.qty + 1 } : i)))
     } else {
       const newItem: PurchaseLineItem = {
         _uid: uid(),
@@ -418,20 +405,13 @@ export default function PurchasesPage(): React.JSX.Element {
                     value={searchQuery}
                     onChange={(e) => handleSearch(e.target.value)}
                     onKeyDown={handleSearchKeyDown}
-                    onFocus={() =>
-                      searchResults.length > 0 && setShowResults(true)
-                    }
-                    onBlur={() =>
-                      setTimeout(() => setShowResults(false), 200)
-                    }
+                    onFocus={() => searchResults.length > 0 && setShowResults(true)}
+                    onBlur={() => setTimeout(() => setShowResults(false), 200)}
                     placeholder="Search product or scan barcode..."
                     className="pl-9 text-base"
                   />
                 </div>
-                <Badge
-                  variant="outline"
-                  className="gap-1 text-xs text-muted-foreground"
-                >
+                <Badge variant="outline" className="gap-1 text-xs text-muted-foreground">
                   <ScanBarcode className="h-3 w-3" />
                   Scanner Ready
                 </Badge>
@@ -448,9 +428,7 @@ export default function PurchasesPage(): React.JSX.Element {
                     <button
                       key={product.id}
                       className={`flex w-full items-center justify-between px-4 py-2 text-left text-sm transition-colors ${
-                        idx === selectedResultIdx
-                          ? 'bg-accent'
-                          : 'hover:bg-accent/50'
+                        idx === selectedResultIdx ? 'bg-accent' : 'hover:bg-accent/50'
                       }`}
                       onMouseDown={(e) => {
                         e.preventDefault()
@@ -462,8 +440,7 @@ export default function PurchasesPage(): React.JSX.Element {
                         <div className="font-medium">{product.name}</div>
                         <div className="text-xs text-muted-foreground">
                           {product.sku}
-                          {product.barcode && ` • ${product.barcode}`} • Stock:{' '}
-                          {product.stock}
+                          {product.barcode && ` • ${product.barcode}`} • Stock: {product.stock}
                         </div>
                       </div>
                       <div className="text-right text-xs">
@@ -484,9 +461,7 @@ export default function PurchasesPage(): React.JSX.Element {
                 <div className="flex h-full flex-col items-center justify-center text-muted-foreground">
                   <Package className="mb-3 h-12 w-12 opacity-20" />
                   <p className="text-lg font-medium">No items added</p>
-                  <p className="text-sm">
-                    Search products, scan barcodes, or add manually
-                  </p>
+                  <p className="text-sm">Search products, scan barcodes, or add manually</p>
                 </div>
               ) : (
                 <table className="w-full text-sm">
@@ -494,46 +469,25 @@ export default function PurchasesPage(): React.JSX.Element {
                     <tr className="text-left text-xs font-medium uppercase text-muted-foreground">
                       <th className="w-[30px] px-3 py-2">#</th>
                       <th className="px-2 py-2">Product</th>
-                      <th className="w-[80px] px-2 py-2 text-right">
-                        Qty
-                      </th>
-                      <th className="w-[100px] px-2 py-2 text-right">
-                        Purchase ₹
-                      </th>
-                      <th className="w-[100px] px-2 py-2 text-right">
-                        Selling ₹
-                      </th>
-                      <th className="w-[60px] px-2 py-2 text-right">
-                        GST%
-                      </th>
-                      <th className="w-[80px] px-2 py-2 text-right">
-                        GST ₹
-                      </th>
-                      <th className="w-[100px] px-2 py-2 text-right">
-                        Amount
-                      </th>
+                      <th className="w-[80px] px-2 py-2 text-right">Qty</th>
+                      <th className="w-[100px] px-2 py-2 text-right">Purchase ₹</th>
+                      <th className="w-[100px] px-2 py-2 text-right">Selling ₹</th>
+                      <th className="w-[60px] px-2 py-2 text-right">GST%</th>
+                      <th className="w-[80px] px-2 py-2 text-right">GST ₹</th>
+                      <th className="w-[100px] px-2 py-2 text-right">Amount</th>
                       <th className="w-[40px] px-2 py-2" />
                     </tr>
                   </thead>
                   <tbody>
                     {items.map((item, idx) => (
-                      <tr
-                        key={item._uid}
-                        className="border-b border-border/50"
-                      >
-                        <td className="px-3 py-1.5 text-muted-foreground">
-                          {idx + 1}
-                        </td>
+                      <tr key={item._uid} className="border-b border-border/50">
+                        <td className="px-3 py-1.5 text-muted-foreground">{idx + 1}</td>
                         <td className="px-2 py-1.5">
                           {item.productId ? (
                             <div>
-                              <div className="font-medium">
-                                {item.productName}
-                              </div>
+                              <div className="font-medium">{item.productName}</div>
                               {item.barcode && (
-                                <div className="text-xs text-muted-foreground">
-                                  {item.barcode}
-                                </div>
+                                <div className="text-xs text-muted-foreground">{item.barcode}</div>
                               )}
                             </div>
                           ) : (
@@ -542,9 +496,7 @@ export default function PurchasesPage(): React.JSX.Element {
                               onChange={(e) =>
                                 setItems(
                                   items.map((i) =>
-                                    i._uid === item._uid
-                                      ? { ...i, productName: e.target.value }
-                                      : i
+                                    i._uid === item._uid ? { ...i, productName: e.target.value } : i
                                   )
                                 )
                               }
@@ -559,11 +511,7 @@ export default function PurchasesPage(): React.JSX.Element {
                             min={1}
                             value={item.qty}
                             onChange={(e) =>
-                              updateItem(
-                                item._uid,
-                                'qty',
-                                parseInt(e.target.value) || 1
-                              )
+                              updateItem(item._uid, 'qty', parseInt(e.target.value) || 1)
                             }
                             className="h-7 w-full text-right text-sm"
                           />
@@ -574,11 +522,7 @@ export default function PurchasesPage(): React.JSX.Element {
                             step="0.01"
                             value={item.purchaseRate}
                             onChange={(e) =>
-                              updateItem(
-                                item._uid,
-                                'purchaseRate',
-                                parseFloat(e.target.value) || 0
-                              )
+                              updateItem(item._uid, 'purchaseRate', parseFloat(e.target.value) || 0)
                             }
                             className="h-7 w-full text-right text-sm"
                           />
@@ -589,11 +533,7 @@ export default function PurchasesPage(): React.JSX.Element {
                             step="0.01"
                             value={item.sellingRate}
                             onChange={(e) =>
-                              updateItem(
-                                item._uid,
-                                'sellingRate',
-                                parseFloat(e.target.value) || 0
-                              )
+                              updateItem(item._uid, 'sellingRate', parseFloat(e.target.value) || 0)
                             }
                             className="h-7 w-full text-right text-sm"
                           />
@@ -604,11 +544,7 @@ export default function PurchasesPage(): React.JSX.Element {
                             step="0.5"
                             value={item.gstRate}
                             onChange={(e) =>
-                              updateItem(
-                                item._uid,
-                                'gstRate',
-                                parseFloat(e.target.value) || 0
-                              )
+                              updateItem(item._uid, 'gstRate', parseFloat(e.target.value) || 0)
                             }
                             className="h-7 w-full text-right text-sm"
                           />
@@ -670,13 +606,8 @@ export default function PurchasesPage(): React.JSX.Element {
                     <Input
                       value={supplierSearch}
                       onChange={(e) => handleSupplierSearch(e.target.value)}
-                      onFocus={() =>
-                        supplierResults.length > 0 &&
-                        setShowSupplierResults(true)
-                      }
-                      onBlur={() =>
-                        setTimeout(() => setShowSupplierResults(false), 200)
-                      }
+                      onFocus={() => supplierResults.length > 0 && setShowSupplierResults(true)}
+                      onBlur={() => setTimeout(() => setShowSupplierResults(false), 200)}
                       placeholder="Search supplier..."
                       className="text-sm"
                     />
@@ -694,15 +625,11 @@ export default function PurchasesPage(): React.JSX.Element {
                             <div>
                               <div className="font-medium">{s.name}</div>
                               {s.city && (
-                                <div className="text-xs text-muted-foreground">
-                                  {s.city}
-                                </div>
+                                <div className="text-xs text-muted-foreground">{s.city}</div>
                               )}
                             </div>
                             {s.phone && (
-                              <span className="text-xs text-muted-foreground">
-                                {s.phone}
-                              </span>
+                              <span className="text-xs text-muted-foreground">{s.phone}</span>
                             )}
                           </button>
                         ))}
@@ -746,18 +673,14 @@ export default function PurchasesPage(): React.JSX.Element {
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
                       onFocus={() => cities.length > 0 && setShowCityDropdown(true)}
-                      onBlur={() =>
-                        setTimeout(() => setShowCityDropdown(false), 200)
-                      }
+                      onBlur={() => setTimeout(() => setShowCityDropdown(false), 200)}
                       placeholder="Surat, Bengaluru..."
                       className="pl-8 text-sm"
                     />
                     {showCityDropdown && cities.length > 0 && (
                       <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-36 overflow-auto rounded-lg border bg-popover shadow-lg">
                         {cities
-                          .filter((c) =>
-                            c.toLowerCase().includes(city.toLowerCase())
-                          )
+                          .filter((c) => c.toLowerCase().includes(city.toLowerCase()))
                           .map((c) => (
                             <button
                               key={c}
@@ -808,38 +731,30 @@ export default function PurchasesPage(): React.JSX.Element {
                   </Label>
                   <div className="mt-1 space-y-2">
                     <div className="grid grid-cols-2 gap-1">
-                      {(['cash', 'upi', 'card', 'cheque'] as const).map(
-                        (mode) => (
-                          <Button
-                            key={mode}
-                            variant={
-                              paymentMode === mode ? 'default' : 'outline'
-                            }
-                            size="sm"
-                            className="text-xs capitalize"
-                            onClick={() => setPaymentMode(mode)}
-                          >
-                            {mode}
-                          </Button>
-                        )
-                      )}
+                      {(['cash', 'upi', 'card', 'cheque'] as const).map((mode) => (
+                        <Button
+                          key={mode}
+                          variant={paymentMode === mode ? 'default' : 'outline'}
+                          size="sm"
+                          className="text-xs capitalize"
+                          onClick={() => setPaymentMode(mode)}
+                        >
+                          {mode}
+                        </Button>
+                      ))}
                     </div>
                     <div className="grid grid-cols-3 gap-1">
-                      {(['paid', 'partial', 'unpaid'] as const).map(
-                        (status) => (
-                          <Button
-                            key={status}
-                            variant={
-                              paymentStatus === status ? 'default' : 'outline'
-                            }
-                            size="sm"
-                            className="text-xs capitalize"
-                            onClick={() => setPaymentStatus(status)}
-                          >
-                            {status}
-                          </Button>
-                        )
-                      )}
+                      {(['paid', 'partial', 'unpaid'] as const).map((status) => (
+                        <Button
+                          key={status}
+                          variant={paymentStatus === status ? 'default' : 'outline'}
+                          size="sm"
+                          className="text-xs capitalize"
+                          onClick={() => setPaymentStatus(status)}
+                        >
+                          {status}
+                        </Button>
+                      ))}
                     </div>
                     {paymentStatus === 'partial' && (
                       <div>
@@ -847,9 +762,7 @@ export default function PurchasesPage(): React.JSX.Element {
                         <Input
                           type="number"
                           value={amountPaid}
-                          onChange={(e) =>
-                            setAmountPaid(parseFloat(e.target.value) || 0)
-                          }
+                          onChange={(e) => setAmountPaid(parseFloat(e.target.value) || 0)}
                           className="text-sm"
                         />
                       </div>
@@ -895,21 +808,19 @@ export default function PurchasesPage(): React.JSX.Element {
                     <Separator />
                     <div className="flex justify-between text-base font-bold">
                       <span>Grand Total</span>
-                      <span className="text-primary">
-                        {formatCurrency(grandTotal)}
-                      </span>
+                      <span className="text-primary">{formatCurrency(grandTotal)}</span>
                     </div>
                     {items.length > 0 && (
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>Avg Margin</span>
                         <span>
                           {(
-                            ((items.reduce(
+                            (items.reduce(
                               (s, i) => s + (i.sellingRate - i.purchaseRate) * i.qty,
                               0
                             ) /
                               Math.max(subtotal, 1)) *
-                              100)
+                            100
                           ).toFixed(1)}
                           %
                         </span>
@@ -943,15 +854,44 @@ export default function PurchasesPage(): React.JSX.Element {
             setViewPurchase(p)
           }}
           onDelete={async (id) => {
-            if (confirm('Delete this purchase? Stock will be reversed.')) {
-              await window.api.purchases.delete(id)
-              toast.success('Purchase deleted, stock reversed')
-              loadPurchases()
-            }
+            setConfirmDeleteId(id)
           }}
           onRefresh={loadPurchases}
         />
       )}
+
+      {/* Confirm Delete Dialog */}
+      <Dialog open={confirmDeleteId !== null} onOpenChange={() => setConfirmDeleteId(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Purchase?</DialogTitle>
+            <DialogDescription>
+              This will reverse the stock changes. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDeleteId(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (!confirmDeleteId) return
+                try {
+                  await window.api.purchases.delete(confirmDeleteId)
+                  toast.success('Purchase deleted, stock reversed')
+                  loadPurchases()
+                } catch (err: unknown) {
+                  toast.error(err instanceof Error ? err.message : 'Failed to delete')
+                }
+                setConfirmDeleteId(null)
+              }}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* View Purchase Dialog */}
       {viewPurchase && (
@@ -960,8 +900,7 @@ export default function PurchasesPage(): React.JSX.Element {
             <DialogHeader>
               <DialogTitle>Purchase: {viewPurchase.purchaseNo}</DialogTitle>
               <DialogDescription>
-                {viewPurchase.date} •{' '}
-                {viewPurchase.supplierName || 'No supplier'}{' '}
+                {viewPurchase.date} • {viewPurchase.supplierName || 'No supplier'}{' '}
                 {viewPurchase.city && `• ${viewPurchase.city}`}
               </DialogDescription>
             </DialogHeader>
@@ -978,27 +917,17 @@ export default function PurchasesPage(): React.JSX.Element {
                   </tr>
                 </thead>
                 <tbody>
-                  {(viewPurchase.items || []).map((item: any, idx: number) => (
+                  {(viewPurchase.items || []).map((item, idx: number) => (
                     <tr key={idx} className="border-b">
                       <td className="px-3 py-1.5">{idx + 1}</td>
-                      <td className="px-2 py-1.5">
-                        {item.productName || item.product_name}
-                      </td>
+                      <td className="px-2 py-1.5">{item.productName}</td>
+                      <td className="px-2 py-1.5 text-right">{item.qty}</td>
                       <td className="px-2 py-1.5 text-right">
-                        {item.qty || item.quantity}
+                        {formatCurrency(item.purchaseRate)}
                       </td>
-                      <td className="px-2 py-1.5 text-right">
-                        {formatCurrency(
-                          item.purchaseRate || item.purchase_rate || 0
-                        )}
-                      </td>
-                      <td className="px-2 py-1.5 text-right">
-                        {formatCurrency(
-                          item.sellingRate || item.selling_rate || 0
-                        )}
-                      </td>
+                      <td className="px-2 py-1.5 text-right">{formatCurrency(item.sellingRate)}</td>
                       <td className="px-2 py-1.5 text-right font-medium">
-                        {formatCurrency(item.amount || item.total || 0)}
+                        {formatCurrency(item.amount)}
                       </td>
                     </tr>
                   ))}
@@ -1012,11 +941,7 @@ export default function PurchasesPage(): React.JSX.Element {
                   {viewPurchase.paymentMode}
                 </Badge>
                 <Badge
-                  variant={
-                    viewPurchase.paymentStatus === 'paid'
-                      ? 'default'
-                      : 'destructive'
-                  }
+                  variant={viewPurchase.paymentStatus === 'paid' ? 'default' : 'destructive'}
                   className="ml-1 capitalize"
                 >
                   {viewPurchase.paymentStatus}
@@ -1050,8 +975,7 @@ export default function PurchasesPage(): React.JSX.Element {
 function PurchaseHistory({
   purchases,
   onView,
-  onDelete,
-  onRefresh: _onRefresh
+  onDelete
 }: {
   purchases: Purchase[]
   onView: (id: number) => void
@@ -1065,7 +989,7 @@ function PurchaseHistory({
           <Truck className="mb-3 h-12 w-12 opacity-20" />
           <p className="text-lg font-medium">No purchases recorded yet</p>
           <p className="text-sm">
-            Switch to "New Purchase" to record your first stock-in
+            Switch to &quot;New Purchase&quot; to record your first stock-in
           </p>
         </div>
       ) : (
@@ -1090,26 +1014,18 @@ function PurchaseHistory({
               </div>
               <div className="flex items-center gap-3">
                 <div className="text-right">
-                  <div className="font-medium">
-                    {formatCurrency(p.grandTotal)}
-                  </div>
+                  <div className="font-medium">{formatCurrency(p.grandTotal)}</div>
                   <div className="text-xs text-muted-foreground">
                     {p.totalItems} items • {p.totalQty} qty
                   </div>
                 </div>
                 <Badge
-                  variant={
-                    p.paymentStatus === 'paid' ? 'default' : 'destructive'
-                  }
+                  variant={p.paymentStatus === 'paid' ? 'default' : 'destructive'}
                   className="capitalize"
                 >
                   {p.paymentStatus}
                 </Badge>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onView(p.id)}
-                >
+                <Button variant="ghost" size="icon" onClick={() => onView(p.id)}>
                   <Eye className="h-4 w-4" />
                 </Button>
                 <Button
@@ -1148,6 +1064,7 @@ function NewSupplierDialog({
   const [gstin, setGstin] = useState('')
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (open) setDialogCity(defaultCity)
   }, [open, defaultCity])
 
@@ -1172,9 +1089,7 @@ function NewSupplierDialog({
       setAddress('')
       setGstin('')
     } catch (err) {
-      toast.error(
-        `Failed: ${err instanceof Error ? err.message : String(err)}`
-      )
+      toast.error(`Failed: ${err instanceof Error ? err.message : String(err)}`)
     }
   }
 
@@ -1199,11 +1114,7 @@ function NewSupplierDialog({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Phone</Label>
-              <Input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Phone"
-              />
+              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone" />
             </div>
             <div>
               <Label>City</Label>

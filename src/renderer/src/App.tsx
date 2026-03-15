@@ -1,6 +1,7 @@
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import { AppShell } from './components/layout'
 import { PinGate } from './components/layout/PinGate'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { lazy, Suspense } from 'react'
 
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
@@ -29,94 +30,114 @@ function Protected({ children }: { children: React.ReactNode }): React.JSX.Eleme
 
 function App(): React.JSX.Element {
   return (
-    <HashRouter>
-      <Routes>
-        <Route element={<AppShell />}>
-          {/* Billing is the default page — no PIN required */}
-          <Route
-            index
-            element={
-              <Suspense fallback={<PageLoader />}>
-                <BillingPage />
-              </Suspense>
-            }
-          />
-          {/* All other pages require PIN */}
-          <Route
-            path="dashboard"
-            element={
-              <Suspense fallback={<PageLoader />}>
-                <Protected><DashboardPage /></Protected>
-              </Suspense>
-            }
-          />
-          <Route
-            path="products"
-            element={
-              <Suspense fallback={<PageLoader />}>
-                <Protected><ProductsPage /></Protected>
-              </Suspense>
-            }
-          />
-          <Route
-            path="purchases"
-            element={
-              <Suspense fallback={<PageLoader />}>
-                <Protected><PurchasesPage /></Protected>
-              </Suspense>
-            }
-          />
-          <Route
-            path="customers"
-            element={
-              <Suspense fallback={<PageLoader />}>
-                <Protected><CustomersPage /></Protected>
-              </Suspense>
-            }
-          />
-          <Route
-            path="reports"
-            element={
-              <Suspense fallback={<PageLoader />}>
-                <Protected><ReportsPage /></Protected>
-              </Suspense>
-            }
-          />
-          <Route
-            path="customer-analytics"
-            element={
-              <Suspense fallback={<PageLoader />}>
-                <Protected><CustomerAnalyticsPage /></Protected>
-              </Suspense>
-            }
-          />
-          <Route
-            path="credit-aging"
-            element={
-              <Suspense fallback={<PageLoader />}>
-                <Protected><CreditAgingPage /></Protected>
-              </Suspense>
-            }
-          />
-          <Route
-            path="data-export"
-            element={
-              <Suspense fallback={<PageLoader />}>
-                <Protected><DataExportPage /></Protected>
-              </Suspense>
-            }
-          />
-          <Route
-            path="settings"
-            element={
-              <Suspense fallback={<PageLoader />}>
-                <Protected><SettingsPage /></Protected>
-              </Suspense>
-            }
-          />
-        </Route>
-      </Routes>
-    </HashRouter>
+    <ErrorBoundary>
+      <HashRouter>
+        <Routes>
+          <Route element={<AppShell />}>
+            {/* Billing is the default page — no PIN required */}
+            <Route
+              index
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <BillingPage />
+                </Suspense>
+              }
+            />
+            {/* All other pages require PIN */}
+            <Route
+              path="dashboard"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <Protected>
+                    <DashboardPage />
+                  </Protected>
+                </Suspense>
+              }
+            />
+            <Route
+              path="products"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <Protected>
+                    <ProductsPage />
+                  </Protected>
+                </Suspense>
+              }
+            />
+            <Route
+              path="purchases"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <Protected>
+                    <PurchasesPage />
+                  </Protected>
+                </Suspense>
+              }
+            />
+            <Route
+              path="customers"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <Protected>
+                    <CustomersPage />
+                  </Protected>
+                </Suspense>
+              }
+            />
+            <Route
+              path="reports"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <Protected>
+                    <ReportsPage />
+                  </Protected>
+                </Suspense>
+              }
+            />
+            <Route
+              path="customer-analytics"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <Protected>
+                    <CustomerAnalyticsPage />
+                  </Protected>
+                </Suspense>
+              }
+            />
+            <Route
+              path="credit-aging"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <Protected>
+                    <CreditAgingPage />
+                  </Protected>
+                </Suspense>
+              }
+            />
+            <Route
+              path="data-export"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <Protected>
+                    <DataExportPage />
+                  </Protected>
+                </Suspense>
+              }
+            />
+            <Route
+              path="settings"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <Protected>
+                    <SettingsPage />
+                  </Protected>
+                </Suspense>
+              }
+            />
+          </Route>
+        </Routes>
+      </HashRouter>
+    </ErrorBoundary>
   )
 }
 

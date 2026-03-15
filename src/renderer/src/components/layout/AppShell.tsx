@@ -25,7 +25,7 @@ export function AppShell(): React.JSX.Element {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground">
-      <Sidebar />
+      <Sidebar onOpenSearch={() => setShowBillSearch(true)} />
       <main className="flex-1 overflow-auto bg-muted/20">
         <Outlet />
       </main>

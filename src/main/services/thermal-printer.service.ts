@@ -2,6 +2,7 @@
 // KPT Billing - Thermal Printer Service (ESC/POS for TVS RP 3000 Lite)
 // ============================================================================
 import ThermalPrinter from 'node-thermal-printer'
+import { execSync } from 'child_process'
 import log from 'electron-log'
 import type { Bill } from '../../shared/types'
 
@@ -17,7 +18,6 @@ export class ThermalPrinterService {
   async getAvailablePrinters(): Promise<string[]> {
     // On Windows, list available printers
     try {
-      const { execSync } = require('child_process')
       const output = execSync(
         'powershell -Command "Get-Printer | Select-Object -ExpandProperty Name"',
         { encoding: 'utf-8' }
@@ -40,6 +40,7 @@ export class ThermalPrinterService {
         timeout: 5000
       },
       width: 48, // 48 chars for 80mm paper
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       characterSet: 'PC437_USA' as any
     })
     return p
@@ -89,6 +90,8 @@ export class ThermalPrinterService {
       // Items
       if (bill.items) {
         for (const item of bill.items) {
+          const returnedQty = item.returnedQty || 0
+          const isFullyReturned = returnedQty >= item.quantity
           const name =
             item.productName.length > 18
               ? item.productName.substring(0, 18) + '..'
@@ -97,7 +100,7 @@ export class ThermalPrinterService {
             { text: name, align: 'LEFT', width: 0.4 },
             { text: item.quantity.toString(), align: 'CENTER', width: 0.1 },
             { text: item.price.toFixed(0), align: 'RIGHT', width: 0.25 },
-            { text: item.total.toFixed(0), align: 'RIGHT', width: 0.25 }
+            { text: isFullyReturned ? '0' : item.total.toFixed(0), align: 'RIGHT', width: 0.25 }
           ])
           // Show discount if any
           if (item.discount > 0) {
@@ -106,6 +109,12 @@ export class ThermalPrinterService {
                 ? `  Disc: ${item.discount}%`
                 : `  Disc: -${item.discount.toFixed(0)}`
             p.println(discText)
+          }
+          // Show return info
+          if (returnedQty > 0 && returnedQty < item.quantity) {
+            p.println(`  ** ${returnedQty} Returned **`)
+          } else if (isFullyReturned) {
+            p.println('  ** RETURNED **')
           }
         }
       }
@@ -145,6 +154,20 @@ export class ThermalPrinterService {
       }
 
       p.println(`Items: ${bill.totalItems} | Qty: ${bill.totalQty}`)
+
+      // Return/Exchange history if any
+      const returns = bill.returns
+      if (returns && returns.length > 0) {
+        p.drawLine()
+        p.bold(true)
+        p.println('RETURNS / EXCHANGES')
+        p.bold(false)
+        for (const r of returns) {
+          const typeLabel = r.type === 'exchange' ? 'Exchange' : 'Return'
+          p.println(`${typeLabel}: ${r.itemsSummary}`)
+          p.leftRight('  Refund:', `-Rs.${r.returnAmount.toFixed(0)} (${r.refundMode})`)
+        }
+      }
 
       p.drawLine()
 

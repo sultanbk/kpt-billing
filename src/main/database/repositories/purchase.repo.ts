@@ -36,13 +36,13 @@ export class PurchaseRepository {
 
       for (const item of data.items) {
         const lineTotal = (item.purchaseRate || 0) * (item.qty || 0)
-        const gst = (item.gstAmount || 0)
+        const gst = item.gstAmount || 0
         subtotal += lineTotal
         totalGst += gst
-        totalQty += (item.qty || 0)
+        totalQty += item.qty || 0
       }
 
-      const grandTotal = subtotal + totalGst - (0) // no purchase-level discount for now
+      const grandTotal = subtotal + totalGst - 0 // no purchase-level discount for now
 
       const purchaseResult = db
         .prepare(
@@ -148,14 +148,16 @@ export class PurchaseRepository {
     return { ...mapRow<Purchase>(row), items: mapRows<PurchaseItem>(items) }
   }
 
-  getAll(filters: {
-    dateFrom?: string
-    dateTo?: string
-    supplierId?: number
-    city?: string
-    page?: number
-    pageSize?: number
-  } = {}): { data: Purchase[]; total: number; page: number; pageSize: number } {
+  getAll(
+    filters: {
+      dateFrom?: string
+      dateTo?: string
+      supplierId?: number
+      city?: string
+      page?: number
+      pageSize?: number
+    } = {}
+  ): { data: Purchase[]; total: number; page: number; pageSize: number } {
     const db = getSqlite()
     const { dateFrom, dateTo, supplierId, city, page = 1, pageSize = 50 } = filters
 
@@ -201,13 +203,14 @@ export class PurchaseRepository {
 
   getRecentPurchases(limit = 10): Purchase[] {
     const db = getSqlite()
-    const rows = db
-      .prepare('SELECT * FROM purchases ORDER BY id DESC LIMIT ?')
-      .all(limit)
+    const rows = db.prepare('SELECT * FROM purchases ORDER BY id DESC LIMIT ?').all(limit)
     return mapRows<Purchase>(rows as Record<string, unknown>[])
   }
 
-  getPurchaseSummary(dateFrom: string, dateTo: string): {
+  getPurchaseSummary(
+    dateFrom: string,
+    dateTo: string
+  ): {
     totalPurchases: number
     totalAmount: number
     totalPaid: number
@@ -254,23 +257,60 @@ export class PurchaseRepository {
       totalPaid: summary.total_paid ?? 0,
       totalUnpaid: summary.total_unpaid ?? 0,
       cityWise,
-      supplierWise: supplierWise.map(s => ({ supplierName: s.supplier_name, total: s.total, count: s.count }))
+      supplierWise: supplierWise.map((s) => ({
+        supplierName: s.supplier_name,
+        total: s.total,
+        count: s.count
+      }))
     }
   }
 
   delete(id: number): void {
     const db = getSqlite()
     db.transaction(() => {
-      // Reverse stock additions
+      // Get items before deletion for stock and price reversal
       const items = db
-        .prepare('SELECT product_id, qty FROM purchase_items WHERE purchase_id = ?')
-        .all(id) as { product_id: number; qty: number }[]
+        .prepare(
+          'SELECT product_id, qty, purchase_rate, selling_rate FROM purchase_items WHERE purchase_id = ?'
+        )
+        .all(id) as {
+        product_id: number
+        qty: number
+        purchase_rate: number
+        selling_rate: number
+      }[]
 
       for (const item of items) {
         if (item.product_id) {
+          // Reverse stock addition
           db.prepare(
             'UPDATE products SET current_stock = MAX(0, current_stock - ?) WHERE id = ?'
           ).run(item.qty, item.product_id)
+
+          // Revert price to the most recent purchase for this product (excluding this purchase)
+          const prevPurchase = db
+            .prepare(
+              `SELECT pi.purchase_rate, pi.selling_rate
+               FROM purchase_items pi
+               JOIN purchases p ON pi.purchase_id = p.id
+               WHERE pi.product_id = ? AND pi.purchase_id != ?
+               ORDER BY p.id DESC LIMIT 1`
+            )
+            .get(item.product_id, id) as { purchase_rate: number; selling_rate: number } | undefined
+          if (prevPurchase) {
+            db.prepare(
+              `UPDATE products SET
+                purchase_price = ?,
+                selling_price = CASE WHEN ? > 0 THEN ? ELSE selling_price END,
+                updated_at = datetime('now','localtime')
+              WHERE id = ?`
+            ).run(
+              prevPurchase.purchase_rate,
+              prevPurchase.selling_rate,
+              prevPurchase.selling_rate,
+              item.product_id
+            )
+          }
         }
       }
 

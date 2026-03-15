@@ -17,6 +17,15 @@ import log from 'electron-log'
 log.transports.file.level = 'info'
 log.transports.console.level = 'debug'
 
+// ---- Global error handlers ----
+process.on('uncaughtException', (error) => {
+  log.error('Uncaught Exception:', error)
+})
+
+process.on('unhandledRejection', (reason) => {
+  log.error('Unhandled Rejection:', reason)
+})
+
 let backupInterval: NodeJS.Timeout | null = null
 
 function createWindow(): void {
@@ -28,7 +37,7 @@ function createWindow(): void {
     show: false,
     autoHideMenuBar: true,
     title: 'KPT Billing - Krishnapriya Textiles',
-    ...(process.platform === 'linux' ? { icon } : {}),
+    icon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false
@@ -55,8 +64,7 @@ function createWindow(): void {
 function setupAutoBackup(): void {
   // Get backup frequency from settings
   const freq = settingsRepo.get('backupFrequency') || '4hours'
-  const intervalMs =
-    freq === 'hourly' ? 3600000 : freq === '4hours' ? 14400000 : 86400000
+  const intervalMs = freq === 'hourly' ? 3600000 : freq === '4hours' ? 14400000 : 86400000
 
   if (backupInterval) clearInterval(backupInterval)
 

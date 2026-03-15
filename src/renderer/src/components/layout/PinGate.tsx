@@ -102,9 +102,7 @@ export function PinGate({ children }: PinGateProps): React.JSX.Element {
             </button>
           </div>
 
-          {error && (
-            <p className="text-center text-sm text-destructive font-medium">{error}</p>
-          )}
+          {error && <p className="text-center text-sm text-destructive font-medium">{error}</p>}
 
           <button
             onClick={handleVerify}

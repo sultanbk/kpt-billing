@@ -46,9 +46,7 @@ export function useKeyboardShortcuts(callbacks?: ShortcutCallbacks): void {
       // Don't intercept Ctrl shortcuts when in inputs (except our defined ones)
       const target = e.target as HTMLElement
       const isInput =
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable
+        target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
 
       // Alt shortcuts
       if (e.altKey && !e.ctrlKey && !e.shiftKey) {

@@ -1,77 +1,120 @@
 // ============================================================================
-// KPT Billing - Supplier & Purchase IPC Handlers
+// KPT Billing - Supplier & Purchase IPC Handlers (secured with validation & audit)
 // ============================================================================
-import { ipcMain } from 'electron'
 import { supplierRepo } from '../database/repositories/supplier.repo'
 import { purchaseRepo } from '../database/repositories/purchase.repo'
+import { writeAuditLog } from '../database/audit'
+import { safeHandle, validate } from './ipc-guard'
+import {
+  idSchema,
+  limitSchema,
+  dateSchema,
+  searchTermSchema,
+  supplierFormSchema,
+  purchaseCreateSchema,
+  purchaseFiltersSchema
+} from './validation'
+import { z } from 'zod'
 import log from 'electron-log'
 
 export function registerSupplierPurchaseIpc(): void {
   // ---- Suppliers ----
-  ipcMain.handle('suppliers:getAll', (_event, activeOnly?: boolean) => {
-    return supplierRepo.getAll(activeOnly)
+  safeHandle('suppliers:getAll', (_event, activeOnly?) => {
+    return supplierRepo.getAll(activeOnly ? validate(z.boolean(), activeOnly) : undefined)
   })
 
-  ipcMain.handle('suppliers:getById', (_event, id: number) => {
-    return supplierRepo.getById(id)
+  safeHandle('suppliers:getById', (_event, id) => {
+    return supplierRepo.getById(validate(idSchema, id))
   })
 
-  ipcMain.handle('suppliers:search', (_event, term: string) => {
-    return supplierRepo.search(term)
+  safeHandle('suppliers:search', (_event, term) => {
+    return supplierRepo.search(validate(searchTermSchema, term))
   })
 
-  ipcMain.handle('suppliers:create', (_event, data) => {
-    const result = supplierRepo.create(data)
+  safeHandle('suppliers:create', (_event, data) => {
+    const validated = validate(supplierFormSchema, data)
+    const result = supplierRepo.create(validated as Parameters<typeof supplierRepo.create>[0])
     log.info(`Supplier created: ${result.name}`)
+    writeAuditLog({
+      action: 'create',
+      entityType: 'supplier',
+      entityId: result.id,
+      newValue: { name: result.name }
+    })
     return result
   })
 
-  ipcMain.handle('suppliers:update', (_event, id: number, data) => {
-    const result = supplierRepo.update(id, data)
+  safeHandle('suppliers:update', (_event, id, data) => {
+    const validId = validate(idSchema, id)
+    const validated = validate(supplierFormSchema, data)
+    const result = supplierRepo.update(
+      validId,
+      validated as Parameters<typeof supplierRepo.update>[1]
+    )
     log.info(`Supplier updated: ${result.name}`)
+    writeAuditLog({
+      action: 'update',
+      entityType: 'supplier',
+      entityId: validId,
+      newValue: { name: result.name }
+    })
     return result
   })
 
-  ipcMain.handle('suppliers:delete', (_event, id: number) => {
-    supplierRepo.delete(id)
-    log.info(`Supplier deleted: ${id}`)
+  safeHandle('suppliers:delete', (_event, id) => {
+    const validId = validate(idSchema, id)
+    writeAuditLog({ action: 'delete', entityType: 'supplier', entityId: validId })
+    supplierRepo.delete(validId)
+    log.info(`Supplier deleted: ${validId}`)
     return true
   })
 
-  ipcMain.handle('suppliers:getCities', () => {
+  safeHandle('suppliers:getCities', () => {
     return supplierRepo.getCities()
   })
 
   // ---- Purchases ----
-  ipcMain.handle('purchases:getNextNumber', () => {
+  safeHandle('purchases:getNextNumber', () => {
     return purchaseRepo.getNextPurchaseNumber()
   })
 
-  ipcMain.handle('purchases:create', (_event, data) => {
-    const result = purchaseRepo.create(data)
+  safeHandle('purchases:create', (_event, data) => {
+    const validated = validate(purchaseCreateSchema, data)
+    const result = purchaseRepo.create(validated as Parameters<typeof purchaseRepo.create>[0])
     log.info(`Purchase created: ${result.purchaseNo} - ${result.grandTotal}`)
+    writeAuditLog({
+      action: 'create',
+      entityType: 'purchase',
+      entityId: result.id,
+      newValue: { purchaseNo: result.purchaseNo, grandTotal: result.grandTotal }
+    })
     return result
   })
 
-  ipcMain.handle('purchases:getById', (_event, id: number) => {
-    return purchaseRepo.getById(id)
+  safeHandle('purchases:getById', (_event, id) => {
+    return purchaseRepo.getById(validate(idSchema, id))
   })
 
-  ipcMain.handle('purchases:getAll', (_event, filters?) => {
-    return purchaseRepo.getAll(filters)
+  safeHandle('purchases:getAll', (_event, filters?) => {
+    return purchaseRepo.getAll(validate(purchaseFiltersSchema, filters))
   })
 
-  ipcMain.handle('purchases:getRecent', (_event, limit?: number) => {
-    return purchaseRepo.getRecentPurchases(limit)
+  safeHandle('purchases:getRecent', (_event, limit?) => {
+    return purchaseRepo.getRecentPurchases(validate(limitSchema, limit))
   })
 
-  ipcMain.handle('purchases:getSummary', (_event, dateFrom: string, dateTo: string) => {
-    return purchaseRepo.getPurchaseSummary(dateFrom, dateTo)
+  safeHandle('purchases:getSummary', (_event, dateFrom, dateTo) => {
+    return purchaseRepo.getPurchaseSummary(
+      validate(dateSchema, dateFrom),
+      validate(dateSchema, dateTo)
+    )
   })
 
-  ipcMain.handle('purchases:delete', (_event, id: number) => {
-    purchaseRepo.delete(id)
-    log.info(`Purchase deleted: ${id}`)
+  safeHandle('purchases:delete', (_event, id) => {
+    const validId = validate(idSchema, id)
+    writeAuditLog({ action: 'delete', entityType: 'purchase', entityId: validId })
+    purchaseRepo.delete(validId)
+    log.info(`Purchase deleted: ${validId}`)
     return true
   })
 }

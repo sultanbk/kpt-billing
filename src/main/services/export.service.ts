@@ -196,8 +196,8 @@ export class ExportService {
       Subtotal: b.subtotal,
       Discount: b.discountAmount,
       Taxable: b.taxableAmount,
-      CGST: (b as any).cgstAmount ?? 0,
-      SGST: (b as any).sgstAmount ?? 0,
+      CGST: b.cgstAmount ?? 0,
+      SGST: b.sgstAmount ?? 0,
       'Round Off': b.roundOff,
       'Grand Total': b.grandTotal,
       'Payment Mode': b.paymentMode,
@@ -214,28 +214,32 @@ export class ExportService {
     }
 
     // 2. Bill Items
-    const billItemRows = db.prepare(
-      `SELECT bi.*, b.bill_no
+    const billItemRows = db
+      .prepare(
+        `SELECT bi.*, b.bill_no
        FROM bill_items bi
        JOIN bills b ON b.id = bi.bill_id
        ORDER BY b.date DESC, b.id DESC`
-    ).all() as Record<string, unknown>[]
+      )
+      .all() as Record<string, unknown>[]
     if (billItemRows.length > 0) {
-      const itemSheet = XLSX.utils.json_to_sheet(billItemRows.map((r) => ({
-        'Bill No': r.bill_no,
-        Product: r.product_name,
-        'HSN Code': r.hsn_code,
-        Qty: r.qty,
-        Rate: r.rate,
-        'Discount Type': r.discount_type,
-        'Discount Value': r.discount_value,
-        Taxable: r.taxable_amount,
-        'CGST %': r.cgst_rate,
-        CGST: r.cgst_amount,
-        'SGST %': r.sgst_rate,
-        SGST: r.sgst_amount,
-        Amount: r.amount
-      })))
+      const itemSheet = XLSX.utils.json_to_sheet(
+        billItemRows.map((r) => ({
+          'Bill No': r.bill_no,
+          Product: r.product_name,
+          'HSN Code': r.hsn_code,
+          Qty: r.qty,
+          Rate: r.rate,
+          'Discount Type': r.discount_type,
+          'Discount Value': r.discount_value,
+          Taxable: r.taxable_amount,
+          'CGST %': r.cgst_rate,
+          CGST: r.cgst_amount,
+          'SGST %': r.sgst_rate,
+          SGST: r.sgst_amount,
+          Amount: r.amount
+        }))
+      )
       itemSheet['!cols'] = Array(13).fill({ wch: 14 })
       XLSX.utils.book_append_sheet(wb, itemSheet, 'Bill Items')
     }
@@ -303,63 +307,74 @@ export class ExportService {
     }
 
     // 6. Purchases
-    const purchaseRows = db.prepare(
-      `SELECT p.*, s.name as supplier_name FROM purchases p LEFT JOIN suppliers s ON s.id = p.supplier_id ORDER BY p.date DESC`
-    ).all() as Record<string, unknown>[]
+    const purchaseRows = db
+      .prepare(
+        `SELECT p.*, s.name as supplier_name FROM purchases p LEFT JOIN suppliers s ON s.id = p.supplier_id ORDER BY p.date DESC`
+      )
+      .all() as Record<string, unknown>[]
     if (purchaseRows.length > 0) {
-      const purchSheet = XLSX.utils.json_to_sheet(purchaseRows.map((r) => ({
-        'Purchase No': r.purchase_no,
-        Date: r.date,
-        Supplier: r.supplier_name || '',
-        'Invoice No': r.invoice_no || '',
-        Items: r.total_items,
-        Qty: r.total_qty,
-        Subtotal: r.subtotal,
-        GST: r.gst_amount,
-        Discount: r.discount_amount,
-        'Grand Total': r.grand_total,
-        'Payment Mode': r.payment_mode,
-        'Amount Paid': r.amount_paid
-      })))
+      const purchSheet = XLSX.utils.json_to_sheet(
+        purchaseRows.map((r) => ({
+          'Purchase No': r.purchase_no,
+          Date: r.date,
+          Supplier: r.supplier_name || '',
+          'Invoice No': r.invoice_no || '',
+          Items: r.total_items,
+          Qty: r.total_qty,
+          Subtotal: r.subtotal,
+          GST: r.gst_amount,
+          Discount: r.discount_amount,
+          'Grand Total': r.grand_total,
+          'Payment Mode': r.payment_mode,
+          'Amount Paid': r.amount_paid
+        }))
+      )
       purchSheet['!cols'] = Array(12).fill({ wch: 14 })
       XLSX.utils.book_append_sheet(wb, purchSheet, 'Purchases')
     }
 
     // 7. Expenses
-    const expenseRows = db.prepare(
-      'SELECT * FROM expenses ORDER BY date DESC'
-    ).all() as Record<string, unknown>[]
+    const expenseRows = db.prepare('SELECT * FROM expenses ORDER BY date DESC').all() as Record<
+      string,
+      unknown
+    >[]
     if (expenseRows.length > 0) {
-      const expSheet = XLSX.utils.json_to_sheet(expenseRows.map((r) => ({
-        Date: r.date,
-        Category: r.category,
-        Amount: r.amount,
-        Description: r.description || '',
-        'Payment Mode': r.payment_mode
-      })))
+      const expSheet = XLSX.utils.json_to_sheet(
+        expenseRows.map((r) => ({
+          Date: r.date,
+          Category: r.category,
+          Amount: r.amount,
+          Description: r.description || '',
+          'Payment Mode': r.payment_mode
+        }))
+      )
       expSheet['!cols'] = Array(5).fill({ wch: 18 })
       XLSX.utils.book_append_sheet(wb, expSheet, 'Expenses')
     }
 
     // 8. Stock Ledger
-    const stockRows = db.prepare(
-      `SELECT sl.*, p.name as product_name, p.sku
+    const stockRows = db
+      .prepare(
+        `SELECT sl.*, p.name as product_name, p.sku
        FROM stock_ledger sl
        LEFT JOIN products p ON p.id = sl.product_id
        ORDER BY sl.created_at DESC
        LIMIT 50000`
-    ).all() as Record<string, unknown>[]
+      )
+      .all() as Record<string, unknown>[]
     if (stockRows.length > 0) {
-      const stockSheet = XLSX.utils.json_to_sheet(stockRows.map((r) => ({
-        Date: r.created_at,
-        SKU: r.sku || '',
-        Product: r.product_name || '',
-        Type: r.type,
-        Qty: r.qty,
-        'Ref Type': r.reference_type || '',
-        'Ref ID': r.reference_id || '',
-        Notes: r.notes || ''
-      })))
+      const stockSheet = XLSX.utils.json_to_sheet(
+        stockRows.map((r) => ({
+          Date: r.created_at,
+          SKU: r.sku || '',
+          Product: r.product_name || '',
+          Type: r.type,
+          Qty: r.qty,
+          'Ref Type': r.reference_type || '',
+          'Ref ID': r.reference_id || '',
+          Notes: r.notes || ''
+        }))
+      )
       stockSheet['!cols'] = Array(8).fill({ wch: 16 })
       XLSX.utils.book_append_sheet(wb, stockSheet, 'Stock Ledger')
     }

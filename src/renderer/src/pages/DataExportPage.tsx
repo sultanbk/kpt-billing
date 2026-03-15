@@ -73,7 +73,8 @@ export default function DataExportPage(): React.JSX.Element {
     {
       key: 'full',
       label: 'Full Data Export',
-      description: 'Everything — bills, items, products, customers, payments, purchases, expenses, stock ledger',
+      description:
+        'Everything — bills, items, products, customers, payments, purchases, expenses, stock ledger',
       icon: <Database className="h-5 w-5 text-red-500" />,
       running: false,
       done: false
@@ -154,24 +155,52 @@ export default function DataExportPage(): React.JSX.Element {
             <div className="flex items-end gap-4">
               <div className="space-y-1.5">
                 <Label>From</Label>
-                <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-44" />
+                <Input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="w-44"
+                />
               </div>
               <div className="space-y-1.5">
                 <Label>To</Label>
-                <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-44" />
+                <Input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="w-44"
+                />
               </div>
               <div className="flex gap-2 ml-4">
-                <Button variant="outline" size="sm" onClick={() => { setDateFrom(today); setDateTo(today) }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setDateFrom(today)
+                    setDateTo(today)
+                  }}
+                >
                   Today
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => { setDateFrom(monthStart); setDateTo(today) }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setDateFrom(monthStart)
+                    setDateTo(today)
+                  }}
+                >
                   This Month
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => {
-                  const fy = dayjs().month() >= 3 ? dayjs().year() : dayjs().year() - 1
-                  setDateFrom(`${fy}-04-01`)
-                  setDateTo(today)
-                }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const fy = dayjs().month() >= 3 ? dayjs().year() : dayjs().year() - 1
+                    setDateFrom(`${fy}-04-01`)
+                    setDateTo(today)
+                  }}
+                >
                   This FY
                 </Button>
               </div>
@@ -195,7 +224,8 @@ export default function DataExportPage(): React.JSX.Element {
                     <p className="text-sm text-muted-foreground">{job.description}</p>
                     {(job.key === 'daily' || job.key === 'bills') && (
                       <p className="text-xs text-muted-foreground mt-1">
-                        Period: {dayjs(dateFrom).format('DD MMM YYYY')} — {dayjs(dateTo).format('DD MMM YYYY')}
+                        Period: {dayjs(dateFrom).format('DD MMM YYYY')} —{' '}
+                        {dayjs(dateTo).format('DD MMM YYYY')}
                       </p>
                     )}
                   </div>
@@ -232,10 +262,18 @@ export default function DataExportPage(): React.JSX.Element {
         <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
           <p className="font-medium text-foreground mb-1">Tips for accountants:</p>
           <ul className="list-disc list-inside space-y-0.5">
-            <li><strong>Full Data Export</strong> contains all tables — ideal for year-end audit</li>
-            <li>All exports are in <strong>.xlsx format</strong> compatible with Excel, Google Sheets, and Tally</li>
+            <li>
+              <strong>Full Data Export</strong> contains all tables — ideal for year-end audit
+            </li>
+            <li>
+              All exports are in <strong>.xlsx format</strong> compatible with Excel, Google Sheets,
+              and Tally
+            </li>
             <li>Stock report includes cost and selling value for inventory reconciliation</li>
-            <li>GST-related data is available in the bill items sheet with HSN codes and tax breakdowns</li>
+            <li>
+              GST-related data is available in the bill items sheet with HSN codes and tax
+              breakdowns
+            </li>
           </ul>
         </div>
       </div>

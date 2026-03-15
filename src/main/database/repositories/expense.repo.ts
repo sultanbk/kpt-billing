@@ -39,25 +39,38 @@ class ExpenseRepository {
 
   getById(id: number): Expense | null {
     const db = getSqlite()
-    const row = db.prepare('SELECT * FROM expenses WHERE id = ?').get(id) as Record<string, unknown> | undefined
+    const row = db.prepare('SELECT * FROM expenses WHERE id = ?').get(id) as
+      | Record<string, unknown>
+      | undefined
     return row ? mapRow<Expense>(row) : null
   }
 
-  getAll(filters: {
-    dateFrom?: string
-    dateTo?: string
-    category?: string
-    page?: number
-    pageSize?: number
-  } = {}): { data: Expense[]; total: number } {
+  getAll(
+    filters: {
+      dateFrom?: string
+      dateTo?: string
+      category?: string
+      page?: number
+      pageSize?: number
+    } = {}
+  ): { data: Expense[]; total: number } {
     const db = getSqlite()
     const { dateFrom, dateTo, category, page = 1, pageSize = 50 } = filters
 
     let where = 'WHERE 1=1'
     const params: unknown[] = []
-    if (dateFrom) { where += ' AND date >= ?'; params.push(dateFrom) }
-    if (dateTo) { where += ' AND date <= ?'; params.push(dateTo) }
-    if (category) { where += ' AND category = ?'; params.push(category) }
+    if (dateFrom) {
+      where += ' AND date >= ?'
+      params.push(dateFrom)
+    }
+    if (dateTo) {
+      where += ' AND date <= ?'
+      params.push(dateTo)
+    }
+    if (category) {
+      where += ' AND category = ?'
+      params.push(category)
+    }
 
     const countResult = db
       .prepare(`SELECT COUNT(*) as total FROM expenses ${where}`)
@@ -84,11 +97,26 @@ class ExpenseRepository {
     const fields: string[] = []
     const values: unknown[] = []
 
-    if (data.date !== undefined) { fields.push('date = ?'); values.push(data.date) }
-    if (data.category !== undefined) { fields.push('category = ?'); values.push(data.category) }
-    if (data.amount !== undefined) { fields.push('amount = ?'); values.push(data.amount) }
-    if (data.description !== undefined) { fields.push('description = ?'); values.push(data.description || null) }
-    if (data.paymentMode !== undefined) { fields.push('payment_mode = ?'); values.push(data.paymentMode) }
+    if (data.date !== undefined) {
+      fields.push('date = ?')
+      values.push(data.date)
+    }
+    if (data.category !== undefined) {
+      fields.push('category = ?')
+      values.push(data.category)
+    }
+    if (data.amount !== undefined) {
+      fields.push('amount = ?')
+      values.push(data.amount)
+    }
+    if (data.description !== undefined) {
+      fields.push('description = ?')
+      values.push(data.description || null)
+    }
+    if (data.paymentMode !== undefined) {
+      fields.push('payment_mode = ?')
+      values.push(data.paymentMode)
+    }
 
     if (fields.length === 0) return this.getById(id)!
 
@@ -105,13 +133,16 @@ class ExpenseRepository {
 
   getCategories(): string[] {
     const db = getSqlite()
-    const rows = db
-      .prepare('SELECT DISTINCT category FROM expenses ORDER BY category')
-      .all() as { category: string }[]
+    const rows = db.prepare('SELECT DISTINCT category FROM expenses ORDER BY category').all() as {
+      category: string
+    }[]
     return rows.map((r) => r.category)
   }
 
-  getSummary(dateFrom: string, dateTo: string): {
+  getSummary(
+    dateFrom: string,
+    dateTo: string
+  ): {
     total: number
     byCategory: { category: string; total: number; count: number }[]
     byPaymentMode: { mode: string; total: number }[]

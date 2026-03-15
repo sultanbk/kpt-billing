@@ -7,6 +7,7 @@ import { join } from 'path'
 import { existsSync, mkdirSync, writeFileSync } from 'fs'
 import log from 'electron-log'
 import type { Bill } from '../../shared/types'
+import { getSqlite } from '../database/connection'
 
 function getPdfDir(): string {
   const userDataPath = app.getPath('userData')
@@ -39,9 +40,28 @@ function n(val: unknown): number {
   return isNaN(v) ? 0 : v
 }
 
-const ONES = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
-  'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
-  'Seventeen', 'Eighteen', 'Nineteen']
+const ONES = [
+  '',
+  'One',
+  'Two',
+  'Three',
+  'Four',
+  'Five',
+  'Six',
+  'Seven',
+  'Eight',
+  'Nine',
+  'Ten',
+  'Eleven',
+  'Twelve',
+  'Thirteen',
+  'Fourteen',
+  'Fifteen',
+  'Sixteen',
+  'Seventeen',
+  'Eighteen',
+  'Nineteen'
+]
 const TENS = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety']
 
 function numberToWords(num: number): string {
@@ -53,10 +73,19 @@ function numberToWords(num: number): string {
   function convert(n: number): string {
     if (n < 20) return ONES[n]
     if (n < 100) return TENS[Math.floor(n / 10)] + (n % 10 ? ' ' + ONES[n % 10] : '')
-    if (n < 1000) return ONES[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' and ' + convert(n % 100) : '')
-    if (n < 100000) return convert(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 ? ' ' + convert(n % 1000) : '')
-    if (n < 10000000) return convert(Math.floor(n / 100000)) + ' Lakh' + (n % 100000 ? ' ' + convert(n % 100000) : '')
-    return convert(Math.floor(n / 10000000)) + ' Crore' + (n % 10000000 ? ' ' + convert(n % 10000000) : '')
+    if (n < 1000)
+      return ONES[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' and ' + convert(n % 100) : '')
+    if (n < 100000)
+      return convert(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 ? ' ' + convert(n % 1000) : '')
+    if (n < 10000000)
+      return (
+        convert(Math.floor(n / 100000)) + ' Lakh' + (n % 100000 ? ' ' + convert(n % 100000) : '')
+      )
+    return (
+      convert(Math.floor(n / 10000000)) +
+      ' Crore' +
+      (n % 10000000 ? ' ' + convert(n % 10000000) : '')
+    )
   }
 
   let result = 'Rupees ' + convert(rupees)
@@ -74,7 +103,62 @@ function formatDate(date: string): string {
   }
 }
 
-function buildInvoiceHtml(bill: Bill, shopInfo: Record<string, string>): string {
+function buildReturnsHtml(bill: Bill): string {
+  const returns = bill.returns
+  if (!returns || returns.length === 0) return ''
+
+  const rows = returns
+    .map((r) => {
+      const typeLabel = r.type === 'exchange' ? 'Exchange' : 'Return'
+      const dateStr = r.createdAt ? r.createdAt.split(' ')[0] || r.createdAt : ''
+      const net = r.netAmount
+      const netLabel =
+        net > 0
+          ? `<span style="color:#16a34a;font-weight:600;">+${fmt(net)}</span>`
+          : net < 0
+            ? `<span style="color:#dc2626;font-weight:600;">-${fmt(Math.abs(net))}</span>`
+            : `<span style="color:#888;">—</span>`
+      return `<tr>
+      <td style="padding:4px 6px;font-size:9.5px;">${typeLabel}</td>
+      <td style="padding:4px 6px;font-size:9.5px;">${r.itemsSummary || '-'}</td>
+      <td style="padding:4px 6px;font-size:9.5px;" class="tr">${fmt(r.returnAmount)}</td>
+      ${r.type === 'exchange' ? `<td style="padding:4px 6px;font-size:9.5px;" class="tr">${fmt(r.exchangeAmount)}</td>` : `<td style="padding:4px 6px;font-size:9.5px;color:#888;">—</td>`}
+      <td style="padding:4px 6px;font-size:9.5px;" class="tr">${netLabel}</td>
+      <td style="padding:4px 6px;font-size:9.5px;">${r.refundMode}</td>
+      <td style="padding:4px 6px;font-size:9.5px;">${r.newBillNo ? `<span style="font-weight:600;color:#1d4ed8;">${r.newBillNo}</span>` : '-'}</td>
+      <td style="padding:4px 6px;font-size:9.5px;">${dateStr}</td>
+    </tr>`
+    })
+    .join('')
+
+  return `<!-- Returns/Exchanges -->
+  <div style="border:1px solid #fecaca;border-radius:6px;padding:10px 12px;margin-bottom:14px;background:#fef2f2;">
+    <div style="font-size:8px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">
+      Returns / Exchanges Applied
+    </div>
+    <table style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr style="border-bottom:1px solid #fca5a5;">
+          <th style="text-align:left;font-size:8px;padding:3px 6px;color:#991b1b;">Type</th>
+          <th style="text-align:left;font-size:8px;padding:3px 6px;color:#991b1b;">Items Returned</th>
+          <th style="text-align:right;font-size:8px;padding:3px 6px;color:#991b1b;">Return Value</th>
+          <th style="text-align:right;font-size:8px;padding:3px 6px;color:#991b1b;">Exchange Value</th>
+          <th style="text-align:right;font-size:8px;padding:3px 6px;color:#991b1b;">Net</th>
+          <th style="text-align:left;font-size:8px;padding:3px 6px;color:#991b1b;">Mode</th>
+          <th style="text-align:left;font-size:8px;padding:3px 6px;color:#991b1b;">New Bill</th>
+          <th style="text-align:left;font-size:8px;padding:3px 6px;color:#991b1b;">Date</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`
+}
+
+function buildInvoiceHtml(
+  bill: Bill,
+  shopInfo: Record<string, string>,
+  exchangeFromBillNo?: string | null
+): string {
   const shopName = shopInfo.shopName || 'KRISHNAPRIYA TEXTILES'
   const shopAddress = shopInfo.shopAddress || ''
   const shopPhone = shopInfo.shopPhone || ''
@@ -88,36 +172,41 @@ function buildInvoiceHtml(bill: Bill, shopInfo: Record<string, string>): string 
   let totalTaxable = 0
   let totalCgst = 0
   let totalSgst = 0
-  const itemsHtml = items.map((item: any, idx: number) => {
-    if (!item) return ''
-    const qty = n(item.quantity ?? item.qty)
-    const rate = n(item.price ?? item.rate)
-    const hsnCode = item.hsnCode || item.hsn_code || item.hsn || ''
-    const discVal = n(item.discountValue ?? item.discount_value ?? item.discount ?? item.discountAmount)
-    const discType = item.discountType || item.discount_type || 'flat'
-    const gross = qty * rate
-    let discAmt = 0
-    if (discType === 'percent' || discType === 'percentage') {
-      discAmt = (gross * discVal) / 100
-    } else {
-      discAmt = discVal
-    }
-    const taxable = n(item.taxableAmount ?? item.taxable_amount) || (gross - discAmt)
-    const cgstRate = n(item.cgstRate ?? item.cgst_rate)
-    const sgstRate = n(item.sgstRate ?? item.sgst_rate)
-    const cgstAmt = n(item.cgstAmount ?? item.cgst_amount) || (taxable * cgstRate / 100)
-    const sgstAmt = n(item.sgstAmount ?? item.sgst_amount) || (taxable * sgstRate / 100)
-    const total = n(item.total ?? item.amount) || (taxable + cgstAmt + sgstAmt)
-    const name = item.productName || item.product_name || 'Unknown'
+  const itemsHtml = items
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map((item: any, idx: number) => {
+      if (!item) return ''
+      const qty = n(item.quantity ?? item.qty)
+      const returnedQty = n(item.returnedQty)
+      const rate = n(item.price ?? item.rate)
+      const hsnCode = item.hsnCode || item.hsn_code || item.hsn || ''
+      const discVal = n(
+        item.discountValue ?? item.discount_value ?? item.discount ?? item.discountAmount
+      )
+      const discType = item.discountType || item.discount_type || 'flat'
+      const gross = qty * rate
+      let discAmt = 0
+      if (discType === 'percent' || discType === 'percentage') {
+        discAmt = (gross * discVal) / 100
+      } else {
+        discAmt = discVal
+      }
+      const taxable = n(item.taxableAmount ?? item.taxable_amount) || gross - discAmt
+      const cgstRate = n(item.cgstRate ?? item.cgst_rate)
+      const sgstRate = n(item.sgstRate ?? item.sgst_rate)
+      const cgstAmt = n(item.cgstAmount ?? item.cgst_amount) || (taxable * cgstRate) / 100
+      const sgstAmt = n(item.sgstAmount ?? item.sgst_amount) || (taxable * sgstRate) / 100
+      const total = n(item.total ?? item.amount) || taxable + cgstAmt + sgstAmt
+      const name = item.productName || item.product_name || 'Unknown'
 
-    totalQty += qty
-    totalTaxable += taxable
-    totalCgst += cgstAmt
-    totalSgst += sgstAmt
+      totalQty += qty
+      totalTaxable += taxable
+      totalCgst += cgstAmt
+      totalSgst += sgstAmt
 
-    return `<tr>
+      return `<tr${returnedQty >= qty ? ' style="opacity:0.45;text-decoration:line-through;"' : ''}>
       <td class="tc">${idx + 1}</td>
-      <td>${name}</td>
+      <td>${name}${returnedQty > 0 && returnedQty < qty ? ` <span style="color:#dc2626;font-size:8.5px;font-weight:600;">(${returnedQty} returned)</span>` : ''}${returnedQty >= qty ? ' <span style="color:#dc2626;font-size:8.5px;font-weight:600;">(Returned)</span>' : ''}</td>
       <td class="tc">${hsnCode}</td>
       <td class="tr">${qty}</td>
       <td class="tr">${fmt(rate)}</td>
@@ -129,13 +218,14 @@ function buildInvoiceHtml(bill: Bill, shopInfo: Record<string, string>): string 
       <td class="tr">${sgstAmt > 0 ? fmt(sgstAmt) : '-'}</td>
       <td class="tr bold">${fmt(total)}</td>
     </tr>`
-  }).join('')
+    })
+    .join('')
 
   const grandTotal = n(bill.grandTotal)
   const subtotal = n(bill.subtotal)
   const discountAmt = n(bill.discountAmount)
   const taxableAmt = n(bill.taxableAmount) || totalTaxable
-  const gstAmt = n(bill.gstAmount) || (totalCgst + totalSgst)
+  const gstAmt = n(bill.gstAmount) || totalCgst + totalSgst
   const roundOff = n(bill.roundOff)
   const payMode = (bill.paymentMode || 'cash').toUpperCase()
 
@@ -229,6 +319,18 @@ function buildInvoiceHtml(bill: Bill, shopInfo: Record<string, string>): string 
   </div>
 
   <!-- Bill Info -->
+  ${
+    exchangeFromBillNo
+      ? `
+  <div style="background:#eff6ff;border:1.5px solid #3b82f6;border-radius:6px;padding:8px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;">
+    <span style="font-size:16px;">🔄</span>
+    <div>
+      <div style="font-size:9px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.8px;">Exchange Bill</div>
+      <div style="font-size:10px;color:#1e40af;">Against original invoice <strong>${exchangeFromBillNo}</strong></div>
+    </div>
+  </div>`
+      : ''
+  }
   <div class="info-grid">
     <div class="info-box">
       <div class="info-box-title">Invoice Details</div>
@@ -314,6 +416,8 @@ function buildInvoiceHtml(bill: Bill, shopInfo: Record<string, string>): string 
     </div>
   </div>
 
+  ${buildReturnsHtml(bill)}
+
   <!-- Authorized -->
   <div class="auth-footer">
     <div class="auth-label">Authorized By</div>
@@ -324,7 +428,7 @@ function buildInvoiceHtml(bill: Bill, shopInfo: Record<string, string>): string 
   <!-- Footer -->
   <div class="footer">
     <div class="footer-text">${footer}</div>
-    <div class="footer-sub">Exchange within 7 days with bill | This is a computer-generated invoice</div>
+    <div class="footer-sub">Exchange within 7 days with bill</div>
   </div>
 </div>
 </body></html>`
@@ -335,7 +439,23 @@ export class PdfReceiptService {
     bill: Bill,
     shopInfo: Record<string, string>
   ): Promise<{ success: boolean; path: string }> {
-    const html = buildInvoiceHtml(bill, shopInfo)
+    // Check if this is an exchange bill (reverse lookup)
+    let exchangeFromBillNo: string | null = null
+    try {
+      const db = getSqlite()
+      const src = db
+        .prepare(
+          `SELECT b.bill_no FROM bill_returns br
+         JOIN bills b ON b.id = br.original_bill_id
+         WHERE br.new_bill_id = ? AND br.type = 'exchange' LIMIT 1`
+        )
+        .get(bill.id) as { bill_no: string } | undefined
+      exchangeFromBillNo = src?.bill_no || null
+    } catch {
+      /* ignore */
+    }
+
+    const html = buildInvoiceHtml(bill, shopInfo, exchangeFromBillNo)
     const pdfDir = getPdfDir()
     const safeNo = (bill.billNo || bill.billNumber || 'unknown').replace(/[/\\:*?"<>|]/g, '_')
     const fileName = `Invoice_${safeNo}_${bill.date}.pdf`

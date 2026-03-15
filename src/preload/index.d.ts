@@ -2,20 +2,40 @@ import { ElectronAPI } from '@electron-toolkit/preload'
 
 interface ProductsApi {
   search(term: string): Promise<import('../shared/types').Product[]>
-  getAll(filters?: import('../shared/types').ProductFilters): Promise<import('../shared/types').PaginatedResult<import('../shared/types').Product>>
+  getAll(
+    filters?: import('../shared/types').ProductFilters
+  ): Promise<import('../shared/types').PaginatedResult<import('../shared/types').Product>>
   getById(id: number): Promise<import('../shared/types').Product | null>
   getByBarcode(barcode: string): Promise<import('../shared/types').Product | null>
-  create(data: import('../shared/types').ProductFormData): Promise<import('../shared/types').Product>
-  update(id: number, data: Partial<import('../shared/types').ProductFormData>): Promise<import('../shared/types').Product>
+  create(
+    data: import('../shared/types').ProductFormData
+  ): Promise<import('../shared/types').Product>
+  update(
+    id: number,
+    data: Partial<import('../shared/types').ProductFormData>
+  ): Promise<import('../shared/types').Product>
   delete(id: number): Promise<boolean>
-  import(rows: import('../shared/types').ProductFormData[]): Promise<import('../shared/types').ImportResult>
+  import(
+    rows: import('../shared/types').ProductFormData[]
+  ): Promise<import('../shared/types').ImportResult>
   getLowStock(): Promise<import('../shared/types').Product[]>
   getOutOfStock(): Promise<import('../shared/types').Product[]>
-  getStockValuation(): Promise<{ totalCostValue: number; totalSellingValue: number; totalItems: number }>
-  adjustStock(productId: number, quantity: number, type: string, notes?: string): Promise<import('../shared/types').Product>
+  getStockValuation(): Promise<{
+    totalCostValue: number
+    totalSellingValue: number
+    totalItems: number
+  }>
+  adjustStock(
+    productId: number,
+    quantity: number,
+    type: string,
+    notes?: string
+  ): Promise<import('../shared/types').Product>
   getStockLedger(productId: number, limit?: number): Promise<Record<string, unknown>[]>
   getPriceHistory(productId: number, limit?: number): Promise<Record<string, unknown>[]>
-  bulkStockUpdate(items: { sku?: string; barcode?: string; stock: number }[]): Promise<import('../shared/types').ImportResult>
+  bulkStockUpdate(
+    items: { sku?: string; barcode?: string; stock: number }[]
+  ): Promise<import('../shared/types').ImportResult>
 }
 
 interface CategoriesApi {
@@ -27,7 +47,9 @@ interface CategoriesApi {
 
 interface BillingApi {
   getNextBillNumber(): Promise<string>
-  createBill(data: import('../shared/types').BillCreateData): Promise<import('../shared/types').Bill>
+  createBill(
+    data: import('../shared/types').BillCreateData
+  ): Promise<import('../shared/types').Bill>
   getById(id: number): Promise<import('../shared/types').Bill | null>
   getByBillNo(billNo: string): Promise<import('../shared/types').Bill | null>
   getRecentBills(limit?: number): Promise<import('../shared/types').Bill[]>
@@ -35,8 +57,13 @@ interface BillingApi {
   getDailySummary(date: string): Promise<import('../shared/types').DailySummary>
   getWeekSummary(): Promise<number>
   getMonthSummary(): Promise<number>
-  getTopSellingToday(date: string, limit?: number): Promise<{ productName: string; totalQty: number; totalAmount: number }[]>
-  getAllBills(filters?: import('../shared/types').BillFilters): Promise<import('../shared/types').PaginatedResult<import('../shared/types').Bill>>
+  getTopSellingToday(
+    date: string,
+    limit?: number
+  ): Promise<{ productName: string; totalQty: number; totalAmount: number }[]>
+  getAllBills(
+    filters?: import('../shared/types').BillFilters
+  ): Promise<import('../shared/types').PaginatedResult<import('../shared/types').Bill>>
   quickSearch(term: string): Promise<import('../shared/types').Bill[]>
   printReceipt(billId: number): Promise<boolean>
   generatePdfReceipt(billId: number): Promise<{ success: boolean; path: string }>
@@ -44,7 +71,15 @@ interface BillingApi {
   returnBill(billId: number, reason?: string): Promise<import('../shared/types').Bill>
   cancelBill(billId: number, reason?: string): Promise<import('../shared/types').Bill>
   getBillsByCustomer(customerId: number, limit?: number): Promise<import('../shared/types').Bill[]>
-  holdBill(id: string, data: { customerName?: string; customerPhone?: string; items: string }): Promise<boolean>
+  processReturn(
+    data: import('../shared/types').BillReturnData
+  ): Promise<import('../shared/types').BillReturnResult>
+  getReturnHistory(billId: number): Promise<Record<string, unknown>[]>
+  getReturnedQtyMap(billId: number): Promise<Record<number, number>>
+  holdBill(
+    id: string,
+    data: { customerName?: string; customerPhone?: string; items: string }
+  ): Promise<boolean>
   getHeldBills(): Promise<unknown[]>
   recallHeldBill(id: string): Promise<unknown | null>
   deleteHeldBill(id: string): Promise<boolean>
@@ -58,8 +93,13 @@ interface CustomersApi {
   search(term: string): Promise<import('../shared/types').Customer[]>
   getAll(): Promise<import('../shared/types').Customer[]>
   getById(id: number): Promise<import('../shared/types').Customer | null>
-  create(data: import('../shared/types').CustomerFormData): Promise<import('../shared/types').Customer>
-  update(id: number, data: Partial<import('../shared/types').CustomerFormData>): Promise<import('../shared/types').Customer>
+  create(
+    data: import('../shared/types').CustomerFormData
+  ): Promise<import('../shared/types').Customer>
+  update(
+    id: number,
+    data: Partial<import('../shared/types').CustomerFormData>
+  ): Promise<import('../shared/types').Customer>
   getWithCredit(): Promise<import('../shared/types').Customer[]>
   getTotalCredit(): Promise<number>
   getTopByRevenue(limit?: number): Promise<Record<string, unknown>[]>
@@ -70,12 +110,35 @@ interface CustomersApi {
 }
 
 interface CreditApi {
-  recordPayment(data: import('../shared/types').CreditPaymentCreateData): Promise<import('../shared/types').CreditPayment>
+  recordPayment(
+    data: import('../shared/types').CreditPaymentCreateData
+  ): Promise<import('../shared/types').CreditPayment>
   getById(id: number): Promise<import('../shared/types').CreditPayment | null>
-  getByCustomer(customerId: number, limit?: number): Promise<import('../shared/types').CreditPayment[]>
-  getAll(filters?: { dateFrom?: string; dateTo?: string; customerId?: number; paymentMode?: string; page?: number; pageSize?: number }): Promise<{ data: import('../shared/types').CreditPayment[]; total: number }>
+  getByCustomer(
+    customerId: number,
+    limit?: number
+  ): Promise<import('../shared/types').CreditPayment[]>
+  getAll(filters?: {
+    dateFrom?: string
+    dateTo?: string
+    customerId?: number
+    paymentMode?: string
+    page?: number
+    pageSize?: number
+  }): Promise<{ data: import('../shared/types').CreditPayment[]; total: number }>
   getLedger(customerId: number): Promise<import('../shared/types').CreditLedgerEntry[]>
-  getCollectionSummary(dateFrom: string, dateTo: string): Promise<{ totalCollected: number; totalPayments: number; byCash: number; byUpi: number; byCard: number; byCheque: number; byBankTransfer: number }>
+  getCollectionSummary(
+    dateFrom: string,
+    dateTo: string
+  ): Promise<{
+    totalCollected: number
+    totalPayments: number
+    byCash: number
+    byUpi: number
+    byCard: number
+    byCheque: number
+    byBankTransfer: number
+  }>
   deletePayment(id: number): Promise<boolean>
 }
 
@@ -128,17 +191,29 @@ interface SuppliersApi {
   getAll(activeOnly?: boolean): Promise<import('../shared/types').Supplier[]>
   getById(id: number): Promise<import('../shared/types').Supplier | null>
   search(term: string): Promise<import('../shared/types').Supplier[]>
-  create(data: import('../shared/types').SupplierFormData): Promise<import('../shared/types').Supplier>
-  update(id: number, data: Partial<import('../shared/types').SupplierFormData>): Promise<import('../shared/types').Supplier>
+  create(
+    data: import('../shared/types').SupplierFormData
+  ): Promise<import('../shared/types').Supplier>
+  update(
+    id: number,
+    data: Partial<import('../shared/types').SupplierFormData>
+  ): Promise<import('../shared/types').Supplier>
   delete(id: number): Promise<boolean>
   getCities(): Promise<string[]>
 }
 
 interface PurchasesApi {
   getNextNumber(): Promise<string>
-  create(data: import('../shared/types').PurchaseCreateData): Promise<import('../shared/types').Purchase>
+  create(
+    data: import('../shared/types').PurchaseCreateData
+  ): Promise<import('../shared/types').Purchase>
   getById(id: number): Promise<import('../shared/types').Purchase | null>
-  getAll(filters?: unknown): Promise<{ data: import('../shared/types').Purchase[]; total: number; page: number; pageSize: number }>
+  getAll(filters?: unknown): Promise<{
+    data: import('../shared/types').Purchase[]
+    total: number
+    page: number
+    pageSize: number
+  }>
   getRecent(limit?: number): Promise<import('../shared/types').Purchase[]>
   getSummary(dateFrom: string, dateTo: string): Promise<unknown>
   delete(id: number): Promise<boolean>
@@ -152,33 +227,84 @@ interface CloudApi {
   disconnect(): Promise<boolean>
   backup(): Promise<{ success: boolean; error?: string }>
   listBackups(): Promise<{ id: string; name: string; modifiedTime: string; size: string }[]>
-  downloadBackup(fileId: string, fileName: string): Promise<{ success: boolean; path?: string; error?: string }>
+  downloadBackup(
+    fileId: string,
+    fileName: string
+  ): Promise<{ success: boolean; path?: string; error?: string }>
 }
 
 interface ExpensesApi {
-  create(data: { date?: string; category: string; amount: number; description?: string; paymentMode?: string }): Promise<unknown>
-  getAll(filters?: { dateFrom?: string; dateTo?: string; category?: string; page?: number; pageSize?: number }): Promise<{ data: unknown[]; total: number }>
+  create(data: {
+    date?: string
+    category: string
+    amount: number
+    description?: string
+    paymentMode?: string
+  }): Promise<unknown>
+  getAll(filters?: {
+    dateFrom?: string
+    dateTo?: string
+    category?: string
+    page?: number
+    pageSize?: number
+  }): Promise<{ data: unknown[]; total: number }>
   getByDate(date: string): Promise<unknown[]>
-  update(id: number, data: { date?: string; category?: string; amount?: number; description?: string; paymentMode?: string }): Promise<unknown>
+  update(
+    id: number,
+    data: {
+      date?: string
+      category?: string
+      amount?: number
+      description?: string
+      paymentMode?: string
+    }
+  ): Promise<unknown>
   delete(id: number): Promise<boolean>
   getCategories(): Promise<string[]>
-  getSummary(dateFrom: string, dateTo: string): Promise<{ total: number; byCategory: { category: string; total: number; count: number }[]; byPaymentMode: { mode: string; total: number }[] }>
+  getSummary(
+    dateFrom: string,
+    dateTo: string
+  ): Promise<{
+    total: number
+    byCategory: { category: string; total: number; count: number }[]
+    byPaymentMode: { mode: string; total: number }[]
+  }>
 }
 
 interface ReportsApi {
   getGstReport(dateFrom: string, dateTo: string): Promise<unknown>
   getProfitLoss(dateFrom: string, dateTo: string): Promise<unknown>
-  getDashboardData(date: string): Promise<{ pendingCredits: number; pendingCreditCustomers: number; outOfStockCount: number; todayExpenses: number; todayCollections: number; yesterdaySales: number }>
+  getDashboardData(date: string): Promise<{
+    pendingCredits: number
+    pendingCreditCustomers: number
+    outOfStockCount: number
+    todayExpenses: number
+    todayCollections: number
+    yesterdaySales: number
+  }>
 }
 
 interface WhatsAppApi {
   sendBillReceipt(billId: number, phone: string): Promise<{ success: boolean; error?: string }>
-  sendCreditReminder(phone: string, customerName: string, currentBalance: number): Promise<{ success: boolean; error?: string }>
-  sendPaymentConfirmation(phone: string, customerName: string, amountPaid: number, remainingBalance: number, paymentMode: string, date: string): Promise<{ success: boolean; error?: string }>
+  sendCreditReminder(
+    phone: string,
+    customerName: string,
+    currentBalance: number
+  ): Promise<{ success: boolean; error?: string }>
+  sendPaymentConfirmation(
+    phone: string,
+    customerName: string,
+    amountPaid: number,
+    remainingBalance: number,
+    paymentMode: string,
+    date: string
+  ): Promise<{ success: boolean; error?: string }>
 }
 
 interface AuthApi {
-  verifyPin(pin: string): Promise<{ success: boolean; user?: { id: number; name: string; role: string } }>
+  verifyPin(
+    pin: string
+  ): Promise<{ success: boolean; user?: { id: number; name: string; role: string } }>
   changePin(currentPin: string, newPin: string): Promise<{ success: boolean; error?: string }>
 }
 

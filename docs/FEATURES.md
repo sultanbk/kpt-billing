@@ -23,11 +23,13 @@ Developed by **[Sultan Kabadi](https://sultanbk.com)**
 13. [Backup & Restore](#13-backup--restore)
 14. [Security & Access Control](#14-security--access-control)
 15. [Keyboard Shortcuts](#15-keyboard-shortcuts)
-16. [Dashboard](#16-dashboard)
-17. [Settings & Configuration](#17-settings--configuration)
-18. [Estimates / Quotations](#18-estimates--quotations)
-19. [Expense Tracking](#19-expense-tracking)
-20. [Audit Trail](#20-audit-trail)
+16. [Quick Bill Search](#16-quick-bill-search)
+17. [Return & Exchange](#17-return--exchange)
+18. [Dashboard](#18-dashboard)
+19. [Settings & Configuration](#19-settings--configuration)
+20. [Estimates / Quotations](#20-estimates--quotations)
+21. [Expense Tracking](#21-expense-tracking)
+22. [Audit Trail](#22-audit-trail)
 
 ---
 
@@ -49,6 +51,7 @@ The core billing system provides a full POS experience:
 - **Auto Print** — Optionally auto-print receipt on bill creation
 - **Bill Numbering** — Auto-generated sequential bill numbers: `KPT/{FY}/0001`
 - **Bill Status** — Completed, Returned, or Cancelled
+- **Return & Exchange** — Process returns or exchanges on completed bills with stock restoration, refund tracking, and new bill creation for exchanges
 
 ---
 
@@ -289,7 +292,100 @@ All exports generate `.xlsx` files using the xlsx library.
 
 ---
 
-## 16. Dashboard
+## 16. Quick Bill Search
+
+A command-palette style interface for rapid bill lookup and actions, accessible via **Ctrl+K** or the dedicated sidebar search button.
+
+### Features
+- **Recent Bills** — Shows the 15 most recent bills immediately on open (no typing needed)
+- **Full-Text Search** — Search by bill number, customer name, or phone number
+- **3-Mode Interface** — List → Actions → View, navigable entirely by keyboard
+- **Dedicated Sidebar Button** — "Search bills... Ctrl+K" button always visible in the sidebar
+
+### Quick Actions Per Bill
+| Action | Shortcut | Description |
+|--------|----------|-------------|
+| View Bill Details | **V** | Full bill view with items table, GST breakup, totals, return history |
+| Print Receipt | **P** | Send thermal receipt to printer |
+| Download PDF | **D** | Generate and open a PDF invoice |
+| Send via WhatsApp | **W** | Send bill receipt to customer (requires phone number) |
+| Return / Exchange | **R** | Open the return/exchange dialog for the bill |
+
+### Keyboard Navigation
+| Mode | Shortcut | Action |
+|------|----------|--------|
+| List | ↑↓ | Navigate between bills |
+| List | Enter / → | Open actions for selected bill |
+| List | Esc | Close search |
+| Actions | V / P / D / W / R | Execute action directly |
+| Actions | ↑↓ | Navigate between actions |
+| Actions | Enter | Execute highlighted action |
+| Actions | ← / Esc | Go back to list |
+| View | P / D / W | Quick actions on viewed bill |
+| View | ← / Esc / Backspace | Go back to actions |
+
+### Bill Detail View
+- Bill header: number, status badge, date, time, salesman
+- Customer info: name, phone, payment mode with UPI reference
+- Items table: product name, SKU, quantity, price, GST%, total
+- Return annotations: returned quantities shown with strike-through for fully returned items
+- Totals: subtotal, discount, GST, round-off, grand total
+- Return history section: type badges, amounts, dates, linked new bills
+- Inline action buttons: Print, PDF, WhatsApp
+
+---
+
+## 17. Return & Exchange
+
+Full return and exchange processing with automatic stock restoration and bill recalculation.
+
+### Access Points
+- **Quick Bill Search** (Ctrl+K) → select bill → **R** (Return/Exchange)
+- **Reports Page** → Bill detail → Return/Exchange dropdown
+- **Bill History** → Actions dropdown → Return or Exchange
+
+### 4-Step Workflow
+1. **Search** — Find the original bill by number, customer, or phone
+2. **Edit** — Select items and quantities to return, choose mode (Return or Exchange)
+3. **Confirm** — Review summary with amounts and refund details
+4. **Done** — Success screen with print/WhatsApp options
+
+### Return Mode
+- Select items and quantities to return
+- Choose refund method: Cash, Credit to account, or Adjust
+- Stock is automatically restored for returned items
+- Original bill amounts are recalculated based on remaining items
+- Refund amount calculated with proportional GST
+
+### Exchange Mode
+- Select items to return (same as return mode)
+- Add new replacement items with search or "Other" custom items
+- Net amount calculated: exchange total minus return credit
+- If exchange total > return credit → customer pays the difference
+- If return credit > exchange total → refund the difference
+- New bill created for exchange items
+- Original bill recalculated
+
+### Bill Recalculation After Return
+- Original bill's subtotal, discount, taxable amount, GST, round-off, and grand total are recalculated
+- Based on effective remaining quantities (original qty minus returned qty)
+- Total items and total quantity updated
+- Proportional discount applied to remaining items
+
+### Return History
+- Full return/exchange history stored in `bill_returns` and `bill_return_items` tables
+- Each return records: type, reason, amounts, refund mode, linked new bill (for exchanges)
+- Return history displayed in bill detail views (PDF, thermal receipt, Reports, Quick Bill Search)
+- Items show return annotations: "(2 returned)" or "(Returned)" with visual strike-through
+
+### PDF & Print Integration
+- PDF invoices show return annotations on items and a "Returns / Exchanges Applied" section
+- Thermal receipts show "** RETURNED **" annotations and a "RETURNS / EXCHANGES" section
+- Both formats show the updated (recalculated) totals
+
+---
+
+## 18. Dashboard
 
 Real-time dashboard with auto-refresh (every 60 seconds):
 
@@ -314,7 +410,7 @@ Real-time dashboard with auto-refresh (every 60 seconds):
 
 ---
 
-## 17. Settings & Configuration
+## 19. Settings & Configuration
 
 Four-tab settings interface:
 
@@ -344,7 +440,7 @@ Four-tab settings interface:
 
 ---
 
-## 18. Estimates / Quotations
+## 20. Estimates / Quotations
 
 - **Create Estimates** — Itemized quotations with product details, quantities, prices
 - **Estimate Number** — Auto-generated sequential numbers
@@ -355,7 +451,7 @@ Four-tab settings interface:
 
 ---
 
-## 19. Expense Tracking
+## 21. Expense Tracking
 
 - **Record Expenses** — Date, category, amount, description, payment mode
 - **Expense Categories** — Rent, Electricity, Salary, Transport, Packaging, Maintenance, Tea/Food, Marketing, Other
@@ -366,7 +462,7 @@ Four-tab settings interface:
 
 ---
 
-## 20. Audit Trail
+## 22. Audit Trail
 
 - **Audit Log** — Every significant action recorded: user, action type, entity, old/new values (JSON)
 - **Stock Ledger** — Every stock movement logged with reference (sale, purchase, adjustment, return, damage)

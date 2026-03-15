@@ -4,6 +4,7 @@
 // ============================================================================
 import { shell } from 'electron'
 import { billRepo } from '../database/repositories/bill.repo'
+import { getSqlite } from '../database/connection'
 
 // Indian number formatting: last 3 digits, then groups of 2
 function formatCurrencyPlain(amount: number): string {
@@ -48,29 +49,67 @@ function billReceiptMessage(bill: {
   billNumber: string
   date: string
   customerName?: string
-  items: { productName: string; quantity: number; total: number }[]
+  items: { productName: string; quantity: number; total: number; returnedQty?: number }[]
   subtotal: number
   discountAmount: number
   gstAmount: number
   grandTotal: number
   paymentMode: string
+  hasReturns?: boolean
+  returns?: Array<{
+    type: string
+    itemsSummary: string
+    returnAmount: number
+    exchangeAmount: number
+    netAmount: number
+    refundMode: string
+    newBillNo: string | null
+  }>
+  exchangeFromBillNo?: string | null
 }): string {
-  const lines: string[] = [
-    `🧾 *${SHOP_NAME}*`,
-    `──────────────`,
-    `*Bill No:* ${bill.billNumber}`,
-    `*Date:* ${bill.date}`,
-    bill.customerName ? `*Customer:* ${bill.customerName}` : '',
-    ``,
-    `*Items:*`
-  ].filter(Boolean)
+  const lines: string[] = [`🧾 *${SHOP_NAME}*`, `──────────────`]
 
-  bill.items.forEach((item, idx) => {
-    lines.push(`${idx + 1}. ${item.productName} × ${item.quantity} = ₹${formatCurrencyPlain(item.total)}`)
+  // If this is an exchange bill, show a banner at top
+  if (bill.exchangeFromBillNo) {
+    lines.push(`🔄 *Exchange Bill* _(against ${bill.exchangeFromBillNo})_`)
+    lines.push(`──────────────`)
+  }
+
+  lines.push(`*Bill No:* ${bill.billNumber}`)
+  lines.push(`*Date:* ${bill.date}`)
+  if (bill.customerName) lines.push(`*Customer:* ${bill.customerName}`)
+  lines.push(``)
+  lines.push(`*Items:*`)
+
+  let displayIdx = 1
+  bill.items.forEach((item) => {
+    const returnedQty = item.returnedQty || 0
+    const netQty = item.quantity - returnedQty
+    const pricePerUnit = item.quantity > 0 ? item.total / item.quantity : 0
+
+    if (returnedQty >= item.quantity) {
+      // Fully returned — strikethrough in WhatsApp
+      lines.push(
+        `${displayIdx++}. ~${item.productName} × ${item.quantity} = ₹${formatCurrencyPlain(item.total)}~ _(Returned)_`
+      )
+    } else if (returnedQty > 0) {
+      // Partial return — show net qty with note
+      const netTotal = pricePerUnit * netQty
+      lines.push(
+        `${displayIdx++}. ${item.productName} × ${netQty} = ₹${formatCurrencyPlain(netTotal)} _(${returnedQty} returned)_`
+      )
+    } else {
+      lines.push(
+        `${displayIdx++}. ${item.productName} × ${item.quantity} = ₹${formatCurrencyPlain(item.total)}`
+      )
+    }
   })
 
   lines.push(``)
   lines.push(`──────────────`)
+  if (bill.hasReturns) {
+    lines.push(`_Totals reflect post-return amounts_`)
+  }
   lines.push(`*Subtotal:* ₹${formatCurrencyPlain(bill.subtotal)}`)
   if (bill.discountAmount > 0) {
     lines.push(`*Discount:* -₹${formatCurrencyPlain(bill.discountAmount)}`)
@@ -80,6 +119,38 @@ function billReceiptMessage(bill: {
   }
   lines.push(`*Grand Total:* ₹${formatCurrencyPlain(bill.grandTotal)}`)
   lines.push(`*Payment:* ${bill.paymentMode.toUpperCase()}`)
+
+  // Returns / Exchanges section
+  if (bill.returns && bill.returns.length > 0) {
+    lines.push(``)
+    for (const r of bill.returns) {
+      const isExchange = r.type === 'exchange'
+      if (isExchange) {
+        lines.push(`🔄 *Exchange Applied*`)
+        if (r.itemsSummary)
+          lines.push(
+            `  ↩ Returned: ${r.itemsSummary} | Value: ₹${formatCurrencyPlain(r.returnAmount)}`
+          )
+        if (r.newBillNo) lines.push(`  📄 New Bill: *${r.newBillNo}*`)
+        if (r.exchangeAmount > 0)
+          lines.push(`  🛍 Exchange Items: ₹${formatCurrencyPlain(r.exchangeAmount)}`)
+        const net = r.netAmount
+        if (net > 0) lines.push(`  💳 Net Paid by Customer: ₹${formatCurrencyPlain(net)}`)
+        else if (net < 0)
+          lines.push(
+            `  💰 Net Refund to Customer: ₹${formatCurrencyPlain(Math.abs(net))} via ${r.refundMode.toUpperCase()}`
+          )
+        else lines.push(`  ✅ No extra amount (net zero)`)
+      } else {
+        lines.push(`↩️ *Return Applied*`)
+        if (r.itemsSummary) lines.push(`  Items: ${r.itemsSummary}`)
+        lines.push(
+          `  Refund: ₹${formatCurrencyPlain(r.returnAmount)} via ${r.refundMode.toUpperCase()}`
+        )
+      }
+    }
+  }
+
   lines.push(`──────────────`)
   lines.push(``)
   lines.push(`Thank you for shopping with us! 🙏`)
@@ -87,10 +158,7 @@ function billReceiptMessage(bill: {
   return lines.join('\n')
 }
 
-function creditReminderMessage(customer: {
-  name: string
-  currentBalance: number
-}): string {
+function creditReminderMessage(customer: { name: string; currentBalance: number }): string {
   return [
     `🔔 *Payment Reminder*`,
     ``,
@@ -131,10 +199,31 @@ function paymentConfirmationMessage(data: {
 // ---- Public API ----
 
 export const whatsappService = {
-  async sendBillReceipt(billId: number, phone: string): Promise<{ success: boolean; error?: string }> {
+  async sendBillReceipt(
+    billId: number,
+    phone: string
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       const bill = billRepo.getById(billId)
       if (!bill) return { success: false, error: 'Bill not found' }
+
+      const hasReturns = !!(bill.returns && bill.returns.length > 0)
+
+      // Check if this bill was created as part of an exchange (reverse lookup)
+      let exchangeFromBillNo: string | null = null
+      try {
+        const db = getSqlite()
+        const exchangeSource = db
+          .prepare(
+            `SELECT b.bill_no FROM bill_returns br
+           JOIN bills b ON b.id = br.original_bill_id
+           WHERE br.new_bill_id = ? AND br.type = 'exchange' LIMIT 1`
+          )
+          .get(billId) as { bill_no: string } | undefined
+        exchangeFromBillNo = exchangeSource?.bill_no || null
+      } catch {
+        /* ignore */
+      }
 
       const message = billReceiptMessage({
         billNumber: bill.billNumber,
@@ -143,13 +232,25 @@ export const whatsappService = {
         items: (bill.items || []).map((i) => ({
           productName: i.productName,
           quantity: i.quantity,
-          total: i.total || 0
+          total: i.total || 0,
+          returnedQty: i.returnedQty || 0
         })),
         subtotal: bill.subtotal,
         discountAmount: bill.discountAmount,
         gstAmount: bill.gstAmount,
         grandTotal: bill.grandTotal,
-        paymentMode: bill.paymentMode
+        paymentMode: bill.paymentMode,
+        hasReturns,
+        returns: (bill.returns || []).map((r) => ({
+          type: r.type,
+          itemsSummary: r.itemsSummary || '',
+          returnAmount: r.returnAmount,
+          exchangeAmount: r.exchangeAmount,
+          netAmount: r.netAmount,
+          refundMode: r.refundMode,
+          newBillNo: r.newBillNo || null
+        })),
+        exchangeFromBillNo
       })
 
       const url = buildWhatsAppUrl(phone, message)
@@ -161,7 +262,11 @@ export const whatsappService = {
     }
   },
 
-  async sendCreditReminder(phone: string, customerName: string, currentBalance: number): Promise<{ success: boolean; error?: string }> {
+  async sendCreditReminder(
+    phone: string,
+    customerName: string,
+    currentBalance: number
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       const message = creditReminderMessage({ name: customerName, currentBalance })
       const url = buildWhatsAppUrl(phone, message)
