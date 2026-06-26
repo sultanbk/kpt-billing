@@ -5,12 +5,12 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { lazy, Suspense } from 'react'
 
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
-const BillingPage = lazy(() => import('./pages/BillingPage'))
-const ProductsPage = lazy(() => import('./pages/ProductsPage'))
-const CustomersPage = lazy(() => import('./pages/CustomersPage'))
-const ReportsPage = lazy(() => import('./pages/ReportsPage'))
-const SettingsPage = lazy(() => import('./pages/SettingsPage'))
-const PurchasesPage = lazy(() => import('./pages/PurchasesPage'))
+const BillingPage = lazy(() => import('./pages/billing'))
+const ProductsPage = lazy(() => import('./pages/products'))
+const CustomersPage = lazy(() => import('./pages/customers'))
+const ReportsPage = lazy(() => import('./pages/reports'))
+const SettingsPage = lazy(() => import('./pages/settings'))
+const PurchasesPage = lazy(() => import('./pages/purchases'))
 const CustomerAnalyticsPage = lazy(() => import('./pages/CustomerAnalyticsPage'))
 const CreditAgingPage = lazy(() => import('./pages/CreditAgingPage'))
 const DataExportPage = lazy(() => import('./pages/DataExportPage'))

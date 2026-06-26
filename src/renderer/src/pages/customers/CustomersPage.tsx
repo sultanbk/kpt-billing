@@ -1,12 +1,12 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
-import { Button } from '../components/ui/button'
-import { Input } from '../components/ui/input'
-import { Label } from '../components/ui/label'
-import { Badge } from '../components/ui/badge'
-import { Separator } from '../components/ui/separator'
-import { Textarea } from '../components/ui/textarea'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
+import { Button } from '../../components/ui/button'
+import { Input } from '../../components/ui/input'
+import { Label } from '../../components/ui/label'
+import { Badge } from '../../components/ui/badge'
+import { Separator } from '../../components/ui/separator'
+import { Textarea } from '../../components/ui/textarea'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs'
 import {
   Dialog,
   DialogContent,
@@ -14,14 +14,14 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription
-} from '../components/ui/dialog'
+} from '../../components/ui/dialog'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue
-} from '../components/ui/select'
+} from '../../components/ui/select'
 import {
   Table,
   TableBody,
@@ -29,13 +29,13 @@ import {
   TableHead,
   TableHeader,
   TableRow
-} from '../components/ui/table'
+} from '../../components/ui/table'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger
-} from '../components/ui/dropdown-menu'
+} from '../../components/ui/dropdown-menu'
 import {
   Users,
   Plus,
@@ -55,7 +55,7 @@ import {
   ArrowUpCircle,
   Trash2
 } from 'lucide-react'
-import { formatCurrency, formatDate } from '../lib/utils'
+import { formatCurrency, formatDate } from '../../lib/utils'
 import { toast } from 'sonner'
 import type {
   Customer,
@@ -65,6 +65,11 @@ import type {
   CreditPaymentCreateData,
   CreditLedgerEntry
 } from '@shared/types'
+import { billingService } from '../../services/billing.service'
+import { creditService } from '../../services/credit.service'
+import { customersService } from '../../services/customers.service'
+import { exportService } from '../../services/export.service'
+import { whatsappService } from '../../services/whatsapp.service'
 
 const EMPTY_FORM: CustomerFormData = {
   name: '',
@@ -114,9 +119,9 @@ export default function CustomersPage(): React.JSX.Element {
     setLoading(true)
     try {
       const [all, credit, total] = await Promise.all([
-        window.api.customers.getAll(),
-        window.api.customers.getWithCredit(),
-        window.api.customers.getTotalCredit()
+        customersService.getAll(),
+        customersService.getWithCredit(),
+        customersService.getTotalCredit()
       ])
       setCustomers(all)
       setCreditCustomers(credit)
@@ -128,7 +133,6 @@ export default function CustomersPage(): React.JSX.Element {
   }, [])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadCustomers()
   }, [loadCustomers])
 
@@ -172,9 +176,9 @@ export default function CustomersPage(): React.JSX.Element {
     setShowDetailDialog(true)
     try {
       const [bills, ledger, payments] = await Promise.all([
-        window.api.billing.getBillsByCustomer(customer.id, 50),
-        window.api.credit.getLedger(customer.id),
-        window.api.credit.getByCustomer(customer.id, 50)
+        billingService.getBillsByCustomer(customer.id, 50),
+        creditService.getLedger(customer.id),
+        creditService.getByCustomer(customer.id, 50)
       ])
       setCustomerBills(bills)
       setCreditLedger(ledger)
@@ -204,14 +208,14 @@ export default function CustomersPage(): React.JSX.Element {
     }
     if (amount > selectedCustomer.currentBalance) {
       toast.error(
-        `Amount ₹${amount} exceeds outstanding balance ₹${selectedCustomer.currentBalance}`
+        `Amount ${formatCurrency(amount)} exceeds outstanding balance ${formatCurrency(selectedCustomer.currentBalance)}`
       )
       return
     }
 
     setProcessingPayment(true)
     try {
-      await window.api.credit.recordPayment({
+      await creditService.recordPayment({
         customerId: selectedCustomer.id,
         amount,
         paymentMode,
@@ -223,32 +227,29 @@ export default function CustomersPage(): React.JSX.Element {
 
       // Show success with WhatsApp option if phone is available
       if (selectedCustomer.phone && selectedCustomer.phone.length >= 10) {
-        toast.success(
-          `₹${amount.toLocaleString('en-IN')} collected from ${selectedCustomer.name}`,
-          {
-            duration: 8000,
-            action: {
-              label: '📱 WhatsApp Confirmation',
-              onClick: () => {
-                window.api.whatsapp
-                  .sendPaymentConfirmation(
-                    selectedCustomer.phone,
-                    selectedCustomer.name,
-                    amount,
-                    balanceAfter,
-                    paymentMode,
-                    new Date().toISOString().split('T')[0]
-                  )
-                  .then((res) => {
-                    if (!res.success) toast.error(res.error || 'Failed to open WhatsApp')
-                  })
-              }
+        toast.success(`${formatCurrency(amount)} collected from ${selectedCustomer.name}`, {
+          duration: 8000,
+          action: {
+            label: 'WhatsApp Confirmation',
+            onClick: () => {
+              whatsappService
+                .sendPaymentConfirmation(
+                  selectedCustomer.phone,
+                  selectedCustomer.name,
+                  amount,
+                  balanceAfter,
+                  paymentMode,
+                  new Date().toISOString().split('T')[0]
+                )
+                .then((res) => {
+                  if (!res.success) toast.error(res.error || 'Failed to open WhatsApp')
+                })
             }
           }
-        )
+        })
       } else {
         toast.success(
-          `₹${amount.toLocaleString('en-IN')} collected from ${selectedCustomer.name}. Balance: ₹${balanceAfter.toLocaleString('en-IN')}`
+          `${formatCurrency(amount)} collected from ${selectedCustomer.name}. Balance: ${formatCurrency(balanceAfter)}`
         )
       }
       setShowPaymentDialog(false)
@@ -256,12 +257,12 @@ export default function CustomersPage(): React.JSX.Element {
 
       // Refresh detail dialog if open
       if (showDetailDialog && selectedCustomer) {
-        const fresh = await window.api.customers.getById(selectedCustomer.id)
+        const fresh = await customersService.getById(selectedCustomer.id)
         if (fresh) {
           setSelectedCustomer(fresh)
           const [ledger, payments] = await Promise.all([
-            window.api.credit.getLedger(fresh.id),
-            window.api.credit.getByCustomer(fresh.id, 50)
+            creditService.getLedger(fresh.id),
+            creditService.getByCustomer(fresh.id, 50)
           ])
           setCreditLedger(ledger)
           setCreditPayments(payments)
@@ -278,16 +279,16 @@ export default function CustomersPage(): React.JSX.Element {
     if (!confirm('Delete this payment? The amount will be added back to the customer balance.'))
       return
     try {
-      await window.api.credit.deletePayment(paymentId)
+      await creditService.deletePayment(paymentId)
       toast.success('Payment deleted and balance restored')
       loadCustomers()
       if (selectedCustomer) {
-        const fresh = await window.api.customers.getById(selectedCustomer.id)
+        const fresh = await customersService.getById(selectedCustomer.id)
         if (fresh) {
           setSelectedCustomer(fresh)
           const [ledger, payments] = await Promise.all([
-            window.api.credit.getLedger(fresh.id),
-            window.api.credit.getByCustomer(fresh.id, 50)
+            creditService.getLedger(fresh.id),
+            creditService.getByCustomer(fresh.id, 50)
           ])
           setCreditLedger(ledger)
           setCreditPayments(payments)
@@ -312,10 +313,10 @@ export default function CustomersPage(): React.JSX.Element {
     setSaving(true)
     try {
       if (editingCustomer) {
-        await window.api.customers.update(editingCustomer.id, formData)
+        await customersService.update(editingCustomer.id, formData)
         toast.success('Customer updated')
       } else {
-        await window.api.customers.create(formData)
+        await customersService.create(formData)
         toast.success('Customer added')
       }
       setShowFormDialog(false)
@@ -329,7 +330,7 @@ export default function CustomersPage(): React.JSX.Element {
 
   const handleExport = async (): Promise<void> => {
     try {
-      const result = await window.api.export.customerReport()
+      const result = await exportService.customerReport()
       if (result.success && result.path) {
         toast.success(`Exported to ${result.path}`)
       }
@@ -527,7 +528,7 @@ export default function CustomersPage(): React.JSX.Element {
                               customer.phone.length >= 10 && (
                                 <DropdownMenuItem
                                   onClick={async () => {
-                                    const res = await window.api.whatsapp.sendCreditReminder(
+                                    const res = await whatsappService.sendCreditReminder(
                                       customer.phone,
                                       customer.name,
                                       customer.currentBalance
@@ -539,7 +540,7 @@ export default function CustomersPage(): React.JSX.Element {
                                     }
                                   }}
                                 >
-                                  <span className="mr-2">📱</span>
+                                  <span className="mr-2">ðŸ“±</span>
                                   WhatsApp Reminder
                                 </DropdownMenuItem>
                               )}
@@ -665,7 +666,7 @@ export default function CustomersPage(): React.JSX.Element {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="creditLimit">Credit Limit (₹)</Label>
+                <Label htmlFor="creditLimit">Credit Limit (â‚¹)</Label>
                 <Input
                   id="creditLimit"
                   type="number"
@@ -725,7 +726,7 @@ export default function CustomersPage(): React.JSX.Element {
                 {/* Amount */}
                 <div className="space-y-1.5">
                   <Label htmlFor="payAmount">
-                    Amount (₹) <span className="text-destructive">*</span>
+                    Amount (â‚¹) <span className="text-destructive">*</span>
                   </Label>
                   <div className="flex gap-2">
                     <Input
@@ -968,7 +969,7 @@ export default function CustomersPage(): React.JSX.Element {
                           variant="outline"
                           className="border-green-500 text-green-600 hover:bg-green-50"
                           onClick={async () => {
-                            const res = await window.api.whatsapp.sendCreditReminder(
+                            const res = await whatsappService.sendCreditReminder(
                               selectedCustomer.phone,
                               selectedCustomer.name,
                               selectedCustomer.currentBalance
@@ -980,7 +981,7 @@ export default function CustomersPage(): React.JSX.Element {
                             }
                           }}
                         >
-                          📱 Remind
+                          ðŸ“± Remind
                         </Button>
                       )}
                     </div>

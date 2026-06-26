@@ -1,10 +1,10 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
-import { Button } from '../components/ui/button'
-import { Input } from '../components/ui/input'
-import { Badge } from '../components/ui/badge'
-import { Separator } from '../components/ui/separator'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
+import { Button } from '../../components/ui/button'
+import { Input } from '../../components/ui/input'
+import { Badge } from '../../components/ui/badge'
+import { Separator } from '../../components/ui/separator'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs'
 import {
   Table,
   TableBody,
@@ -12,7 +12,7 @@ import {
   TableHead,
   TableHeader,
   TableRow
-} from '../components/ui/table'
+} from '../../components/ui/table'
 import {
   Dialog,
   DialogContent,
@@ -20,14 +20,14 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription
-} from '../components/ui/dialog'
+} from '../../components/ui/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator
-} from '../components/ui/dropdown-menu'
+} from '../../components/ui/dropdown-menu'
 import {
   Calendar,
   IndianRupee,
@@ -54,11 +54,16 @@ import {
   ArrowDownRight,
   ArrowLeftRight
 } from 'lucide-react'
-import { formatCurrency, formatDate, formatTime } from '../lib/utils'
+import { formatCurrency, formatDate, formatTime } from '../../lib/utils'
 import { toast } from 'sonner'
 import type { DailySummary, Bill, BillItem } from '@shared/types'
 import dayjs from 'dayjs'
-import { EditBillDialog } from '../components/billing/EditBillDialog'
+import { EditBillDialog } from '../../components/billing/EditBillDialog'
+import { billingService } from '../../services/billing.service'
+import { exportService } from '../../services/export.service'
+import { reportService } from '../../services/report.service'
+import { reportsService } from '../../services/reports.service'
+import { whatsappService } from '../../services/whatsapp.service'
 
 // ---- Types for period reports ----
 interface PeriodBreakdownRow {
@@ -449,8 +454,8 @@ export default function ReportsPage(): React.JSX.Element {
     setLoading(true)
     try {
       const [dailySummary, allBills] = await Promise.all([
-        window.api.billing.getDailySummary(date),
-        window.api.billing.getAllBills({ page: 1, pageSize: 200, dateFrom: date, dateTo: date })
+        billingService.getDailySummary(date),
+        billingService.getAllBills({ page: 1, pageSize: 200, dateFrom: date, dateTo: date })
       ])
       setSummary(dailySummary)
       setBills(allBills.data)
@@ -463,7 +468,7 @@ export default function ReportsPage(): React.JSX.Element {
   const loadWeeklyReport = useCallback(async (endDate: string) => {
     setWeekLoading(true)
     try {
-      const data = await window.api.billing.getWeeklySummary(endDate)
+      const data = await billingService.getWeeklySummary(endDate)
       setWeekReport(data as PeriodReport)
     } catch {
       toast.error('Failed to load weekly report')
@@ -474,7 +479,7 @@ export default function ReportsPage(): React.JSX.Element {
   const loadMonthlyReport = useCallback(async (yearMonth: string) => {
     setMonthLoading(true)
     try {
-      const data = await window.api.billing.getMonthlySummary(yearMonth)
+      const data = await billingService.getMonthlySummary(yearMonth)
       setMonthReport(data as PeriodReport)
     } catch {
       toast.error('Failed to load monthly report')
@@ -485,7 +490,7 @@ export default function ReportsPage(): React.JSX.Element {
   const loadYearlyReport = useCallback(async (year: number) => {
     setYearLoading(true)
     try {
-      const data = await window.api.billing.getYearlySummary(year)
+      const data = await billingService.getYearlySummary(year)
       setYearReport(data as PeriodReport)
     } catch {
       toast.error('Failed to load yearly report')
@@ -496,7 +501,7 @@ export default function ReportsPage(): React.JSX.Element {
   const loadGstReport = useCallback(async (dateFrom: string, dateTo: string) => {
     setGstLoading(true)
     try {
-      const data = await window.api.reports.getGstReport(dateFrom, dateTo)
+      const data = await reportsService.getGstReport(dateFrom, dateTo)
       setGstReport(data as GstSummary)
     } catch {
       toast.error('Failed to load GST report')
@@ -507,7 +512,7 @@ export default function ReportsPage(): React.JSX.Element {
   const loadPlReport = useCallback(async (dateFrom: string, dateTo: string) => {
     setPlLoading(true)
     try {
-      const data = await window.api.reports.getProfitLoss(dateFrom, dateTo)
+      const data = await reportsService.getProfitLoss(dateFrom, dateTo)
       setPlReport(data as ProfitLossReport)
     } catch {
       toast.error('Failed to load P&L report')
@@ -516,7 +521,6 @@ export default function ReportsPage(): React.JSX.Element {
   }, [])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (activeTab === 'daily' || activeTab === 'bills') loadDailyReport(selectedDate)
     else if (activeTab === 'weekly') loadWeeklyReport(weekEndDate)
     else if (activeTab === 'monthly') loadMonthlyReport(selectedMonth)
@@ -548,7 +552,7 @@ export default function ReportsPage(): React.JSX.Element {
 
   const handleViewBill = async (bill: Bill): Promise<void> => {
     try {
-      const fullBill = await window.api.billing.getById(bill.id)
+      const fullBill = await billingService.getById(bill.id)
       if (fullBill) {
         setSelectedBill(fullBill)
         setShowBillDetail(true)
@@ -561,7 +565,7 @@ export default function ReportsPage(): React.JSX.Element {
   const handleReturnBill = async (): Promise<void> => {
     if (!showReturnConfirm) return
     try {
-      await window.api.billing.returnBill(showReturnConfirm.id, 'Customer return')
+      await billingService.returnBill(showReturnConfirm.id, 'Customer return')
       toast.success(`Bill ${showReturnConfirm.billNumber} returned. Stock restored.`)
       setShowReturnConfirm(null)
       loadDailyReport(selectedDate)
@@ -574,7 +578,7 @@ export default function ReportsPage(): React.JSX.Element {
   const handleCancelBill = async (): Promise<void> => {
     if (!showCancelConfirm) return
     try {
-      await window.api.billing.cancelBill(showCancelConfirm.id, 'Cancelled by user')
+      await billingService.cancelBill(showCancelConfirm.id, 'Cancelled by user')
       toast.success(`Bill ${showCancelConfirm.billNumber} cancelled. Stock restored.`)
       setShowCancelConfirm(null)
       loadDailyReport(selectedDate)
@@ -586,7 +590,7 @@ export default function ReportsPage(): React.JSX.Element {
 
   const handleReprint = async (bill: Bill): Promise<void> => {
     try {
-      await window.api.billing.printReceipt(bill.id)
+      await billingService.printReceipt(bill.id)
       toast.success('Receipt sent to printer')
     } catch {
       toast.error('Print failed')
@@ -595,7 +599,7 @@ export default function ReportsPage(): React.JSX.Element {
 
   const handleDownloadBill = async (bill: Bill): Promise<void> => {
     try {
-      const result = await window.api.billing.generatePdfReceipt(bill.id)
+      const result = await billingService.generatePdfReceipt(bill.id)
       if (result.success && result.path) {
         toast.success(`Bill saved: ${result.path}`)
       } else {
@@ -608,7 +612,7 @@ export default function ReportsPage(): React.JSX.Element {
 
   const handleExportDaily = async (): Promise<void> => {
     try {
-      const result = await window.api.export.dailyReport(selectedDate)
+      const result = await exportService.dailyReport(selectedDate)
       if (result.success && result.path) {
         toast.success(`Exported to ${result.path}`)
       }
@@ -619,7 +623,7 @@ export default function ReportsPage(): React.JSX.Element {
 
   const handleExportBills = async (): Promise<void> => {
     try {
-      const result = await window.api.export.billHistory(selectedDate, selectedDate)
+      const result = await exportService.billHistory(selectedDate, selectedDate)
       if (result.success && result.path) {
         toast.success(`Exported to ${result.path}`)
       }
@@ -634,10 +638,11 @@ export default function ReportsPage(): React.JSX.Element {
   const handleDownloadDailyPdf = async (): Promise<void> => {
     setPdfGenerating(true)
     try {
-      const result = await window.api.report.generateDailyPdf(selectedDate)
+      const result = await reportService.generateDailyPdf(selectedDate)
       if (result.success && result.path) {
+        const path = result.path
         toast.success('Daily report PDF saved!', {
-          action: { label: 'Open', onClick: () => window.api.report.openFile(result.path) }
+          action: { label: 'Open', onClick: () => reportService.openFile(path) }
         })
       } else {
         toast.error('Failed to generate daily report PDF')
@@ -651,10 +656,11 @@ export default function ReportsPage(): React.JSX.Element {
   const handleDownloadWeeklyPdf = async (): Promise<void> => {
     setPdfGenerating(true)
     try {
-      const result = await window.api.report.generateWeeklyPdf(weekEndDate)
+      const result = await reportService.generateWeeklyPdf(weekEndDate)
       if (result.success && result.path) {
+        const path = result.path
         toast.success('Weekly report PDF saved!', {
-          action: { label: 'Open', onClick: () => window.api.report.openFile(result.path) }
+          action: { label: 'Open', onClick: () => reportService.openFile(path) }
         })
       } else {
         toast.error('Failed to generate weekly report PDF')
@@ -668,10 +674,11 @@ export default function ReportsPage(): React.JSX.Element {
   const handleDownloadMonthlyPdf = async (): Promise<void> => {
     setPdfGenerating(true)
     try {
-      const result = await window.api.report.generateMonthlyPdf(selectedMonth)
+      const result = await reportService.generateMonthlyPdf(selectedMonth)
       if (result.success && result.path) {
+        const path = result.path
         toast.success('Monthly report PDF saved!', {
-          action: { label: 'Open', onClick: () => window.api.report.openFile(result.path) }
+          action: { label: 'Open', onClick: () => reportService.openFile(path) }
         })
       } else {
         toast.error('Failed to generate monthly report PDF')
@@ -685,10 +692,11 @@ export default function ReportsPage(): React.JSX.Element {
   const handleDownloadYearlyPdf = async (): Promise<void> => {
     setPdfGenerating(true)
     try {
-      const result = await window.api.report.generateYearlyPdf(selectedYear)
+      const result = await reportService.generateYearlyPdf(selectedYear)
       if (result.success && result.path) {
+        const path = result.path
         toast.success('Yearly report PDF saved!', {
-          action: { label: 'Open', onClick: () => window.api.report.openFile(result.path) }
+          action: { label: 'Open', onClick: () => reportService.openFile(path) }
         })
       } else {
         toast.error('Failed to generate yearly report PDF')
@@ -943,7 +951,7 @@ export default function ReportsPage(): React.JSX.Element {
                   <BreakdownTable
                     rows={monthReport.dailyBreakdown}
                     dateFormat="ddd, MMM D"
-                    label={`Daily Breakdown — ${dayjs(selectedMonth + '-01').format('MMMM YYYY')}`}
+                    label={`Daily Breakdown â€” ${dayjs(selectedMonth + '-01').format('MMMM YYYY')}`}
                   />
                 )}
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -1037,7 +1045,7 @@ export default function ReportsPage(): React.JSX.Element {
                   <BreakdownTable
                     rows={yearReport.monthlyBreakdown}
                     dateFormat=""
-                    label={`Monthly Breakdown — ${selectedYear}`}
+                    label={`Monthly Breakdown â€” ${selectedYear}`}
                   />
                 )}
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -2063,7 +2071,7 @@ export default function ReportsPage(): React.JSX.Element {
                           </span>
                           <span className="text-muted-foreground">{ret.refundMode}</span>
                           {ret.newBillNo && (
-                            <span className="font-mono text-primary">→ {ret.newBillNo}</span>
+                            <span className="font-mono text-primary">â†’ {ret.newBillNo}</span>
                           )}
                         </div>
                       </div>
@@ -2147,7 +2155,7 @@ export default function ReportsPage(): React.JSX.Element {
                       variant="outline"
                       className="border-green-500 text-green-600 hover:bg-green-50"
                       onClick={async () => {
-                        const res = await window.api.whatsapp.sendBillReceipt(
+                        const res = await whatsappService.sendBillReceipt(
                           selectedBill.id,
                           selectedBill.customerPhone!
                         )
@@ -2155,7 +2163,7 @@ export default function ReportsPage(): React.JSX.Element {
                         else toast.error(res.error || 'Failed')
                       }}
                     >
-                      📱 WhatsApp
+                      ðŸ“± WhatsApp
                     </Button>
                   )}
                   <Button variant="outline" onClick={() => handleDownloadBill(selectedBill)}>

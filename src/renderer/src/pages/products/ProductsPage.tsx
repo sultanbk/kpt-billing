@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Button } from '../components/ui/button'
-import { Input } from '../components/ui/input'
-import { Badge } from '../components/ui/badge'
+import { Button } from '../../components/ui/button'
+import { Input } from '../../components/ui/input'
+import { Badge } from '../../components/ui/badge'
 import {
   Table,
   TableBody,
@@ -9,14 +9,14 @@ import {
   TableHead,
   TableHeader,
   TableRow
-} from '../components/ui/table'
+} from '../../components/ui/table'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger
-} from '../components/ui/dropdown-menu'
+} from '../../components/ui/dropdown-menu'
 import {
   Dialog,
   DialogContent,
@@ -24,17 +24,16 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription
-} from '../components/ui/dialog'
+} from '../../components/ui/dialog'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue
-} from '../components/ui/select'
-import { Label } from '../components/ui/label'
-import { Separator } from '../components/ui/separator'
-import { Textarea } from '../components/ui/textarea'
+} from '../../components/ui/select'
+import { Label } from '../../components/ui/label'
+import { Textarea } from '../../components/ui/textarea'
 import {
   Plus,
   Search,
@@ -46,16 +45,27 @@ import {
   ChevronRight,
   PackagePlus,
   PackageMinus,
+  Printer,
   FileDown,
   History,
   Database
 } from 'lucide-react'
-import { formatCurrency } from '../lib/utils'
+import { formatCurrency } from '../../lib/utils'
 import { toast } from 'sonner'
-import type { Product, ProductFormData } from '@shared/types'
-import { GST_RATES, COMMON_HSN_CODES } from '@shared/constants'
-import { BulkStockUpdateDialog } from '../components/products/BulkStockUpdateDialog'
-import { PriceHistoryDialog } from '../components/products/PriceHistoryDialog'
+import type { Product } from '@shared/types'
+
+import { ProductFormDialog } from './ProductFormDialog'
+import { BulkStockUpdateDialog } from '../../components/products/BulkStockUpdateDialog'
+import { PriceHistoryDialog } from '../../components/products/PriceHistoryDialog'
+import { productsService } from '../../services/products.service'
+import { categoriesService } from '../../services/categories.service'
+import { purchasesService } from '../../services/purchases.service'
+import { dialogService } from '../../services/dialog.service'
+import { exportService } from '../../services/export.service'
+import { printerService } from '../../services/printer.service'
+import { settingsService } from '../../services/settings.service'
+import { useAuthStore } from '../../stores/auth.store'
+import { OwnerActionGuard } from '../../components/layout'
 
 const PAGE_SIZE = 25
 
@@ -68,6 +78,21 @@ export default function ProductsPage(): React.JSX.Element {
   const [categories, setCategories] = useState<{ id: number; name: string }[]>([])
   const [loading, setLoading] = useState(false)
 
+  // Owner action guard states
+  const [guardOpen, setGuardOpen] = useState(false)
+  const [guardAction, setGuardAction] = useState<{ label: string; callback: () => void } | null>(
+    null
+  )
+
+  const checkOwnerPermission = (label: string, callback: () => void): void => {
+    if (useAuthStore.getState().user?.role === 'owner') {
+      callback()
+    } else {
+      setGuardAction({ label, callback })
+      setGuardOpen(true)
+    }
+  }
+
   // Dialog states
   const [showForm, setShowForm] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
@@ -78,6 +103,13 @@ export default function ProductsPage(): React.JSX.Element {
   const [adjustNotes, setAdjustNotes] = useState<string>('')
   const [showBulkUpdate, setShowBulkUpdate] = useState(false)
   const [showPriceHistory, setShowPriceHistory] = useState<Product | null>(null)
+  const [showLabelPrint, setShowLabelPrint] = useState<Product | null>(null)
+  const [labelQty, setLabelQty] = useState<number>(1)
+  const [labelSize, setLabelSize] = useState<'46x25' | '60x40'>('46x25')
+  const [labelPrinter, setLabelPrinter] = useState<string>('')
+  const [availablePrinters, setAvailablePrinters] = useState<string[]>([])
+  const [loadingPrinters, setLoadingPrinters] = useState(false)
+  const [printingLabels, setPrintingLabels] = useState(false)
 
   const loadProducts = useCallback(async () => {
     setLoading(true)
@@ -89,7 +121,7 @@ export default function ProductsPage(): React.JSX.Element {
         if (match) filterCategoryId = match.id
       }
 
-      const result = await window.api.products.getAll({
+      const result = await productsService.getAll({
         page,
         pageSize: PAGE_SIZE,
         search: search || undefined,
@@ -107,7 +139,7 @@ export default function ProductsPage(): React.JSX.Element {
 
   const loadCategories = useCallback(async () => {
     try {
-      const cats = await window.api.categories.getAll()
+      const cats = await categoriesService.getAll()
       setCategories(cats)
     } catch {
       /* use defaults */
@@ -115,25 +147,33 @@ export default function ProductsPage(): React.JSX.Element {
   }, [])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadProducts()
   }, [loadProducts])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadCategories()
   }, [loadCategories])
 
+  useEffect(() => {
+    const unsubscribe = purchasesService.onCreated(() => {
+      loadProducts()
+    })
+    return () => {
+      if (typeof unsubscribe === 'function') {
+        unsubscribe()
+      }
+    }
+  }, [loadProducts])
+
   // Reset page when filters change
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage(1)
   }, [search, categoryFilter])
 
   const handleDelete = async (): Promise<void> => {
     if (!showDelete) return
     try {
-      await window.api.products.delete(showDelete.id)
+      await productsService.delete(showDelete.id)
       toast.success('Product deleted')
       setShowDelete(null)
       loadProducts()
@@ -144,13 +184,13 @@ export default function ProductsPage(): React.JSX.Element {
 
   const handleImportCsv = async (): Promise<void> => {
     try {
-      const result = await window.api.dialog.openFile({
+      const result = await dialogService.openFile({
         filters: [{ name: 'CSV Files', extensions: ['csv'] }]
       })
       if (!result) return
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const importResult = await window.api.products.import(result as any)
+      const importResult = await productsService.import(result as any)
       toast.success(`Imported ${importResult.imported} products. ${importResult.skipped} skipped.`)
       if (importResult.errors && importResult.errors.length > 0) {
         importResult.errors.slice(0, 5).forEach((e: string) => toast.warning(e))
@@ -168,7 +208,7 @@ export default function ProductsPage(): React.JSX.Element {
     }
     try {
       const qty = adjustType === 'damage' ? -Math.abs(adjustQty) : Math.abs(adjustQty)
-      await window.api.products.adjustStock(showStockAdjust.id, qty, adjustType, adjustNotes)
+      await productsService.adjustStock(showStockAdjust.id, qty, adjustType, adjustNotes)
       toast.success(`Stock ${adjustType === 'damage' ? 'reduced' : 'added'} successfully`)
       setShowStockAdjust(null)
       setAdjustQty(0)
@@ -181,13 +221,67 @@ export default function ProductsPage(): React.JSX.Element {
 
   const handleExportStock = async (): Promise<void> => {
     try {
-      const result = await window.api.export.stockReport()
+      const result = await exportService.stockReport()
       if (result.success && result.path) {
         toast.success(`Exported to ${result.path}`)
       }
     } catch {
       toast.error('Export failed')
     }
+  }
+
+  const openLabelDialog = async (product: Product): Promise<void> => {
+    setShowLabelPrint(product)
+    setLabelQty(1)
+    setLoadingPrinters(true)
+    try {
+      const [printers, labelConfigured, receiptConfigured, defaultSize] = await Promise.all([
+        printerService.getAvailable(),
+        settingsService.get('labelPrinterName'),
+        settingsService.get('receiptPrinterName'),
+        settingsService.get('barcodeLabelSize')
+      ])
+      const preferred = (labelConfigured || receiptConfigured || '').trim()
+      setAvailablePrinters(printers)
+      setLabelPrinter(preferred || printers[0] || '')
+      setLabelSize((defaultSize as '46x25' | '60x40') || '46x25')
+    } catch {
+      toast.error('Failed to load available printers')
+      setAvailablePrinters([])
+      setLabelPrinter('')
+      setLabelSize('46x25')
+    }
+    setLoadingPrinters(false)
+  }
+
+  const handlePrintLabels = async (): Promise<void> => {
+    if (!showLabelPrint) return
+    if (!labelPrinter.trim()) {
+      toast.error('Select a label printer first')
+      return
+    }
+
+    setPrintingLabels(true)
+    try {
+      const result = await productsService.printLabels({
+        productId: showLabelPrint.id,
+        quantity: Math.min(Math.max(Math.floor(labelQty || 1), 1), 500),
+        printerName: labelPrinter.trim(),
+        labelSize
+      })
+
+      if (result?.success) {
+        toast.success(
+          `Printed ${result.quantity} label(s) for ${showLabelPrint.name} on ${result.printerName}`
+        )
+        setShowLabelPrint(null)
+      } else {
+        toast.error('Label printing failed')
+      }
+    } catch {
+      toast.error('Label printing failed')
+    }
+    setPrintingLabels(false)
   }
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
@@ -205,19 +299,29 @@ export default function ProductsPage(): React.JSX.Element {
             <FileDown className="h-4 w-4" />
             Export Stock
           </Button>
-          <Button variant="outline" onClick={() => setShowBulkUpdate(true)} className="gap-2">
+          <Button
+            variant="outline"
+            onClick={() => checkOwnerPermission('bulk stock update', () => setShowBulkUpdate(true))}
+            className="gap-2"
+          >
             <Database className="h-4 w-4" />
             Bulk Stock Update
           </Button>
-          <Button variant="outline" onClick={handleImportCsv} className="gap-2">
+          <Button
+            variant="outline"
+            onClick={() => checkOwnerPermission('import products CSV', handleImportCsv)}
+            className="gap-2"
+          >
             <Upload className="h-4 w-4" />
             Import CSV
           </Button>
           <Button
-            onClick={() => {
-              setEditingProduct(null)
-              setShowForm(true)
-            }}
+            onClick={() =>
+              checkOwnerPermission('add products', () => {
+                setEditingProduct(null)
+                setShowForm(true)
+              })
+            }
             className="gap-2"
           >
             <Plus className="h-4 w-4" />
@@ -304,14 +408,34 @@ export default function ProductsPage(): React.JSX.Element {
                   <TableCell>{product.category}</TableCell>
                   <TableCell className="text-right font-amount">
                     {formatCurrency(product.costPrice)}
+                    {product.priceIncludesGst && product.gstRate > 0 && (
+                      <div className="text-[10px] text-muted-foreground">
+                        base {formatCurrency(product.costPrice / (1 + product.gstRate / 100))}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="text-right font-amount font-medium">
                     {formatCurrency(product.sellingPrice)}
+                    {product.priceIncludesGst && product.gstRate > 0 ? (
+                      <div className="text-[10px] text-muted-foreground">
+                        base {formatCurrency(product.sellingPrice / (1 + product.gstRate / 100))}
+                      </div>
+                    ) : product.gstRate > 0 ? (
+                      <div className="text-[10px] text-muted-foreground">
+                        +GST{' '}
+                        {formatCurrency(
+                          product.sellingPrice + (product.sellingPrice * product.gstRate) / 100
+                        )}
+                      </div>
+                    ) : null}
                   </TableCell>
                   <TableCell className="text-right font-amount">{product.stock}</TableCell>
                   <TableCell className="text-center">
-                    <Badge variant="secondary" className="text-[10px]">
-                      {product.gstRate}%
+                    <Badge
+                      variant="secondary"
+                      className={`text-[10px] ${product.priceIncludesGst ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : ''}`}
+                    >
+                      {product.gstRate}% {product.priceIncludesGst ? 'Incl.' : 'Excl.'}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -327,32 +451,42 @@ export default function ProductsPage(): React.JSX.Element {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
-                          onClick={() => {
-                            setEditingProduct(product)
-                            setShowForm(true)
-                          }}
+                          onClick={() =>
+                            checkOwnerPermission('edit products', () => {
+                              setEditingProduct(product)
+                              setShowForm(true)
+                            })
+                          }
                         >
                           <Pencil className="mr-2 h-4 w-4" />
                           Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => {
-                            setShowStockAdjust(product)
-                            setAdjustType('purchase')
-                            setAdjustQty(0)
-                            setAdjustNotes('')
-                          }}
+                          onClick={() =>
+                            checkOwnerPermission('adjust product stock', () => {
+                              setShowStockAdjust(product)
+                              setAdjustType('purchase')
+                              setAdjustQty(0)
+                              setAdjustNotes('')
+                            })
+                          }
                         >
                           <PackagePlus className="mr-2 h-4 w-4" />
                           Adjust Stock
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setShowPriceHistory(product)}>
                           <History className="mr-2 h-4 w-4" />
-                          Price History
+                          Product History
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => void openLabelDialog(product)}>
+                          <Printer className="mr-2 h-4 w-4" />
+                          Print Labels
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
-                          onClick={() => setShowDelete(product)}
+                          onClick={() =>
+                            checkOwnerPermission('delete products', () => setShowDelete(product))
+                          }
                           className="text-destructive"
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
@@ -404,6 +538,12 @@ export default function ProductsPage(): React.JSX.Element {
         }}
         product={editingProduct}
         categories={categories}
+        onCategoryCreated={(category) => {
+          setCategories((prev) => {
+            const next = prev.some((c) => c.id === category.id) ? prev : [...prev, category]
+            return next.sort((a, b) => a.name.localeCompare(b.name))
+          })
+        }}
         onSaved={() => {
           setShowForm(false)
           setEditingProduct(null)
@@ -445,7 +585,7 @@ export default function ProductsPage(): React.JSX.Element {
               Adjust Stock
             </DialogTitle>
             <DialogDescription>
-              {showStockAdjust?.name} — Current stock: {showStockAdjust?.stock ?? 0}
+              {showStockAdjust?.name} Ã¢â‚¬â€ Current stock: {showStockAdjust?.stock ?? 0}
             </DialogDescription>
           </DialogHeader>
 
@@ -529,288 +669,130 @@ export default function ProductsPage(): React.JSX.Element {
           onClose={() => setShowPriceHistory(null)}
         />
       )}
+
+      {/* Label Print Dialog */}
+      <Dialog open={!!showLabelPrint} onOpenChange={() => setShowLabelPrint(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Printer className="h-5 w-5 text-primary" />
+              Professional Barcode Labels
+            </DialogTitle>
+            <DialogDescription>
+              {showLabelPrint?.name} ({showLabelPrint?.sku})
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>Label Printer</Label>
+              <Select value={labelPrinter} onValueChange={setLabelPrinter}>
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={loadingPrinters ? 'Loading printers...' : 'Select label printer'}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {availablePrinters.length === 0 ? (
+                    <SelectItem value="__no_printer" disabled>
+                      No printers found
+                    </SelectItem>
+                  ) : (
+                    availablePrinters.map((printer) => (
+                      <SelectItem key={printer} value={printer}>
+                        {printer}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Label Size</Label>
+                <Select
+                  value={labelSize}
+                  onValueChange={(value) => setLabelSize(value as '46x25' | '60x40')}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="46x25">LP46 Standard (46 x 25 mm)</SelectItem>
+                    <SelectItem value="60x40">Large (60 x 40 mm)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Quantity</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={500}
+                  value={labelQty || ''}
+                  onChange={(e) => setLabelQty(parseInt(e.target.value) || 1)}
+                />
+              </div>
+            </div>
+
+            <div className="rounded-md border border-border bg-muted/30 p-3 text-sm">
+              <div className="font-medium">Label Content</div>
+              <div className="text-muted-foreground">Product name and barcode only</div>
+              <div className="mt-2 text-xs text-muted-foreground">
+                Barcode value: {showLabelPrint?.barcode || showLabelPrint?.sku}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowLabelPrint(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                if (!showLabelPrint) return
+                try {
+                  const res = await productsService.downloadLabels({
+                    productId: showLabelPrint.id,
+                    quantity: Math.min(Math.max(Math.floor(labelQty || 1), 1), 500),
+                    labelSize
+                  })
+                  if (res.success && res.path) {
+                    toast.success(`Saved: ${res.path}`)
+                  } else {
+                    toast.error('Label download failed')
+                  }
+                } catch (err) {
+                  const message = err instanceof Error ? err.message : 'Label download failed'
+                  toast.error(message)
+                }
+              }}
+            >
+              Download PDF
+            </Button>
+            <Button
+              onClick={handlePrintLabels}
+              disabled={printingLabels || loadingPrinters || !labelPrinter.trim()}
+            >
+              {printingLabels ? 'Printing...' : 'Print Labels'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <OwnerActionGuard
+        open={guardOpen}
+        onClose={() => setGuardOpen(false)}
+        onAuthorize={() => {
+          if (guardAction) guardAction.callback()
+        }}
+        actionLabel={guardAction?.label || 'perform this action'}
+      />
     </div>
   )
 }
 
 // ---- Product Form Dialog ----
-
-function ProductFormDialog({
-  open,
-  onClose,
-  product,
-  categories,
-  onSaved
-}: {
-  open: boolean
-  onClose: () => void
-  product: Product | null
-  categories: { id: number; name: string }[]
-  onSaved: () => void
-}): React.JSX.Element {
-  const [form, setForm] = useState<ProductFormData>({
-    name: '',
-    category: '',
-    costPrice: 0,
-    sellingPrice: 0,
-    gstRate: 5,
-    hsnCode: '',
-    stock: 0,
-    unit: 'pcs',
-    lowStockThreshold: 5,
-    barcode: '',
-    description: ''
-  })
-  const [saving, setSaving] = useState(false)
-
-  useEffect(() => {
-    if (product) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setForm({
-        name: product.name,
-        category: product.category || undefined,
-        costPrice: product.costPrice,
-        sellingPrice: product.sellingPrice,
-        gstRate: product.gstRate,
-        hsnCode: product.hsnCode || '',
-        stock: product.stock,
-        unit: product.unit || 'pcs',
-        lowStockThreshold: product.lowStockThreshold || 5,
-        barcode: product.barcode || '',
-        description: product.description || ''
-      })
-    } else {
-      setForm({
-        name: '',
-        category: categories[0]?.name || '',
-        costPrice: 0,
-        sellingPrice: 0,
-        gstRate: 5,
-        hsnCode: '',
-        stock: 0,
-        unit: 'pcs',
-        lowStockThreshold: 5,
-        barcode: '',
-        description: ''
-      })
-    }
-  }, [product, open, categories])
-
-  const handleSave = async (): Promise<void> => {
-    if (!form.name.trim()) {
-      toast.error('Product name is required')
-      return
-    }
-    if (form.sellingPrice <= 0) {
-      toast.error('Selling price must be greater than 0')
-      return
-    }
-
-    setSaving(true)
-    try {
-      if (product) {
-        await window.api.products.update(product.id, form)
-        toast.success('Product updated')
-      } else {
-        await window.api.products.create(form)
-        toast.success('Product created')
-      }
-      onSaved()
-    } catch {
-      toast.error('Failed to save product')
-    }
-    setSaving(false)
-  }
-
-  const updateField = <K extends keyof ProductFormData>(
-    key: K,
-    value: ProductFormData[K]
-  ): void => {
-    setForm((prev) => ({ ...prev, [key]: value }))
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{product ? 'Edit Product' : 'Add New Product'}</DialogTitle>
-        </DialogHeader>
-        <div className="grid grid-cols-2 gap-4 py-4">
-          {/* Name */}
-          <div className="col-span-2 space-y-2">
-            <Label>
-              Product Name <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              value={form.name}
-              onChange={(e) => updateField('name', e.target.value)}
-              placeholder="e.g. Kanchipuram Silk Saree - Red"
-              autoFocus
-            />
-          </div>
-
-          {/* Category */}
-          <div className="space-y-2">
-            <Label>Category</Label>
-            <select
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={form.category}
-              onChange={(e) => updateField('category', e.target.value)}
-            >
-              <option value="">Select category</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.name}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* HSN Code */}
-          <div className="space-y-2">
-            <Label>HSN Code</Label>
-            <select
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={form.hsnCode}
-              onChange={(e) => updateField('hsnCode', e.target.value)}
-            >
-              <option value="">Select HSN</option>
-              {COMMON_HSN_CODES.map((h) => (
-                <option key={h.code} value={h.code}>
-                  {h.code} - {h.description}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <Separator className="col-span-2" />
-
-          {/* Cost Price */}
-          <div className="space-y-2">
-            <Label>Cost Price (₹)</Label>
-            <Input
-              type="number"
-              min={0}
-              step={0.01}
-              value={form.costPrice || ''}
-              onChange={(e) => updateField('costPrice', parseFloat(e.target.value) || 0)}
-            />
-          </div>
-
-          {/* Selling Price */}
-          <div className="space-y-2">
-            <Label>
-              Selling Price (₹) <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              type="number"
-              min={0}
-              step={0.01}
-              value={form.sellingPrice || ''}
-              onChange={(e) => updateField('sellingPrice', parseFloat(e.target.value) || 0)}
-            />
-          </div>
-
-          {/* GST Rate */}
-          <div className="space-y-2">
-            <Label>GST Rate (%)</Label>
-            <select
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={form.gstRate}
-              onChange={(e) => updateField('gstRate', parseInt(e.target.value))}
-            >
-              {GST_RATES.map((r) => (
-                <option key={r} value={r}>
-                  {r}%
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Unit */}
-          <div className="space-y-2">
-            <Label>Unit</Label>
-            <select
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={form.unit}
-              onChange={(e) => updateField('unit', e.target.value)}
-            >
-              <option value="pcs">Pieces</option>
-              <option value="mtr">Meters</option>
-              <option value="kg">Kilograms</option>
-              <option value="set">Set</option>
-              <option value="box">Box</option>
-            </select>
-          </div>
-
-          <Separator className="col-span-2" />
-
-          {/* Stock */}
-          <div className="space-y-2">
-            <Label>Opening Stock</Label>
-            <Input
-              type="number"
-              min={0}
-              value={form.stock || ''}
-              onChange={(e) => updateField('stock', parseInt(e.target.value) || 0)}
-            />
-          </div>
-
-          {/* Low Stock Threshold */}
-          <div className="space-y-2">
-            <Label>Low Stock Alert</Label>
-            <Input
-              type="number"
-              min={0}
-              value={form.lowStockThreshold || ''}
-              onChange={(e) => updateField('lowStockThreshold', parseInt(e.target.value) || 0)}
-            />
-          </div>
-
-          {/* Barcode */}
-          <div className="space-y-2">
-            <Label>Barcode</Label>
-            <Input
-              value={form.barcode || ''}
-              onChange={(e) => updateField('barcode', e.target.value)}
-              placeholder="Scan or enter barcode"
-            />
-          </div>
-
-          {/* Description */}
-          <div className="space-y-2">
-            <Label>Description</Label>
-            <Input
-              value={form.description || ''}
-              onChange={(e) => updateField('description', e.target.value)}
-              placeholder="Optional notes"
-            />
-          </div>
-        </div>
-
-        {/* Margin preview */}
-        {form.costPrice > 0 && form.sellingPrice > 0 && (
-          <div className="rounded-lg bg-muted/50 p-3 text-sm">
-            <span className="text-muted-foreground">Margin: </span>
-            <span className="font-medium">
-              {formatCurrency(form.sellingPrice - form.costPrice)}
-            </span>
-            <span className="text-muted-foreground">
-              {' '}
-              ({(((form.sellingPrice - form.costPrice) / form.costPrice) * 100).toFixed(1)}%)
-            </span>
-          </div>
-        )}
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving...' : product ? 'Update Product' : 'Add Product'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
