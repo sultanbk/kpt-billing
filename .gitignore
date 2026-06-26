@@ -1,6 +1,18 @@
 node_modules
 dist
 out
-.DS_Store
+*.tsbuildinfo
+eslint-output.json
 .eslintcache
+electron.vite.config.*.mjs
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+test-results
 *.log*
+
+# Stray files
+*.pdf
