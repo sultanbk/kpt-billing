@@ -17,7 +17,19 @@ import {
 } from './validation'
 import { z } from 'zod'
 import log from 'electron-log'
-import type { ProductFormData } from '../../shared/types'
+import type {
+  Product,
+  ProductFormData,
+  ProductLabelPrintRequest,
+  ProductLabelSize
+} from '../../shared/types'
+import { settingsRepo } from '../database/repositories/settings.repo'
+import { productLabelPrinterService } from '../services/product-label-printer.service'
+
+function getConfiguredLabelSize(): ProductLabelSize {
+  const configured = settingsRepo.get('barcodeLabelSize')
+  return configured === '60x40' ? '60x40' : '46x25'
+}
 
 /**
  * Parse a simple CSV string into an array of objects.
@@ -243,6 +255,228 @@ export function registerProductIpc(): void {
     const result = productRepo.bulkStockUpdate(validated)
     log.info(`Bulk stock update: ${result.imported} updated, ${result.skipped} skipped`)
     return result
+  })
+
+  safeHandle('products:printLabels', async (_event, payload) => {
+    const validated = validate(
+      z.object({
+        productId: idSchema,
+        quantity: z.number().int().min(1).max(500),
+        printerName: z.string().max(200).optional(),
+        labelSize: z.enum(['46x25', '60x40']).optional()
+      }),
+      payload
+    ) as ProductLabelPrintRequest
+
+    const product = productRepo.getById(validated.productId)
+    if (!product) {
+      throw new Error('Product not found for label printing')
+    }
+
+    const resolvedPrinterName =
+      validated.printerName?.trim() ||
+      settingsRepo.get('labelPrinterName')?.trim() ||
+      settingsRepo.get('receiptPrinterName')?.trim() ||
+      ''
+
+    const result = await productLabelPrinterService.printProductLabels(product, {
+      printerName: resolvedPrinterName,
+      quantity: validated.quantity,
+      labelSize: validated.labelSize || getConfiguredLabelSize(),
+      shopName: settingsRepo.get('shopName') || '',
+      barcodeShowShopName: settingsRepo.get('barcodeShowShopName') !== 'false',
+      barcodeShowSaleName: settingsRepo.get('barcodeShowSaleName') === 'true',
+      barcodeSaleNameText: settingsRepo.get('barcodeSaleNameText') || '',
+      barcodeShowName: settingsRepo.get('barcodeShowName') !== 'false',
+      barcodeShowMrp: settingsRepo.get('barcodeShowMrp') !== 'false',
+      barcodeShowSellingPrice: settingsRepo.get('barcodeShowSellingPrice') !== 'false',
+      barcodeStrikeMrp: settingsRepo.get('barcodeStrikeMrp') !== 'false',
+      barcodeShowDiscount: settingsRepo.get('barcodeShowDiscount') !== 'false',
+      barcodeNudgeX: settingsRepo.get('barcodeNudgeX') || '0.0',
+      barcodeNudgeY: settingsRepo.get('barcodeNudgeY') || '0.0',
+      barcodeWidth: settingsRepo.get('barcodeWidth') || '75',
+      barcodeHeight: settingsRepo.get('barcodeHeight') || '5.5',
+      barcodeShopFontSize: settingsRepo.get('barcodeShopFontSize') || 'default',
+      barcodeNameFontSize: settingsRepo.get('barcodeNameFontSize') || 'default',
+      barcodePriceFontSize: settingsRepo.get('barcodePriceFontSize') || 'default',
+      barcodeCodeFontSize: settingsRepo.get('barcodeCodeFontSize') || 'default',
+      barcodeShopAlign: settingsRepo.get('barcodeShopAlign') || 'right',
+      barcodeNameAlign: settingsRepo.get('barcodeNameAlign') || 'left',
+      barcodePriceAlign: settingsRepo.get('barcodePriceAlign') || 'left',
+      barcodeCodeAlign: settingsRepo.get('barcodeCodeAlign') || 'center',
+      barcodePaddingX: settingsRepo.get('barcodePaddingX') || 'default',
+      barcodePaddingY: settingsRepo.get('barcodePaddingY') || 'default',
+      barcodeGap: settingsRepo.get('barcodeGap') || 'default',
+      barcodeShowCode: settingsRepo.get('barcodeShowCode') !== 'false'
+    })
+
+    writeAuditLog({
+      action: 'print_labels',
+      entityType: 'product',
+      entityId: validated.productId,
+      newValue: {
+        qty: validated.quantity,
+        printer: result.printerName,
+        labelSize: result.labelSize
+      }
+    })
+
+    return result
+  })
+
+  safeHandle('products:printTestLabel', async (_event, payload) => {
+    const validated = validate(
+      z.object({
+        printerName: z.string().max(200).optional(),
+        labelSize: z.enum(['46x25', '60x40']).optional(),
+        barcodeNudgeX: z.string().max(10).optional(),
+        barcodeNudgeY: z.string().max(10).optional(),
+        barcodeWidth: z.string().max(10).optional(),
+        barcodeHeight: z.string().max(10).optional(),
+        barcodeShopFontSize: z.string().max(10).optional(),
+        barcodeNameFontSize: z.string().max(10).optional(),
+        barcodePriceFontSize: z.string().max(10).optional(),
+        barcodeCodeFontSize: z.string().max(10).optional(),
+        barcodeShopAlign: z.string().max(15).optional(),
+        barcodeNameAlign: z.string().max(15).optional(),
+        barcodePriceAlign: z.string().max(15).optional(),
+        barcodeCodeAlign: z.string().max(15).optional(),
+        barcodePaddingX: z.string().max(10).optional(),
+        barcodePaddingY: z.string().max(10).optional(),
+        barcodeGap: z.string().max(10).optional(),
+        barcodeShowCode: z.boolean().optional()
+      }),
+      payload
+    )
+
+    const dummyProduct: Product = {
+      id: 999999,
+      name: 'Cotton Saree Sample',
+      shortName: 'Cotton Saree',
+      sku: 'KPT-GEN-00004',
+      barcode: 'KPT-GEN-00004',
+      category: 'Test',
+      categoryId: null,
+      subCategory: null,
+      hsnCode: '',
+      costPrice: 1000,
+      mrp: 2000,
+      sellingPrice: 1799,
+      wholesalePrice: 1500,
+      gstRate: 5,
+      priceIncludesGst: true,
+      stock: 10,
+      lowStockThreshold: 5,
+      unit: 'pcs',
+      location: 'A1',
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      brand: 'Test',
+      color: 'Red',
+      material: 'Cotton',
+      description: 'Test description',
+      imagePath: null,
+      size: 'Free',
+      supplierId: null
+    }
+
+    const resolvedPrinterName =
+      validated.printerName?.trim() ||
+      settingsRepo.get('labelPrinterName')?.trim() ||
+      settingsRepo.get('receiptPrinterName')?.trim() ||
+      ''
+
+    return productLabelPrinterService.printProductLabels(dummyProduct, {
+      printerName: resolvedPrinterName,
+      quantity: 1,
+      labelSize: validated.labelSize || getConfiguredLabelSize(),
+      shopName: settingsRepo.get('shopName') || '',
+      barcodeShowShopName: settingsRepo.get('barcodeShowShopName') !== 'false',
+      barcodeShowSaleName: settingsRepo.get('barcodeShowSaleName') === 'true',
+      barcodeSaleNameText: settingsRepo.get('barcodeSaleNameText') || '',
+      barcodeShowName: settingsRepo.get('barcodeShowName') !== 'false',
+      barcodeShowMrp: settingsRepo.get('barcodeShowMrp') !== 'false',
+      barcodeShowSellingPrice: settingsRepo.get('barcodeShowSellingPrice') !== 'false',
+      barcodeStrikeMrp: settingsRepo.get('barcodeStrikeMrp') !== 'false',
+      barcodeShowDiscount: settingsRepo.get('barcodeShowDiscount') !== 'false',
+      barcodeNudgeX: validated.barcodeNudgeX || settingsRepo.get('barcodeNudgeX') || '0.0',
+      barcodeNudgeY: validated.barcodeNudgeY || settingsRepo.get('barcodeNudgeY') || '0.0',
+      barcodeWidth: validated.barcodeWidth || settingsRepo.get('barcodeWidth') || '75',
+      barcodeHeight: validated.barcodeHeight || settingsRepo.get('barcodeHeight') || '5.5',
+      barcodeShopFontSize:
+        validated.barcodeShopFontSize || settingsRepo.get('barcodeShopFontSize') || 'default',
+      barcodeNameFontSize:
+        validated.barcodeNameFontSize || settingsRepo.get('barcodeNameFontSize') || 'default',
+      barcodePriceFontSize:
+        validated.barcodePriceFontSize || settingsRepo.get('barcodePriceFontSize') || 'default',
+      barcodeCodeFontSize:
+        validated.barcodeCodeFontSize || settingsRepo.get('barcodeCodeFontSize') || 'default',
+      barcodeShopAlign:
+        validated.barcodeShopAlign || settingsRepo.get('barcodeShopAlign') || 'right',
+      barcodeNameAlign:
+        validated.barcodeNameAlign || settingsRepo.get('barcodeNameAlign') || 'left',
+      barcodePriceAlign:
+        validated.barcodePriceAlign || settingsRepo.get('barcodePriceAlign') || 'left',
+      barcodeCodeAlign:
+        validated.barcodeCodeAlign || settingsRepo.get('barcodeCodeAlign') || 'center',
+      barcodePaddingX:
+        validated.barcodePaddingX || settingsRepo.get('barcodePaddingX') || 'default',
+      barcodePaddingY:
+        validated.barcodePaddingY || settingsRepo.get('barcodePaddingY') || 'default',
+      barcodeGap: validated.barcodeGap || settingsRepo.get('barcodeGap') || 'default',
+      barcodeShowCode:
+        validated.barcodeShowCode !== undefined
+          ? validated.barcodeShowCode
+          : settingsRepo.get('barcodeShowCode') !== 'false'
+    })
+  })
+
+  safeHandle('products:downloadLabels', async (_event, payload) => {
+    const validated = validate(
+      z.object({
+        productId: idSchema,
+        quantity: z.number().int().min(1).max(500),
+        labelSize: z.enum(['46x25', '60x40']).optional()
+      }),
+      payload
+    )
+
+    const product = productRepo.getById(validated.productId)
+    if (!product) {
+      throw new Error('Product not found for label download')
+    }
+
+    return productLabelPrinterService.downloadProductLabels(product, {
+      printerName: '',
+      quantity: validated.quantity,
+      labelSize: validated.labelSize || getConfiguredLabelSize(),
+      shopName: settingsRepo.get('shopName') || '',
+      barcodeShowShopName: settingsRepo.get('barcodeShowShopName') !== 'false',
+      barcodeShowSaleName: settingsRepo.get('barcodeShowSaleName') === 'true',
+      barcodeSaleNameText: settingsRepo.get('barcodeSaleNameText') || '',
+      barcodeShowName: settingsRepo.get('barcodeShowName') !== 'false',
+      barcodeShowMrp: settingsRepo.get('barcodeShowMrp') !== 'false',
+      barcodeShowSellingPrice: settingsRepo.get('barcodeShowSellingPrice') !== 'false',
+      barcodeStrikeMrp: settingsRepo.get('barcodeStrikeMrp') !== 'false',
+      barcodeShowDiscount: settingsRepo.get('barcodeShowDiscount') !== 'false',
+      barcodeNudgeX: settingsRepo.get('barcodeNudgeX') || '0.0',
+      barcodeNudgeY: settingsRepo.get('barcodeNudgeY') || '0.0',
+      barcodeWidth: settingsRepo.get('barcodeWidth') || '75',
+      barcodeHeight: settingsRepo.get('barcodeHeight') || '5.5',
+      barcodeShopFontSize: settingsRepo.get('barcodeShopFontSize') || 'default',
+      barcodeNameFontSize: settingsRepo.get('barcodeNameFontSize') || 'default',
+      barcodePriceFontSize: settingsRepo.get('barcodePriceFontSize') || 'default',
+      barcodeCodeFontSize: settingsRepo.get('barcodeCodeFontSize') || 'default',
+      barcodeShopAlign: settingsRepo.get('barcodeShopAlign') || 'right',
+      barcodeNameAlign: settingsRepo.get('barcodeNameAlign') || 'left',
+      barcodePriceAlign: settingsRepo.get('barcodePriceAlign') || 'left',
+      barcodeCodeAlign: settingsRepo.get('barcodeCodeAlign') || 'center',
+      barcodePaddingX: settingsRepo.get('barcodePaddingX') || 'default',
+      barcodePaddingY: settingsRepo.get('barcodePaddingY') || 'default',
+      barcodeGap: settingsRepo.get('barcodeGap') || 'default',
+      barcodeShowCode: settingsRepo.get('barcodeShowCode') !== 'false'
+    })
   })
 
   // Categories

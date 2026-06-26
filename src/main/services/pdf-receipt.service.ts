@@ -8,6 +8,7 @@ import { existsSync, mkdirSync, writeFileSync } from 'fs'
 import log from 'electron-log'
 import type { Bill } from '../../shared/types'
 import { getSqlite } from '../database/connection'
+import QRCode from 'qrcode'
 
 function getPdfDir(): string {
   const userDataPath = app.getPath('userData')
@@ -154,11 +155,32 @@ function buildReturnsHtml(bill: Bill): string {
   </div>`
 }
 
-function buildInvoiceHtml(
+async function buildInvoiceHtml(
   bill: Bill,
   shopInfo: Record<string, string>,
   exchangeFromBillNo?: string | null
-): string {
+): Promise<string> {
+  const upiVpa = shopInfo.upiVpa
+  const upiPayeeName = shopInfo.upiPayeeName
+  const grandTotal = n(bill.grandTotal)
+  const billRef = String(bill.billNo || bill.billNumber || bill.id || '')
+  const upiNote = `Bill ${billRef || 'Payment'}`
+
+  let qrCodeDataURL = ''
+  if (upiVpa && upiPayeeName && grandTotal > 0) {
+    const upiUrl = `upi://pay?pa=${upiVpa}&pn=${encodeURIComponent(
+      upiPayeeName
+    )}&am=${grandTotal.toFixed(2)}&cu=INR&tn=${encodeURIComponent(upiNote)}&tr=${encodeURIComponent(billRef)}`
+    try {
+      qrCodeDataURL = await QRCode.toDataURL(upiUrl, {
+        errorCorrectionLevel: 'M',
+        width: 110
+      })
+    } catch (err) {
+      log.error('Failed to generate QR code', err)
+    }
+  }
+
   const shopName = shopInfo.shopName || 'KRISHNAPRIYA TEXTILES'
   const shopAddress = shopInfo.shopAddress || ''
   const shopPhone = shopInfo.shopPhone || ''
@@ -221,7 +243,6 @@ function buildInvoiceHtml(
     })
     .join('')
 
-  const grandTotal = n(bill.grandTotal)
   const subtotal = n(bill.subtotal)
   const discountAmt = n(bill.discountAmount)
   const taxableAmt = n(bill.taxableAmount) || totalTaxable
@@ -291,6 +312,10 @@ function buildInvoiceHtml(
   .payment-item .label { color:#888; font-size:8.5px; text-transform:uppercase; }
   .payment-item .val { font-weight:700; font-size:12px; }
 
+  .qr-code-box { text-align: center; }
+  .qr-code-box img { width: 110px; height: 110px; margin-bottom: 4px; }
+  .qr-code-box .qr-label { font-size: 9px; font-weight: 600; color: #333; }
+
   /* Footer */
   .footer { text-align:center; padding-top:10px; border-top:2px solid #6b1420; }
   .footer-text { font-size:11px; font-weight:600; color:#6b1420; margin-bottom:2px; }
@@ -300,6 +325,13 @@ function buildInvoiceHtml(
   .auth-label { font-size:9px; color:#888; text-transform:uppercase; letter-spacing:0.5px; }
   .auth-name { font-size:12px; font-weight:700; color:#6b1420; margin-top:2px; }
   .auth-note { font-size:8px; color:#aaa; margin-top:2px; font-style:italic; }
+
+  /* SarvaOne branding footer */
+  .sarvaone-footer { margin-top:14px; padding-top:10px; border-top:1px solid #e5e5e5; text-align:center; }
+  .sarvaone-footer-label { font-size:8px; color:#bbb; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:3px; }
+  .sarvaone-footer-brand { font-size:11px; font-weight:800; color:#6b1420; letter-spacing:0.5px; }
+  .sarvaone-footer-tagline { font-size:8px; color:#999; margin-top:1px; }
+  .sarvaone-footer-contact { font-size:8px; color:#888; margin-top:3px; }
 </style>
 </head><body>
 <div class="invoice-box">
@@ -404,15 +436,27 @@ function buildInvoiceHtml(
   <!-- Payment Info -->
   <div class="payment-box">
     <div class="payment-title">Payment Information</div>
-    <div class="payment-grid">
-      <div class="payment-item"><div class="label">Mode</div><div class="val">${payMode}</div></div>
-      ${n(bill.cashAmount) > 0 ? `<div class="payment-item"><div class="label">Cash</div><div class="val">${fmt(n(bill.cashAmount))}</div></div>` : ''}
-      ${n(bill.upiAmount) > 0 ? `<div class="payment-item"><div class="label">UPI</div><div class="val">${fmt(n(bill.upiAmount))}</div></div>` : ''}
-      ${n(bill.cardAmount) > 0 ? `<div class="payment-item"><div class="label">Card</div><div class="val">${fmt(n(bill.cardAmount))}</div></div>` : ''}
-      ${n(bill.creditAmount) > 0 ? `<div class="payment-item"><div class="label">Credit</div><div class="val" style="color:#dc2626;">${fmt(n(bill.creditAmount))}</div></div>` : ''}
-      ${n(bill.cashTendered) > 0 ? `<div class="payment-item"><div class="label">Cash Received</div><div class="val">${fmt(n(bill.cashTendered))}</div></div>` : ''}
-      ${n(bill.changeAmount) > 0 ? `<div class="payment-item"><div class="label">Change</div><div class="val">${fmt(n(bill.changeAmount))}</div></div>` : ''}
-      ${bill.upiReference ? `<div class="payment-item"><div class="label">UPI Reference</div><div class="val">${bill.upiReference}</div></div>` : ''}
+    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+      <div class="payment-grid" style="flex: 1;">
+        <div class="payment-item"><div class="label">Mode</div><div class="val">${payMode}</div></div>
+        ${n(bill.cashAmount) > 0 ? `<div class="payment-item"><div class="label">Cash</div><div class="val">${fmt(n(bill.cashAmount))}</div></div>` : ''}
+        ${n(bill.upiAmount) > 0 ? `<div class="payment-item"><div class="label">UPI</div><div class="val">${fmt(n(bill.upiAmount))}</div></div>` : ''}
+        ${n(bill.cardAmount) > 0 ? `<div class="payment-item"><div class="label">Card</div><div class="val">${fmt(n(bill.cardAmount))}</div></div>` : ''}
+        ${n(bill.creditAmount) > 0 ? `<div class="payment-item"><div class="label">Credit</div><div class="val" style="color:#dc2626;">${fmt(n(bill.creditAmount))}</div></div>` : ''}
+        ${n(bill.cashTendered) > 0 ? `<div class="payment-item"><div class="label">Cash Received</div><div class="val">${fmt(n(bill.cashTendered))}</div></div>` : ''}
+        ${n(bill.changeAmount) > 0 ? `<div class="payment-item"><div class="label">Change</div><div class="val">${fmt(n(bill.changeAmount))}</div></div>` : ''}
+        ${bill.upiReference ? `<div class="payment-item"><div class="label">UPI Reference</div><div class="val">${bill.upiReference}</div></div>` : ''}
+      </div>
+      ${
+        qrCodeDataURL
+          ? `
+        <div class="qr-code-box">
+          <img src="${qrCodeDataURL}" alt="UPI QR Code" />
+          <div class="qr-label">Scan to Pay</div>
+        </div>
+        `
+          : ''
+      }
     </div>
   </div>
 
@@ -429,6 +473,14 @@ function buildInvoiceHtml(
   <div class="footer">
     <div class="footer-text">${footer}</div>
     <div class="footer-sub">Exchange within 7 days with bill</div>
+  </div>
+
+  <!-- SarvaOne Branding -->
+  <div class="sarvaone-footer">
+    <div class="sarvaone-footer-label">Billing software powered by</div>
+    <div class="sarvaone-footer-brand">SarvaOne</div>
+    <div class="sarvaone-footer-tagline">Easy Billing &amp; Inventory for Local Businesses</div>
+    <div class="sarvaone-footer-contact">&#128222;&nbsp;9886718288 &nbsp;|&nbsp; &#9993;&nbsp;support@sarvaone.com &nbsp;|&nbsp; sarvaone.com</div>
   </div>
 </div>
 </body></html>`
@@ -455,7 +507,7 @@ export class PdfReceiptService {
       /* ignore */
     }
 
-    const html = buildInvoiceHtml(bill, shopInfo, exchangeFromBillNo)
+    const html = await buildInvoiceHtml(bill, shopInfo, exchangeFromBillNo)
     const pdfDir = getPdfDir()
     const safeNo = (bill.billNo || bill.billNumber || 'unknown').replace(/[/\\:*?"<>|]/g, '_')
     const fileName = `Invoice_${safeNo}_${bill.date}.pdf`

@@ -18,6 +18,8 @@ import { IndianRupee, AlertTriangle, Clock, TrendingDown, Phone, Download } from
 import { formatCurrency } from '../lib/utils'
 import { toast } from 'sonner'
 import dayjs from 'dayjs'
+import { customersService } from '../services/customers.service'
+import { exportService } from '../services/export.service'
 
 interface AgingCustomer {
   id: number
@@ -65,8 +67,8 @@ export default function CreditAgingPage(): React.JSX.Element {
     setLoading(true)
     try {
       const [agingRaw, summaryRaw] = await Promise.all([
-        window.api.customers.getCreditAging(),
-        window.api.customers.getCreditAgingSummary()
+        customersService.getCreditAging(),
+        customersService.getCreditAgingSummary()
       ])
       setCustomers(agingRaw.map((r) => mapRecord<AgingCustomer>(r)))
       setSummary(mapRecord<AgingSummary>(summaryRaw))
@@ -77,7 +79,6 @@ export default function CreditAgingPage(): React.JSX.Element {
   }, [])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData()
   }, [loadData])
 
@@ -113,7 +114,7 @@ export default function CreditAgingPage(): React.JSX.Element {
 
   const handleExport = async (): Promise<void> => {
     try {
-      const result = await window.api.export.customerReport()
+      const result = await exportService.customerReport()
       if (result.success && result.path) {
         toast.success('Credit report exported')
       }

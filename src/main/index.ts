@@ -1,6 +1,6 @@
 import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
-import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import { electronApp, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { initializeDatabase, closeDatabase } from './database/connection'
 import { registerProductIpc } from './ipc/product.ipc'
@@ -16,15 +16,6 @@ import log from 'electron-log'
 // Configure logging
 log.transports.file.level = 'info'
 log.transports.console.level = 'debug'
-
-// ---- Global error handlers ----
-process.on('uncaughtException', (error) => {
-  log.error('Uncaught Exception:', error)
-})
-
-process.on('unhandledRejection', (reason) => {
-  log.error('Unhandled Rejection:', reason)
-})
 
 let backupInterval: NodeJS.Timeout | null = null
 
@@ -68,6 +59,18 @@ function setupAutoBackup(): void {
 
   if (backupInterval) clearInterval(backupInterval)
 
+  // Run immediate backup on startup
+  setTimeout(async () => {
+    try {
+      log.info('Running immediate startup backup...')
+      await backupService.createBackup()
+      const retention = parseInt(settingsRepo.get('backupRetention') || '30')
+      backupService.cleanOldBackups(retention)
+    } catch (err) {
+      log.error('Immediate startup backup failed:', err)
+    }
+  }, 2000)
+
   backupInterval = setInterval(async () => {
     log.info('Running scheduled backup...')
     await backupService.createBackup()
@@ -80,7 +83,36 @@ app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.krishnapriyatextiles.billing')
 
   app.on('browser-window-created', (_, window) => {
-    optimizer.watchWindowShortcuts(window)
+    // Custom window shortcuts logic to avoid F12 conflict with system shortcuts help drawer
+    window.webContents.on('before-input-event', (event, input) => {
+      if (input.type === 'keyDown') {
+        // Prevent F12 from opening DevTools to avoid conflict with the system shortcuts help drawer
+        if (input.code === 'F12') {
+          event.preventDefault()
+        }
+
+        // Prevent default zoom shortcuts to preserve UI layout scaling
+        if (input.code === 'Minus' && (input.control || input.meta)) {
+          event.preventDefault()
+        }
+        if (input.code === 'Equal' && input.shift && (input.control || input.meta)) {
+          event.preventDefault()
+        }
+
+        // Production environment protections: prevent reload and devtools
+        if (app.isPackaged) {
+          if (input.code === 'KeyR' && (input.control || input.meta)) {
+            event.preventDefault()
+          }
+          if (
+            input.code === 'KeyI' &&
+            ((input.alt && input.meta) || (input.control && input.shift))
+          ) {
+            event.preventDefault()
+          }
+        }
+      }
+    })
   })
 
   // Initialize database

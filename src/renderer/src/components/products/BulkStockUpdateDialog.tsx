@@ -16,6 +16,7 @@ import {
 } from '../ui/dialog'
 import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Download, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { productsService } from '../../services/products.service'
 
 interface ParsedRow {
   sku: string
@@ -38,7 +39,7 @@ function parseCSV(text: string): ParsedRow[] {
   const header = lines[0].toLowerCase()
   const sep = header.includes('\t') ? '\t' : ','
 
-  const cols = header.split(sep).map((c) => c.trim().replace(/^["']|["']$/g, ''))
+  const cols = parseDelimitedLine(header, sep).map((c) => c.trim().toLowerCase())
   const skuIdx = cols.findIndex((c) => c === 'sku' || c === 'sku_code' || c === 'product_code')
   const barcodeIdx = cols.findIndex((c) => c === 'barcode' || c === 'bar_code' || c === 'ean')
   const stockIdx = cols.findIndex(
@@ -52,7 +53,7 @@ function parseCSV(text: string): ParsedRow[] {
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim()
     if (!line) continue
-    const values = line.split(sep).map((v) => v.trim().replace(/^["']|["']$/g, ''))
+    const values = parseDelimitedLine(line, sep)
     const stock = parseInt(values[stockIdx])
     if (isNaN(stock)) continue
 
@@ -64,6 +65,41 @@ function parseCSV(text: string): ParsedRow[] {
     })
   }
   return rows
+}
+
+function parseDelimitedLine(line: string, sep: string): string[] {
+  const values: string[] = []
+  let current = ''
+  let quote: '"' | "'" | null = null
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i]
+    const next = line[i + 1]
+
+    if (quote) {
+      if (char === quote && next === quote) {
+        current += char
+        i++
+      } else if (char === quote) {
+        quote = null
+      } else {
+        current += char
+      }
+      continue
+    }
+
+    if (char === '"' || char === "'") {
+      quote = char
+    } else if (char === sep) {
+      values.push(current.trim())
+      current = ''
+    } else {
+      current += char
+    }
+  }
+
+  values.push(current.trim())
+  return values
 }
 
 export function BulkStockUpdateDialog({
@@ -127,7 +163,7 @@ export function BulkStockUpdateDialog({
         barcode: r.barcode || undefined,
         stock: r.stock
       }))
-      const res = await window.api.products.bulkStockUpdate(items)
+      const res = await productsService.bulkStockUpdate(items)
       setResult(res)
       if (res.imported > 0) {
         toast.success(`${res.imported} products updated`)

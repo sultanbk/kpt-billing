@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useAuthStore } from '../../stores/auth.store'
 import { Lock, Eye, EyeOff } from 'lucide-react'
+import { authService } from '../../services/auth.service'
 
 interface PinGateProps {
   children: React.ReactNode
@@ -29,7 +30,7 @@ export function PinGate({ children }: PinGateProps): React.JSX.Element {
     setVerifying(true)
     setError('')
     try {
-      const result = await window.api.auth.verifyPin(pin)
+      const result = await authService.verifyPin(pin)
       if (result.success && result.user) {
         unlock(result.user)
         setPin('')

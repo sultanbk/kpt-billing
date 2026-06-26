@@ -27,6 +27,7 @@ const COLUMN_ALIASES: Record<string, string | string[]> = {
   created_at: 'createdAt',
   updated_at: 'updatedAt',
   supplier_id: 'supplierId',
+  price_includes_gst: 'priceIncludesGst',
 
   // Bills
   bill_no: ['billNo', 'billNumber'],
@@ -128,6 +129,12 @@ export function mapRow<T>(row: Record<string, unknown>): T {
   // Special: map is_active from 0/1 to boolean
   if ('is_active' in row) {
     result['isActive'] = row['is_active'] === 1 || row['is_active'] === true
+  }
+
+  // Special: map price_includes_gst from 0/1 to boolean
+  if ('price_includes_gst' in row) {
+    result['priceIncludesGst'] =
+      row['price_includes_gst'] === 1 || row['price_includes_gst'] === true
   }
 
   // Special: compute gstAmount from cgst + sgst for bills

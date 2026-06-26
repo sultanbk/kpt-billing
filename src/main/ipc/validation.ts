@@ -27,9 +27,11 @@ export const productFormSchema = z.object({
   brand: z.string().max(100).optional().nullable(),
   hsnCode: z.string().max(20).optional(),
   costPrice: z.number().min(0),
+  mrp: z.number().min(0).optional(),
   sellingPrice: z.number().min(0),
   wholesalePrice: z.number().min(0).optional().nullable(),
   gstRate: z.number().min(0).max(100),
+  priceIncludesGst: z.boolean().optional(),
   stock: z.number().min(0),
   unit: z.string().max(20).optional().nullable(),
   lowStockThreshold: z.number().int().min(0).optional().nullable(),
@@ -122,7 +124,16 @@ const billPaymentSchema = z.object({
 export const billCreateSchema = z.object({
   customerName: z.string().max(255).optional(),
   customerPhone: z.string().max(20).optional(),
-  customerId: z.union([z.number().int().positive(), z.string(), z.null()]).optional(),
+  customerId: z
+    .preprocess((val) => {
+      if (val === '' || val === undefined || val === null) return null
+      if (typeof val === 'string') {
+        const parsed = parseInt(val, 10)
+        return isNaN(parsed) ? null : parsed
+      }
+      return val
+    }, z.number().int().positive().nullable())
+    .optional(),
   items: z.array(billItemSchema).min(1),
   payment: billPaymentSchema,
   discount: z.number().min(0).optional(),

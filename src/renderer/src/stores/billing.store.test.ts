@@ -22,6 +22,7 @@ const mockProduct: Product = {
   sellingPrice: 3500,
   wholesalePrice: null,
   gstRate: 5,
+  priceIncludesGst: false,
   stock: 10,
   lowStockThreshold: null,
   unit: 'pcs',
@@ -118,6 +119,15 @@ describe('BillingStore', () => {
       const state = useBillingStore.getState()
       expect(state.items[0].productName).toBe('Other Item')
     })
+
+    it('keeps separate custom items instead of merging productId zero lines', () => {
+      useBillingStore.getState().addCustomItem('Alteration', 200)
+      useBillingStore.getState().addCustomItem('Fall Pico', 150)
+
+      const state = useBillingStore.getState()
+      expect(state.items).toHaveLength(2)
+      expect(state.items.map((item) => item.productName)).toEqual(['Alteration', 'Fall Pico'])
+    })
   })
 
   describe('removeItem', () => {
@@ -201,8 +211,8 @@ describe('BillingStore', () => {
       const state = useBillingStore.getState()
 
       // Bill discount = 10% of subtotal (3500) = 350
-      // Total = 3675 (with GST) - 350 = 3325
-      expect(state.grandTotal).toBe(Math.round(3675 - 350))
+      // Total = 3150 (taxable) + 157.5 (GST reduced by 10%) = 3308 (rounded)
+      expect(state.grandTotal).toBe(3308)
     })
 
     it('applies flat bill discount', () => {
@@ -210,19 +220,19 @@ describe('BillingStore', () => {
       useBillingStore.getState().setDiscount(200, 'amount')
       const state = useBillingStore.getState()
 
-      // grandTotal = 3675 - 200 = 3475
-      expect(state.grandTotal).toBe(Math.round(3675 - 200))
+      // grandTotal = 3300 (taxable) + 165 (GST reduced by 200/3500 ratio) = 3465
+      expect(state.grandTotal).toBe(3465)
     })
   })
 
   describe('setCustomer', () => {
     it('sets customer info', () => {
-      useBillingStore.getState().setCustomer('Ramesh', '9876543210', '5')
+      useBillingStore.getState().setCustomer('Ramesh', '9876543210', 5)
       const state = useBillingStore.getState()
 
       expect(state.customerName).toBe('Ramesh')
       expect(state.customerPhone).toBe('9876543210')
-      expect(state.customerId).toBe('5')
+      expect(state.customerId).toBe(5)
     })
   })
 
@@ -274,6 +284,119 @@ describe('BillingStore', () => {
       const state = useBillingStore.getState()
 
       expect(state.grandTotal).toBeGreaterThanOrEqual(0)
+    })
+  })
+
+  describe('multi-cart tabs', () => {
+    beforeEach(() => {
+      // Ensure we are in a clean state with 1 default tab
+      const state = useBillingStore.getState()
+      state.clearCart()
+      // Reset tabs list in store to default 1 tab if mutated
+      useBillingStore.setState({
+        tabs: [
+          {
+            id: 'tab-1',
+            name: 'Cart 1',
+            defaultName: 'Cart 1',
+            items: [],
+            customerName: '',
+            customerPhone: '',
+            customerId: null,
+            discount: 0,
+            discountType: 'percentage',
+            currentHeldBillId: null
+          }
+        ],
+        activeTabId: 'tab-1'
+      })
+    })
+
+    it('initializes with a default tab', () => {
+      const state = useBillingStore.getState()
+      expect(state.tabs).toHaveLength(1)
+      expect(state.activeTabId).toBe('tab-1')
+      expect(state.tabs[0].name).toBe('Cart 1')
+    })
+
+    it('adds a new tab and focuses it', () => {
+      useBillingStore.getState().addItem(mockProduct) // add item to Tab 1
+      useBillingStore.getState().addTab() // adds Tab 2
+      const state = useBillingStore.getState()
+
+      expect(state.tabs).toHaveLength(2)
+      expect(state.activeTabId).not.toBe('tab-1')
+      expect(state.items).toHaveLength(0) // empty cart on new tab
+      // Tab 1 should have preserved the item
+      const tab1 = state.tabs.find((t) => t.id === 'tab-1')
+      expect(tab1?.items).toHaveLength(1)
+      expect(tab1?.items[0].productName).toBe('Banarasi Silk Saree')
+    })
+
+    it('switches between tabs and preserves state', () => {
+      useBillingStore.getState().addItem(mockProduct)
+      useBillingStore.getState().addTab() // now on Tab 2
+      useBillingStore.getState().addItem(mockProduct2) // add item to Tab 2
+
+      // Switch back to Tab 1
+      useBillingStore.getState().switchTab('tab-1')
+      let state = useBillingStore.getState()
+      expect(state.activeTabId).toBe('tab-1')
+      expect(state.items[0].productName).toBe('Banarasi Silk Saree')
+
+      // Switch to Tab 2
+      const tab2Id = state.tabs[1].id
+      useBillingStore.getState().switchTab(tab2Id)
+      state = useBillingStore.getState()
+      expect(state.activeTabId).toBe(tab2Id)
+      expect(state.items[0].productName).toBe('Cotton Dupatta')
+    })
+
+    it('updates active tab name dynamically when customer is set', () => {
+      useBillingStore.getState().setCustomer('Puneet', '9999999999', 10)
+      const state = useBillingStore.getState()
+      expect(state.tabs[0].name).toBe('Puneet')
+
+      // Resets on clearCart
+      useBillingStore.getState().clearCart()
+      expect(useBillingStore.getState().tabs[0].name).toBe('Cart 1')
+    })
+
+    it('does not allow closing the last tab', () => {
+      useBillingStore.getState().closeTab('tab-1')
+      const state = useBillingStore.getState()
+      expect(state.tabs).toHaveLength(1) // still 1 tab
+    })
+
+    it('closes a tab and focuses on the other remaining tab', () => {
+      useBillingStore.getState().addTab() // Tab 2
+      const state = useBillingStore.getState()
+      const tab2Id = state.activeTabId
+
+      useBillingStore.getState().closeTab(tab2Id)
+      const finalState = useBillingStore.getState()
+      expect(finalState.tabs).toHaveLength(1)
+      expect(finalState.activeTabId).toBe('tab-1')
+    })
+
+    it('avoids duplicate tab names when tab is closed and new tab is added', () => {
+      useBillingStore.getState().addTab() // Adds Tab 2 ("Cart 2")
+      let state = useBillingStore.getState()
+      expect(state.tabs[1].name).toBe('Cart 2')
+
+      // Close Tab 1 ("Cart 1")
+      // Since it is the only remaining tab, the system should reset its name to "Cart 1"
+      useBillingStore.getState().closeTab('tab-1')
+      state = useBillingStore.getState()
+      expect(state.tabs).toHaveLength(1)
+      expect(state.tabs[0].name).toBe('Cart 1')
+
+      // Add a new tab. It should be "Cart 2" because the only tab is "Cart 1".
+      useBillingStore.getState().addTab()
+      state = useBillingStore.getState()
+      expect(state.tabs).toHaveLength(2)
+      expect(state.tabs[0].name).toBe('Cart 1')
+      expect(state.tabs[1].name).toBe('Cart 2')
     })
   })
 })

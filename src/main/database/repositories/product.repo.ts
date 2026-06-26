@@ -12,12 +12,31 @@ import type {
 } from '../../../shared/types'
 
 export class ProductRepository {
+  private resolveCategoryId(data: Pick<ProductFormData, 'category' | 'categoryId'>): number | null {
+    if (data.categoryId) return data.categoryId
+    const categoryName = data.category?.trim()
+    if (!categoryName) return null
+
+    const db = getSqlite()
+    const existing = db
+      .prepare('SELECT id FROM categories WHERE lower(name) = lower(?) LIMIT 1')
+      .get(categoryName) as { id: number } | undefined
+
+    if (existing) return existing.id
+
+    const result = db.prepare('INSERT INTO categories (name) VALUES (?)').run(categoryName)
+    return Number(result.lastInsertRowid)
+  }
+
   private generateSku(categoryId: number | null): string {
     const db = getSqlite()
     const prefix = 'KPT'
-    // Get next sequence number
-    const result = db.prepare('SELECT COUNT(*) as count FROM products').get() as { count: number }
-    const seq = (result.count + 1).toString().padStart(5, '0')
+    // Get max sequence number from all existing products (including soft-deleted ones)
+    const result = db
+      .prepare('SELECT MAX(CAST(SUBSTR(sku, -5) AS INTEGER)) as maxSeq FROM products')
+      .get() as { maxSeq: number | null }
+    const nextSeq = (result.maxSeq || 0) + 1
+    const seq = nextSeq.toString().padStart(5, '0')
     const catCode = categoryId
       ? (
           db.prepare('SELECT name FROM categories WHERE id = ?').get(categoryId) as {
@@ -154,28 +173,31 @@ export class ProductRepository {
 
   create(data: ProductFormData): Product {
     const db = getSqlite()
-    const sku = this.generateSku(data.categoryId || null)
+    const categoryId = this.resolveCategoryId(data)
+    const sku = this.generateSku(categoryId)
 
     const result = db
       .prepare(
         `INSERT INTO products (name, short_name, sku, barcode, category_id, sub_category, brand,
-         hsn_code, purchase_price, selling_price, wholesale_price, gst_rate,
+         hsn_code, purchase_price, mrp, selling_price, wholesale_price, gst_rate, price_includes_gst,
          opening_stock, current_stock, low_stock_alert, location, color, size, material, notes, is_active)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         data.name,
         data.shortName || null,
         sku,
         data.barcode || null,
-        data.categoryId || null,
+        categoryId,
         data.subCategory || null,
         data.brand || null,
         data.hsnCode,
         data.costPrice,
+        data.mrp ?? 0,
         data.sellingPrice,
         data.wholesalePrice || null,
         data.gstRate,
+        data.priceIncludesGst ? 1 : 0,
         data.stock,
         data.stock, // currentStock = stock initially
         data.lowStockThreshold || null,
@@ -204,9 +226,16 @@ export class ProductRepository {
     db.transaction(() => {
       // Fetch current product to track price changes
       const current = db
-        .prepare('SELECT purchase_price, selling_price, wholesale_price FROM products WHERE id = ?')
+        .prepare(
+          'SELECT purchase_price, mrp, selling_price, wholesale_price FROM products WHERE id = ?'
+        )
         .get(id) as
-        | { purchase_price: number; selling_price: number; wholesale_price: number | null }
+        | {
+            purchase_price: number
+            mrp: number
+            selling_price: number
+            wholesale_price: number | null
+          }
         | undefined
 
       const fields: string[] = []
@@ -227,6 +256,11 @@ export class ProductRepository {
       if (data.categoryId !== undefined) {
         fields.push('category_id = ?')
         values.push(data.categoryId || null)
+      } else if (data.category !== undefined) {
+        fields.push('category_id = ?')
+        values.push(
+          this.resolveCategoryId(data as Pick<ProductFormData, 'category' | 'categoryId'>)
+        )
       }
       if (data.subCategory !== undefined) {
         fields.push('sub_category = ?')
@@ -244,6 +278,10 @@ export class ProductRepository {
         fields.push('purchase_price = ?')
         values.push(data.costPrice)
       }
+      if (data.mrp !== undefined) {
+        fields.push('mrp = ?')
+        values.push(data.mrp)
+      }
       if (data.sellingPrice !== undefined) {
         fields.push('selling_price = ?')
         values.push(data.sellingPrice)
@@ -255,6 +293,10 @@ export class ProductRepository {
       if (data.gstRate !== undefined) {
         fields.push('gst_rate = ?')
         values.push(data.gstRate)
+      }
+      if (data.priceIncludesGst !== undefined) {
+        fields.push('price_includes_gst = ?')
+        values.push(data.priceIncludesGst ? 1 : 0)
       }
       if (data.stock !== undefined) {
         // Track stock change in ledger when editing via product form
@@ -319,6 +361,9 @@ export class ProductRepository {
         }
         if (data.sellingPrice !== undefined && data.sellingPrice !== current.selling_price) {
           insertHistory.run(id, 'selling_price', current.selling_price, data.sellingPrice)
+        }
+        if (data.mrp !== undefined && data.mrp !== current.mrp) {
+          insertHistory.run(id, 'mrp', current.mrp, data.mrp)
         }
         if (
           data.wholesalePrice !== undefined &&

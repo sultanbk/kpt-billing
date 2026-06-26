@@ -6,7 +6,7 @@ import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { app } from 'electron'
 import { join } from 'path'
 import { existsSync, mkdirSync } from 'fs'
-import { createHash } from 'crypto'
+import { randomBytes, scryptSync } from 'crypto'
 import * as schema from './schema'
 import { DEFAULT_SETTINGS, DEFAULT_CATEGORIES } from '../../shared/constants'
 import log from 'electron-log'
@@ -86,9 +86,11 @@ function runMigrations(sqlite: Database.Database): void {
       brand TEXT,
       hsn_code TEXT NOT NULL DEFAULT '5007',
       purchase_price REAL NOT NULL DEFAULT 0,
+      mrp REAL NOT NULL DEFAULT 0,
       selling_price REAL NOT NULL DEFAULT 0,
       wholesale_price REAL,
       gst_rate REAL NOT NULL DEFAULT 5,
+      price_includes_gst INTEGER NOT NULL DEFAULT 0,
       opening_stock INTEGER NOT NULL DEFAULT 0,
       current_stock INTEGER NOT NULL DEFAULT 0,
       low_stock_alert INTEGER,
@@ -188,6 +190,7 @@ function runMigrations(sqlite: Database.Database): void {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       pin TEXT NOT NULL,
+      salt TEXT,
       role TEXT NOT NULL DEFAULT 'cashier',
       is_active INTEGER NOT NULL DEFAULT 1,
       created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
@@ -390,18 +393,73 @@ function runMigrations(sqlite: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_purchase_items_product ON purchase_items(product_id);
   `)
 
-  log.info('Migrations completed')
+  // ---- Versioned Migrations ----
+  // Each migration runs exactly once, tracked by the schema_migrations table.
+  // To add a new migration post-launch, append an entry to the migrations array.
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      version INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      applied_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+    );
+  `)
 
-  // ---- Safe ALTER TABLE migrations for existing databases ----
-  try {
-    const cols = sqlite.pragma('table_info(suppliers)') as { name: string }[]
-    if (!cols.find((c) => c.name === 'city')) {
-      sqlite.exec('ALTER TABLE suppliers ADD COLUMN city TEXT')
-      log.info('Added city column to suppliers')
+  const migrations: { version: number; name: string; up: () => void }[] = [
+    {
+      version: 1,
+      name: 'add_supplier_city_product_mrp_gst_user_salt',
+      up: () => {
+        // Suppliers: add city
+        const supplierCols = sqlite.pragma('table_info(suppliers)') as { name: string }[]
+        if (!supplierCols.find((c) => c.name === 'city')) {
+          sqlite.exec('ALTER TABLE suppliers ADD COLUMN city TEXT')
+        }
+        // Products: add mrp, price_includes_gst
+        const productCols = sqlite.pragma('table_info(products)') as { name: string }[]
+        if (!productCols.find((c) => c.name === 'mrp')) {
+          sqlite.exec('ALTER TABLE products ADD COLUMN mrp REAL NOT NULL DEFAULT 0')
+        }
+        if (!productCols.find((c) => c.name === 'price_includes_gst')) {
+          sqlite.exec(
+            'ALTER TABLE products ADD COLUMN price_includes_gst INTEGER NOT NULL DEFAULT 0'
+          )
+        }
+        // Users: add salt
+        const userCols = sqlite.pragma('table_info(users)') as { name: string }[]
+        if (!userCols.find((c) => c.name === 'salt')) {
+          sqlite.exec('ALTER TABLE users ADD COLUMN salt TEXT')
+        }
+      }
     }
-  } catch {
-    /* table may not exist yet, already handled by CREATE IF NOT EXISTS */
+    // Future migrations go here:
+    // { version: 2, name: 'description_of_change', up: () => { ... } }
+  ]
+
+  const applied = new Set(
+    (sqlite.prepare('SELECT version FROM schema_migrations').all() as { version: number }[]).map(
+      (r) => r.version
+    )
+  )
+
+  const insertMigration = sqlite.prepare(
+    'INSERT INTO schema_migrations (version, name) VALUES (?, ?)'
+  )
+
+  for (const migration of migrations) {
+    if (applied.has(migration.version)) continue
+    try {
+      log.info(`Running migration v${migration.version}: ${migration.name}`)
+      migration.up()
+      insertMigration.run(migration.version, migration.name)
+      log.info(`Migration v${migration.version} completed`)
+    } catch (err) {
+      log.error(`Migration v${migration.version} failed:`, err)
+    }
   }
+
+  log.info(
+    `Migrations completed (${migrations.length} defined, ${applied.size} previously applied)`
+  )
 }
 
 function seedDefaults(sqlite: Database.Database): void {
@@ -436,10 +494,11 @@ function seedDefaults(sqlite: Database.Database): void {
   if (userCount.count === 0) {
     log.info('Seeding default owner user...')
     // Default PIN: 1234 (users should change this)
-    const hashedPin = createHash('sha256').update('1234').digest('hex')
+    const salt = randomBytes(16).toString('hex')
+    const hashedPin = `scrypt:${scryptSync('1234', salt, 64).toString('hex')}`
     sqlite
-      .prepare('INSERT INTO users (name, pin, role) VALUES (?, ?, ?)')
-      .run('Puneet', hashedPin, 'owner')
+      .prepare('INSERT INTO users (name, pin, salt, role) VALUES (?, ?, ?, ?)')
+      .run('Puneet', hashedPin, salt, 'owner')
   }
 
   // Seed bill number sequence

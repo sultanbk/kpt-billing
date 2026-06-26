@@ -40,6 +40,11 @@ export class CloudBackupService {
   private token: TokenData | null = null
   private config: CloudConfig | null = null
 
+  private isInvalidGrantError(err: unknown): boolean {
+    const message = err instanceof Error ? err.message : String(err)
+    return /invalid_grant/i.test(message)
+  }
+
   constructor() {
     this.loadToken()
     this.loadConfig()
@@ -205,11 +210,21 @@ export class CloudBackupService {
       grant_type: 'refresh_token'
     })
 
-    const response = await this.httpPost(
-      'https://oauth2.googleapis.com/token',
-      body.toString(),
-      'application/x-www-form-urlencoded'
-    )
+    let response: string
+    try {
+      response = await this.httpPost(
+        'https://oauth2.googleapis.com/token',
+        body.toString(),
+        'application/x-www-form-urlencoded'
+      )
+    } catch (err) {
+      if (this.isInvalidGrantError(err)) {
+        // Stale/revoked refresh token: force clean reconnect flow.
+        this.disconnect()
+        throw new Error('Google Drive session expired. Please reconnect Google Drive in Settings.')
+      }
+      throw err
+    }
 
     const data = JSON.parse(response)
     if (data.error) {
@@ -341,7 +356,11 @@ export class CloudBackupService {
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      log.error(`Cloud backup failed: ${msg}`)
+      if (/session expired|reconnect google drive/i.test(msg)) {
+        log.warn(`Cloud backup requires re-authentication: ${msg}`)
+      } else {
+        log.error(`Cloud backup failed: ${msg}`)
+      }
       return { success: false, localPath: '', error: msg }
     }
   }
@@ -364,7 +383,12 @@ export class CloudBackupService {
       const data = JSON.parse(resp)
       return data.files || []
     } catch (err) {
-      log.error('Failed to list cloud backups:', err)
+      const msg = err instanceof Error ? err.message : String(err)
+      if (/session expired|reconnect google drive/i.test(msg)) {
+        log.warn(`Cloud backup listing requires re-authentication: ${msg}`)
+      } else {
+        log.error('Failed to list cloud backups:', err)
+      }
       return []
     }
   }

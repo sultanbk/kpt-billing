@@ -24,6 +24,7 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>
   shortcut: string
   protected: boolean
+  ownerOnly?: boolean
 }
 
 const navSections: { label: string; items: NavItem[] }[] = [
@@ -36,7 +37,8 @@ const navSections: { label: string; items: NavItem[] }[] = [
         label: 'Dashboard',
         icon: LayoutDashboard,
         shortcut: 'F1',
-        protected: true
+        protected: true,
+        ownerOnly: true
       }
     ]
   },
@@ -51,34 +53,66 @@ const navSections: { label: string; items: NavItem[] }[] = [
   {
     label: 'Insights',
     items: [
-      { to: '/reports', label: 'Reports', icon: BarChart3, shortcut: 'F7', protected: true },
+      {
+        to: '/reports',
+        label: 'Reports',
+        icon: BarChart3,
+        shortcut: 'F7',
+        protected: true,
+        ownerOnly: true
+      },
       {
         to: '/customer-analytics',
         label: 'Analytics',
         icon: TrendingUp,
         shortcut: '',
-        protected: true
+        protected: true,
+        ownerOnly: true
       },
-      { to: '/credit-aging', label: 'Credit Aging', icon: Clock, shortcut: '', protected: true },
+      {
+        to: '/credit-aging',
+        label: 'Credit Aging',
+        icon: Clock,
+        shortcut: '',
+        protected: true,
+        ownerOnly: true
+      },
       {
         to: '/data-export',
         label: 'Data Export',
         icon: FileSpreadsheet,
         shortcut: '',
-        protected: true
+        protected: true,
+        ownerOnly: true
       }
     ]
   },
   {
     label: '',
     items: [
-      { to: '/settings', label: 'Settings', icon: Settings, shortcut: 'F10', protected: true }
+      {
+        to: '/settings',
+        label: 'Settings',
+        icon: Settings,
+        shortcut: 'F10',
+        protected: true,
+        ownerOnly: true
+      }
     ]
   }
 ]
 
 export function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void }): React.JSX.Element {
   const { isUnlocked, user, lock } = useAuthStore()
+  const isOwner = user?.role === 'owner'
+
+  // Filter sections dynamically based on user role
+  const filteredSections = navSections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => !item.ownerOnly || isOwner)
+    }))
+    .filter((section) => section.items.length > 0)
 
   return (
     <aside className="flex h-full w-60 flex-col border-r border-border bg-card/50">
@@ -92,7 +126,7 @@ export function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void }): React.
             Krishnapriya
           </span>
           <span className="text-[11px] font-medium text-muted-foreground tracking-wide uppercase">
-            Textiles
+            TEXTILES
           </span>
         </div>
       </div>
@@ -113,7 +147,7 @@ export function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void }): React.
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 pb-2">
-        {navSections.map((section, sIdx) => (
+        {filteredSections.map((section, sIdx) => (
           <div key={sIdx} className={cn(sIdx > 0 && 'mt-2')}>
             {section.label && (
               <div className="mb-1 px-3 pt-2">
@@ -188,8 +222,15 @@ export function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void }): React.
             </kbd>
           </button>
         )}
-        <div className="text-center text-[10px] text-muted-foreground/50 font-medium">
-          KPT Billing v1.0.1
+        <div className="flex items-center justify-center py-1">
+          <div className="inline-flex flex-col items-center gap-0.5">
+            <span className="text-[10px] font-medium text-muted-foreground/40 tracking-widest uppercase">
+              powered by
+            </span>
+            <span className="text-[20px] font-black tracking-tight text-primary/70 leading-none">
+              SarvaOne
+            </span>
+          </div>
         </div>
       </div>
     </aside>

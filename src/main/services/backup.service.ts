@@ -282,7 +282,7 @@ export class BackupService {
 /** Escape a JS value for a SQL INSERT literal */
 function sqlEscape(value: unknown): string {
   if (value === null || value === undefined) return 'NULL'
-  if (typeof value === 'number') return String(value)
+  if (typeof value === 'number' || typeof value === 'bigint') return String(value)
   if (typeof value === 'boolean') return value ? '1' : '0'
   if (value instanceof Buffer) return `X'${value.toString('hex')}'`
   // String — escape single quotes by doubling them

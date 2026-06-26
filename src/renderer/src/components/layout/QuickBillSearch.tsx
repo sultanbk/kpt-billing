@@ -28,6 +28,9 @@ import { formatCurrency } from '../../lib/utils'
 import { toast } from 'sonner'
 import { EditBillDialog } from '../billing/EditBillDialog'
 import type { Bill } from '@shared/types'
+import { billingService } from '../../services/billing.service'
+import { reportService } from '../../services/report.service'
+import { whatsappService } from '../../services/whatsapp.service'
 
 interface QuickBillSearchProps {
   open: boolean
@@ -67,7 +70,6 @@ export function QuickBillSearch({ open, onClose }: QuickBillSearchProps): React.
   // Load recent bills when dialog opens
   useEffect(() => {
     if (open) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setQuery('')
       setResults([])
       setSelectedIdx(0)
@@ -77,7 +79,7 @@ export function QuickBillSearch({ open, onClose }: QuickBillSearchProps): React.
       setFullBill(null)
       setShowReturnDialog(false)
       setTimeout(() => inputRef.current?.focus(), 50)
-      window.api.billing
+      billingService
         .getRecentBills(15)
         .then(setRecentBills)
         .catch(() => {})
@@ -104,7 +106,7 @@ export function QuickBillSearch({ open, onClose }: QuickBillSearchProps): React.
     }
     setLoading(true)
     try {
-      const found = await window.api.billing.quickSearch(term)
+      const found = await billingService.quickSearch(term)
       setResults(found)
     } catch {
       setResults([])
@@ -139,6 +141,14 @@ export function QuickBillSearch({ open, onClose }: QuickBillSearchProps): React.
         color: 'text-purple-500'
       },
       {
+        id: 'thermal',
+        label: 'Download Thermal',
+        icon: Download,
+        description: 'Download thermal receipt image',
+        shortcut: 'T',
+        color: 'text-slate-500'
+      },
+      {
         id: 'whatsapp',
         label: 'Send via WhatsApp',
         icon: MessageSquare,
@@ -167,62 +177,90 @@ export function QuickBillSearch({ open, onClose }: QuickBillSearchProps): React.
     setMode('actions')
   }, [])
 
-  const executeAction = useCallback(async (actionId: string, bill: Bill) => {
-    switch (actionId) {
-      case 'view': {
-        setLoadingBill(true)
-        setMode('view')
-        try {
-          const full = await window.api.billing.getById(bill.id)
-          setFullBill(full)
-        } catch {
-          toast.error('Failed to load bill details')
-          setMode('actions')
-        }
-        setLoadingBill(false)
-        break
-      }
-      case 'print': {
-        try {
-          toast.loading('Printing receipt...', { id: 'qbs-print' })
-          await window.api.billing.printReceipt(bill.id)
-          toast.success('Receipt sent to printer', { id: 'qbs-print' })
-        } catch {
-          toast.error('Failed to print receipt', { id: 'qbs-print' })
-        }
-        break
-      }
-      case 'download': {
-        try {
-          toast.loading('Generating PDF...', { id: 'qbs-pdf' })
-          const result = await window.api.billing.generatePdfReceipt(bill.id)
-          if (result.success) {
-            await window.api.report.openFile(result.path)
-            toast.success('PDF opened', { id: 'qbs-pdf' })
-          }
-        } catch {
-          toast.error('Failed to generate PDF', { id: 'qbs-pdf' })
-        }
-        break
-      }
-      case 'whatsapp': {
-        if (bill.customerPhone) {
-          try {
-            toast.loading('Sending via WhatsApp...', { id: 'qbs-wa' })
-            await window.api.whatsapp.sendBillReceipt(bill.id, bill.customerPhone)
-            toast.success('Sent via WhatsApp', { id: 'qbs-wa' })
-          } catch {
-            toast.error('Failed to send via WhatsApp', { id: 'qbs-wa' })
-          }
-        }
-        break
-      }
-      case 'return': {
-        setShowReturnDialog(true)
-        break
-      }
+  const downloadThermal = useCallback(async (bill: Bill) => {
+    try {
+      toast.loading('Preparing thermal receipt...', { id: 'qbs-thermal' })
+      const full = await billingService.getById(bill.id)
+      if (!full) throw new Error('missing bill')
+      const base64 = await billingService.getThermalReceiptImage(full)
+      if (!base64) throw new Error('missing buffer')
+      const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
+      const blob = new Blob([bytes], { type: 'image/png' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `thermal-receipt-${full.billNumber || full.billNo}.png`
+      a.click()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+      toast.success('Thermal receipt downloaded', { id: 'qbs-thermal' })
+    } catch {
+      toast.error('Failed to download thermal receipt', { id: 'qbs-thermal' })
     }
   }, [])
+
+  const executeAction = useCallback(
+    async (actionId: string, bill: Bill) => {
+      switch (actionId) {
+        case 'view': {
+          setLoadingBill(true)
+          setMode('view')
+          try {
+            const full = await billingService.getById(bill.id)
+            setFullBill(full)
+          } catch {
+            toast.error('Failed to load bill details')
+            setMode('actions')
+          }
+          setLoadingBill(false)
+          break
+        }
+        case 'print': {
+          try {
+            toast.loading('Printing receipt...', { id: 'qbs-print' })
+            await billingService.printReceipt(bill.id)
+            toast.success('Receipt sent to printer', { id: 'qbs-print' })
+          } catch {
+            toast.error('Failed to print receipt', { id: 'qbs-print' })
+          }
+          break
+        }
+        case 'download': {
+          try {
+            toast.loading('Generating PDF...', { id: 'qbs-pdf' })
+            const result = await billingService.generatePdfReceipt(bill.id)
+            if (result.success && result.path) {
+              await reportService.openFile(result.path)
+              toast.success('PDF opened', { id: 'qbs-pdf' })
+            }
+          } catch {
+            toast.error('Failed to generate PDF', { id: 'qbs-pdf' })
+          }
+          break
+        }
+        case 'thermal': {
+          await downloadThermal(bill)
+          break
+        }
+        case 'whatsapp': {
+          if (bill.customerPhone) {
+            try {
+              toast.loading('Sending via WhatsApp...', { id: 'qbs-wa' })
+              await whatsappService.sendBillReceipt(bill.id, bill.customerPhone)
+              toast.success('Sent via WhatsApp', { id: 'qbs-wa' })
+            } catch {
+              toast.error('Failed to send via WhatsApp', { id: 'qbs-wa' })
+            }
+          }
+          break
+        }
+        case 'return': {
+          setShowReturnDialog(true)
+          break
+        }
+      }
+    },
+    [downloadThermal]
+  )
 
   const goBack = useCallback(() => {
     if (mode === 'view') {
@@ -762,6 +800,15 @@ export function QuickBillSearch({ open, onClose }: QuickBillSearchProps): React.
                           D
                         </kbd>
                       </button>
+                      <button
+                        onClick={() => selectedBill && executeAction('thermal', selectedBill)}
+                        className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium bg-accent hover:bg-accent/80 transition-colors"
+                      >
+                        <Download className="h-3 w-3" /> Thermal
+                        <kbd className="ml-1 rounded bg-muted px-1 py-0.5 text-[9px] font-mono text-muted-foreground">
+                          T
+                        </kbd>
+                      </button>
                       {selectedBill?.customerPhone && (
                         <button
                           onClick={() => selectedBill && executeAction('whatsapp', selectedBill)}
@@ -807,6 +854,7 @@ export function QuickBillSearch({ open, onClose }: QuickBillSearchProps): React.
                   or press <kbd className="rounded bg-muted px-1 py-0.5 font-mono">V</kbd>{' '}
                   <kbd className="rounded bg-muted px-1 py-0.5 font-mono">P</kbd>{' '}
                   <kbd className="rounded bg-muted px-1 py-0.5 font-mono">D</kbd>{' '}
+                  <kbd className="rounded bg-muted px-1 py-0.5 font-mono">T</kbd>{' '}
                   <kbd className="rounded bg-muted px-1 py-0.5 font-mono">W</kbd>{' '}
                   <kbd className="rounded bg-muted px-1 py-0.5 font-mono">R</kbd>
                 </span>

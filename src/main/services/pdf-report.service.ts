@@ -109,7 +109,7 @@ tr:nth-child(even) { background:#fafaf8; }
 </div>
 ${body}
 <div class="footer">
-  Generated on ${new Date().toLocaleString('en-IN')} | ${shopName}
+  Generated on ${new Date().toLocaleString('en-IN')} &nbsp;|&nbsp; ${shopName} &nbsp;|&nbsp; <strong>Powered by SarvaOne</strong> &mdash; sarvaone.com
 </div>
 </body></html>`
 }

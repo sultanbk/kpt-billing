@@ -30,6 +30,7 @@ import { formatCurrency } from '../lib/utils'
 import { toast } from 'sonner'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
+import { customersService } from '../services/customers.service'
 
 dayjs.extend(relativeTime)
 
@@ -99,9 +100,9 @@ export default function CustomerAnalyticsPage(): React.JSX.Element {
     setLoading(true)
     try {
       const [topRaw, freqRaw, riskRaw] = await Promise.all([
-        window.api.customers.getTopByRevenue(50),
-        window.api.customers.getFrequency(),
-        window.api.customers.getCreditRisk()
+        customersService.getTopByRevenue(50),
+        customersService.getFrequency(),
+        customersService.getCreditRisk()
       ])
       setTopCustomers(topRaw.map((r) => mapRecord<TopCustomer>(r)))
       setFrequencyData(freqRaw.map((r) => mapRecord<FrequencyCustomer>(r)))
@@ -113,7 +114,6 @@ export default function CustomerAnalyticsPage(): React.JSX.Element {
   }, [])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData()
   }, [loadData])
 

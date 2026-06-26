@@ -23,9 +23,16 @@ function PageLoader(): React.JSX.Element {
   )
 }
 
+import { OwnerPinGate } from './components/layout'
+
 /** Wrapper that requires PIN for protected pages */
 function Protected({ children }: { children: React.ReactNode }): React.JSX.Element {
   return <PinGate>{children}</PinGate>
+}
+
+/** Wrapper that requires Owner PIN for owner-only pages */
+function OwnerProtected({ children }: { children: React.ReactNode }): React.JSX.Element {
+  return <OwnerPinGate>{children}</OwnerPinGate>
 }
 
 function App(): React.JSX.Element {
@@ -48,9 +55,9 @@ function App(): React.JSX.Element {
               path="dashboard"
               element={
                 <Suspense fallback={<PageLoader />}>
-                  <Protected>
+                  <OwnerProtected>
                     <DashboardPage />
-                  </Protected>
+                  </OwnerProtected>
                 </Suspense>
               }
             />
@@ -88,9 +95,9 @@ function App(): React.JSX.Element {
               path="reports"
               element={
                 <Suspense fallback={<PageLoader />}>
-                  <Protected>
+                  <OwnerProtected>
                     <ReportsPage />
-                  </Protected>
+                  </OwnerProtected>
                 </Suspense>
               }
             />
@@ -98,9 +105,9 @@ function App(): React.JSX.Element {
               path="customer-analytics"
               element={
                 <Suspense fallback={<PageLoader />}>
-                  <Protected>
+                  <OwnerProtected>
                     <CustomerAnalyticsPage />
-                  </Protected>
+                  </OwnerProtected>
                 </Suspense>
               }
             />
@@ -108,9 +115,9 @@ function App(): React.JSX.Element {
               path="credit-aging"
               element={
                 <Suspense fallback={<PageLoader />}>
-                  <Protected>
+                  <OwnerProtected>
                     <CreditAgingPage />
-                  </Protected>
+                  </OwnerProtected>
                 </Suspense>
               }
             />
@@ -118,9 +125,9 @@ function App(): React.JSX.Element {
               path="data-export"
               element={
                 <Suspense fallback={<PageLoader />}>
-                  <Protected>
+                  <OwnerProtected>
                     <DataExportPage />
-                  </Protected>
+                  </OwnerProtected>
                 </Suspense>
               }
             />
@@ -128,9 +135,9 @@ function App(): React.JSX.Element {
               path="settings"
               element={
                 <Suspense fallback={<PageLoader />}>
-                  <Protected>
+                  <OwnerProtected>
                     <SettingsPage />
-                  </Protected>
+                  </OwnerProtected>
                 </Suspense>
               }
             />

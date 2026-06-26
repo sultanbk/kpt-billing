@@ -26,14 +26,19 @@ export class CreditPaymentRepository {
 
       if (!customer) throw new Error('Customer not found')
 
-      const balanceBefore = customer.current_balance
+      const balanceBefore = Math.round(customer.current_balance * 100) / 100
       if (balanceBefore <= 0) throw new Error('Customer has no outstanding credit')
       if (data.amount <= 0) throw new Error('Payment amount must be positive')
-      if (data.amount > balanceBefore) {
-        throw new Error(`Payment ₹${data.amount} exceeds outstanding balance ₹${balanceBefore}`)
-      }
 
-      const balanceAfter = Math.round((balanceBefore - data.amount) * 100) / 100
+      const roundedAmount = Math.round(data.amount * 100) / 100
+      // Allow 1-paisa tolerance for floating-point rounding on final payment
+      let paymentAmount = roundedAmount
+      if (roundedAmount > balanceBefore && roundedAmount <= balanceBefore + 0.01) {
+        paymentAmount = balanceBefore
+      } else if (roundedAmount > balanceBefore) {
+        throw new Error(`Payment ₹${roundedAmount} exceeds outstanding balance ₹${balanceBefore}`)
+      }
+      const balanceAfter = Math.round((balanceBefore - paymentAmount) * 100) / 100
       const today = getLocalDateString()
 
       // 2. Insert credit_payments record

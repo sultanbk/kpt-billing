@@ -4,6 +4,7 @@
 // ============================================================================
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Lock, Eye, EyeOff } from 'lucide-react'
+import { authService } from '../../services/auth.service'
 
 interface LockScreenProps {
   open: boolean
@@ -28,7 +29,6 @@ export function LockScreen({ open, onUnlock }: LockScreenProps): React.JSX.Eleme
   // Focus input when shown
   useEffect(() => {
     if (open) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPin('')
       setError('')
       setTimeout(() => inputRef.current?.focus(), 100)
@@ -43,7 +43,7 @@ export function LockScreen({ open, onUnlock }: LockScreenProps): React.JSX.Eleme
     setVerifying(true)
     setError('')
     try {
-      const result = await window.api.auth.verifyPin(pin)
+      const result = await authService.verifyPin(pin)
       if (result.success) {
         setPin('')
         setError('')

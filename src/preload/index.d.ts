@@ -16,7 +16,7 @@ interface ProductsApi {
   ): Promise<import('../shared/types').Product>
   delete(id: number): Promise<boolean>
   import(
-    rows: import('../shared/types').ProductFormData[]
+    input: string[] | import('../shared/types').ProductFormData[]
   ): Promise<import('../shared/types').ImportResult>
   getLowStock(): Promise<import('../shared/types').Product[]>
   getOutOfStock(): Promise<import('../shared/types').Product[]>
@@ -36,6 +36,34 @@ interface ProductsApi {
   bulkStockUpdate(
     items: { sku?: string; barcode?: string; stock: number }[]
   ): Promise<import('../shared/types').ImportResult>
+  downloadLabels(payload: {
+    productId: number
+    quantity: number
+    labelSize?: '46x25' | '60x40'
+  }): Promise<{ success: boolean; path: string }>
+  printLabels(
+    payload: import('../shared/types').ProductLabelPrintRequest
+  ): Promise<import('../shared/types').ProductLabelPrintResult>
+  printTestLabel(payload: {
+    printerName?: string
+    labelSize?: '46x25' | '60x40'
+    barcodeNudgeX?: string
+    barcodeNudgeY?: string
+    barcodeWidth?: string
+    barcodeHeight?: string
+    barcodeShopFontSize?: string
+    barcodeNameFontSize?: string
+    barcodePriceFontSize?: string
+    barcodeCodeFontSize?: string
+    barcodeShopAlign?: string
+    barcodeNameAlign?: string
+    barcodePriceAlign?: string
+    barcodeCodeAlign?: string
+    barcodePaddingX?: string
+    barcodePaddingY?: string
+    barcodeGap?: string
+    barcodeShowCode?: boolean
+  }): Promise<import('../shared/types').ProductLabelPrintResult>
 }
 
 interface CategoriesApi {
@@ -87,6 +115,7 @@ interface BillingApi {
   getMonthlySummary(yearMonth?: string): Promise<unknown>
   getYearlySummary(year?: number): Promise<unknown>
   getPeriodSummary(dateFrom: string, dateTo: string): Promise<unknown>
+  getThermalReceiptImage(bill: import('../shared/types').Bill): Promise<string | null>
 }
 
 interface CustomersApi {
@@ -110,6 +139,7 @@ interface CustomersApi {
 }
 
 interface CreditApi {
+  onCreated(callback: (payload: { purchaseId: number; productIds: number[] }) => void): () => void
   recordPayment(
     data: import('../shared/types').CreditPaymentCreateData
   ): Promise<import('../shared/types').CreditPayment>
@@ -162,7 +192,30 @@ interface PrinterApi {
   getAvailable(): Promise<string[]>
   setReceipt(name: string): Promise<boolean>
   testPrint(): Promise<boolean>
+  diagnostics(name?: string): Promise<{
+    selectedPrinter: string
+    configuredPrinter: string
+    availablePrinters: string[]
+    windowsDetails: {
+      name: string
+      printerStatus: number | null
+      workOffline: boolean | null
+      portName: string | null
+      driverName: string | null
+      isDefault: boolean | null
+    } | null
+    checks: {
+      printerSelected: boolean
+      serviceBoundToSelection: boolean
+      selectedExistsInSystem: boolean
+      windowsReportsOffline: boolean
+    }
+    recommendations: string[]
+    checkedAt: string
+  }>
   printReceipt(billId: number): Promise<boolean>
+  printPaymentDetails(paymentMethod: unknown): Promise<boolean>
+  downloadPaymentDetailsPdf(paymentMethod: unknown): Promise<boolean>
 }
 
 interface DialogApi {
@@ -204,6 +257,7 @@ interface SuppliersApi {
 
 interface PurchasesApi {
   getNextNumber(): Promise<string>
+  onCreated(callback: (payload: { purchaseId: number; productIds: number[] }) => void): () => void
   create(
     data: import('../shared/types').PurchaseCreateData
   ): Promise<import('../shared/types').Purchase>

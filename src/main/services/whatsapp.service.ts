@@ -67,19 +67,19 @@ function billReceiptMessage(bill: {
   }>
   exchangeFromBillNo?: string | null
 }): string {
-  const lines: string[] = [`🧾 *${SHOP_NAME}*`, `──────────────`]
+  const lines: string[] = [`*${SHOP_NAME}*`, `Invoice`, `──────────────`]
 
   // If this is an exchange bill, show a banner at top
   if (bill.exchangeFromBillNo) {
-    lines.push(`🔄 *Exchange Bill* _(against ${bill.exchangeFromBillNo})_`)
+    lines.push(`Exchange Bill (against ${bill.exchangeFromBillNo})`)
     lines.push(`──────────────`)
   }
 
-  lines.push(`*Bill No:* ${bill.billNumber}`)
-  lines.push(`*Date:* ${bill.date}`)
-  if (bill.customerName) lines.push(`*Customer:* ${bill.customerName}`)
+  lines.push(`Bill No: ${bill.billNumber}`)
+  lines.push(`Date: ${bill.date}`)
+  if (bill.customerName) lines.push(`Customer: ${bill.customerName}`)
   lines.push(``)
-  lines.push(`*Items:*`)
+  lines.push(`Items`)
 
   let displayIdx = 1
   bill.items.forEach((item) => {
@@ -90,17 +90,17 @@ function billReceiptMessage(bill: {
     if (returnedQty >= item.quantity) {
       // Fully returned — strikethrough in WhatsApp
       lines.push(
-        `${displayIdx++}. ~${item.productName} × ${item.quantity} = ₹${formatCurrencyPlain(item.total)}~ _(Returned)_`
+        `${displayIdx++}. ~${item.productName} x ${item.quantity} = ₹${formatCurrencyPlain(item.total)}~ (Returned)`
       )
     } else if (returnedQty > 0) {
       // Partial return — show net qty with note
       const netTotal = pricePerUnit * netQty
       lines.push(
-        `${displayIdx++}. ${item.productName} × ${netQty} = ₹${formatCurrencyPlain(netTotal)} _(${returnedQty} returned)_`
+        `${displayIdx++}. ${item.productName} x ${netQty} = ₹${formatCurrencyPlain(netTotal)} (${returnedQty} returned)`
       )
     } else {
       lines.push(
-        `${displayIdx++}. ${item.productName} × ${item.quantity} = ₹${formatCurrencyPlain(item.total)}`
+        `${displayIdx++}. ${item.productName} x ${item.quantity} = ₹${formatCurrencyPlain(item.total)}`
       )
     }
   })
@@ -108,17 +108,17 @@ function billReceiptMessage(bill: {
   lines.push(``)
   lines.push(`──────────────`)
   if (bill.hasReturns) {
-    lines.push(`_Totals reflect post-return amounts_`)
+    lines.push(`Totals reflect post-return amounts.`)
   }
-  lines.push(`*Subtotal:* ₹${formatCurrencyPlain(bill.subtotal)}`)
+  lines.push(`Subtotal: ₹${formatCurrencyPlain(bill.subtotal)}`)
   if (bill.discountAmount > 0) {
-    lines.push(`*Discount:* -₹${formatCurrencyPlain(bill.discountAmount)}`)
+    lines.push(`Discount: -₹${formatCurrencyPlain(bill.discountAmount)}`)
   }
   if (bill.gstAmount > 0) {
-    lines.push(`*GST:* ₹${formatCurrencyPlain(bill.gstAmount)}`)
+    lines.push(`GST: ₹${formatCurrencyPlain(bill.gstAmount)}`)
   }
-  lines.push(`*Grand Total:* ₹${formatCurrencyPlain(bill.grandTotal)}`)
-  lines.push(`*Payment:* ${bill.paymentMode.toUpperCase()}`)
+  lines.push(`Grand Total: ₹${formatCurrencyPlain(bill.grandTotal)}`)
+  lines.push(`Payment: ${bill.paymentMode.toUpperCase()}`)
 
   // Returns / Exchanges section
   if (bill.returns && bill.returns.length > 0) {
@@ -126,23 +126,23 @@ function billReceiptMessage(bill: {
     for (const r of bill.returns) {
       const isExchange = r.type === 'exchange'
       if (isExchange) {
-        lines.push(`🔄 *Exchange Applied*`)
+        lines.push(`Exchange Applied`)
         if (r.itemsSummary)
           lines.push(
-            `  ↩ Returned: ${r.itemsSummary} | Value: ₹${formatCurrencyPlain(r.returnAmount)}`
+            `  Returned: ${r.itemsSummary} | Value: ₹${formatCurrencyPlain(r.returnAmount)}`
           )
-        if (r.newBillNo) lines.push(`  📄 New Bill: *${r.newBillNo}*`)
+        if (r.newBillNo) lines.push(`  New Bill: ${r.newBillNo}`)
         if (r.exchangeAmount > 0)
-          lines.push(`  🛍 Exchange Items: ₹${formatCurrencyPlain(r.exchangeAmount)}`)
+          lines.push(`  Exchange Items: ₹${formatCurrencyPlain(r.exchangeAmount)}`)
         const net = r.netAmount
-        if (net > 0) lines.push(`  💳 Net Paid by Customer: ₹${formatCurrencyPlain(net)}`)
+        if (net > 0) lines.push(`  Net Paid by Customer: ₹${formatCurrencyPlain(net)}`)
         else if (net < 0)
           lines.push(
-            `  💰 Net Refund to Customer: ₹${formatCurrencyPlain(Math.abs(net))} via ${r.refundMode.toUpperCase()}`
+            `  Net Refund to Customer: ₹${formatCurrencyPlain(Math.abs(net))} via ${r.refundMode.toUpperCase()}`
           )
-        else lines.push(`  ✅ No extra amount (net zero)`)
+        else lines.push(`  No extra amount (net zero)`)
       } else {
-        lines.push(`↩️ *Return Applied*`)
+        lines.push(`Return Applied`)
         if (r.itemsSummary) lines.push(`  Items: ${r.itemsSummary}`)
         lines.push(
           `  Refund: ₹${formatCurrencyPlain(r.returnAmount)} via ${r.refundMode.toUpperCase()}`
@@ -153,23 +153,25 @@ function billReceiptMessage(bill: {
 
   lines.push(`──────────────`)
   lines.push(``)
-  lines.push(`Thank you for shopping with us! 🙏`)
+  lines.push(`Thank you for shopping with us.`)
+  lines.push(``)
+  // lines.push(`_Powered by SarvaOne_`)
 
   return lines.join('\n')
 }
 
 function creditReminderMessage(customer: { name: string; currentBalance: number }): string {
   return [
-    `🔔 *Payment Reminder*`,
+    `Payment Reminder`,
     ``,
     `Dear ${customer.name},`,
     ``,
-    `This is a gentle reminder that you have a pending balance of *₹${formatCurrencyPlain(customer.currentBalance)}* at *${SHOP_NAME}*.`,
+    `This is a gentle reminder that your outstanding balance is ₹${formatCurrencyPlain(customer.currentBalance)} at ${SHOP_NAME}.`,
     ``,
-    `Request you to kindly clear the dues at your earliest convenience.`,
+    `Kindly clear the dues at your earliest convenience.`,
     ``,
-    `Thank you! 🙏`,
-    `— ${SHOP_NAME}`
+    `Thank you.`,
+    `${SHOP_NAME}`
   ].join('\n')
 }
 
@@ -181,18 +183,18 @@ function paymentConfirmationMessage(data: {
   date: string
 }): string {
   return [
-    `✅ *Payment Received*`,
+    `Payment Received`,
     ``,
     `Dear ${data.customerName},`,
     ``,
-    `We have received your payment of *₹${formatCurrencyPlain(data.amountPaid)}* via ${data.paymentMode.toUpperCase()} on ${data.date}.`,
+    `We have received your payment of ₹${formatCurrencyPlain(data.amountPaid)} via ${data.paymentMode.toUpperCase()} on ${data.date}.`,
     ``,
     data.remainingBalance > 0
-      ? `Remaining balance: *₹${formatCurrencyPlain(data.remainingBalance)}*`
-      : `Your account is now fully settled. ✨`,
+      ? `Remaining balance: ₹${formatCurrencyPlain(data.remainingBalance)}`
+      : `Your account is now fully settled.`,
     ``,
-    `Thank you! 🙏`,
-    `— ${SHOP_NAME}`
+    `Thank you.`,
+    `${SHOP_NAME}`
   ].join('\n')
 }
 

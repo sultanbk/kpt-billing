@@ -74,6 +74,26 @@ describe('ProductRepository', () => {
         .all(product.id)
       expect(ledger).toHaveLength(0)
     })
+
+    it('generates a SKU after the highest existing SKU sequence', () => {
+      insertTestProduct(testDb, {
+        name: 'Old Deleted Product',
+        sku: 'KPT-SAR-00042',
+        isActive: 0
+      })
+
+      const product = repo.create({
+        name: 'Fresh Product',
+        hsnCode: '5007',
+        costPrice: 100,
+        sellingPrice: 200,
+        gstRate: 5,
+        stock: 1,
+        categoryId: 1
+      })
+
+      expect(product.sku).toBe('KPT-SAR-00043')
+    })
   })
 
   describe('getById', () => {

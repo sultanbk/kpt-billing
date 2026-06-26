@@ -1,8 +1,9 @@
 // ============================================================================
 // KPT Billing - Supplier & Purchase IPC Handlers (secured with validation & audit)
 // ============================================================================
+import { BrowserWindow } from 'electron'
 import { supplierRepo } from '../database/repositories/supplier.repo'
-import { purchaseRepo } from '../database/repositories/purchase.repo'
+import { purchaseService } from '../services/purchase.service'
 import { writeAuditLog } from '../database/audit'
 import { safeHandle, validate } from './ipc-guard'
 import {
@@ -75,12 +76,12 @@ export function registerSupplierPurchaseIpc(): void {
 
   // ---- Purchases ----
   safeHandle('purchases:getNextNumber', () => {
-    return purchaseRepo.getNextPurchaseNumber()
+    return purchaseService.getNextPurchaseNumber()
   })
 
   safeHandle('purchases:create', (_event, data) => {
     const validated = validate(purchaseCreateSchema, data)
-    const result = purchaseRepo.create(validated as Parameters<typeof purchaseRepo.create>[0])
+    const result = purchaseService.create(validated as Parameters<typeof purchaseService.create>[0])
     log.info(`Purchase created: ${result.purchaseNo} - ${result.grandTotal}`)
     writeAuditLog({
       action: 'create',
@@ -88,23 +89,30 @@ export function registerSupplierPurchaseIpc(): void {
       entityId: result.id,
       newValue: { purchaseNo: result.purchaseNo, grandTotal: result.grandTotal }
     })
+
+    const productIds = validated.items
+      .map((item) => item.productId)
+      .filter((id): id is number => typeof id === 'number')
+    BrowserWindow.getAllWindows().forEach((win) => {
+      win.webContents.send('purchases:created', { purchaseId: result.id, productIds })
+    })
     return result
   })
 
   safeHandle('purchases:getById', (_event, id) => {
-    return purchaseRepo.getById(validate(idSchema, id))
+    return purchaseService.getById(validate(idSchema, id))
   })
 
   safeHandle('purchases:getAll', (_event, filters?) => {
-    return purchaseRepo.getAll(validate(purchaseFiltersSchema, filters))
+    return purchaseService.getAll(validate(purchaseFiltersSchema, filters))
   })
 
   safeHandle('purchases:getRecent', (_event, limit?) => {
-    return purchaseRepo.getRecentPurchases(validate(limitSchema, limit))
+    return purchaseService.getRecentPurchases(validate(limitSchema, limit))
   })
 
   safeHandle('purchases:getSummary', (_event, dateFrom, dateTo) => {
-    return purchaseRepo.getPurchaseSummary(
+    return purchaseService.getPurchaseSummary(
       validate(dateSchema, dateFrom),
       validate(dateSchema, dateTo)
     )
@@ -113,7 +121,7 @@ export function registerSupplierPurchaseIpc(): void {
   safeHandle('purchases:delete', (_event, id) => {
     const validId = validate(idSchema, id)
     writeAuditLog({ action: 'delete', entityType: 'purchase', entityId: validId })
-    purchaseRepo.delete(validId)
+    purchaseService.delete(validId)
     log.info(`Purchase deleted: ${validId}`)
     return true
   })

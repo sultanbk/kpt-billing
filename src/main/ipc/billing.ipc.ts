@@ -16,6 +16,7 @@ import { settingsRepo } from '../database/repositories/settings.repo'
 import { getSqlite } from '../database/connection'
 import { writeAuditLog } from '../database/audit'
 import { safeHandle, validate } from './ipc-guard'
+import type { Bill } from '../../shared/types'
 import {
   idSchema,
   limitSchema,
@@ -117,6 +118,7 @@ export function registerBillingIpc(): void {
       const result = await pdfReceiptService.generatePdf(bill, shopInfo)
       return result.success
     }
+    thermalPrinterService.setPrinter(printerName)
     return thermalPrinterService.printReceipt(bill, shopInfo)
   })
 
@@ -555,4 +557,10 @@ export function registerBillingIpc(): void {
       )
     }
   )
+
+  safeHandle('billing:getThermalReceiptImage', async (_event, bill) => {
+    const validBill = validate(z.custom<Bill>(), bill)
+    const shopInfo = settingsRepo.getAll()
+    return thermalPrinterService.getReceiptImageBuffer(validBill, shopInfo)
+  })
 }

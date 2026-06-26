@@ -103,9 +103,11 @@ export interface Product {
   brand: string | null
   hsnCode: string
   costPrice: number
+  mrp?: number
   sellingPrice: number
   wholesalePrice: number | null
   gstRate: number // 0, 5, 12, 18, 28
+  priceIncludesGst: boolean // true = prices are GST-inclusive
   stock: number
   lowStockThreshold: number | null
   unit: string | null
@@ -131,9 +133,11 @@ export interface ProductFormData {
   brand?: string
   hsnCode?: string
   costPrice: number
+  mrp?: number
   sellingPrice: number
   wholesalePrice?: number
   gstRate: number
+  priceIncludesGst?: boolean
   stock: number
   unit?: string
   lowStockThreshold?: number
@@ -143,6 +147,23 @@ export interface ProductFormData {
   material?: string
   description?: string
   isActive?: boolean
+}
+
+export type ProductLabelSize = '46x25' | '60x40'
+
+export interface ProductLabelPrintRequest {
+  productId: number
+  quantity: number
+  printerName?: string
+  labelSize?: ProductLabelSize
+}
+
+export interface ProductLabelPrintResult {
+  success: boolean
+  printerName: string
+  quantity: number
+  labelSize: ProductLabelSize
+  barcodeValue: string
 }
 
 // ---- Billing ----
@@ -166,6 +187,7 @@ export interface BillItem {
   total: number
   /** Quantity already returned for this line item (populated by getById) */
   returnedQty?: number
+  stock?: number
 }
 
 export interface BillPayment {
@@ -210,6 +232,7 @@ export interface Bill {
   salesmanName: string | null
   totalItems: number
   totalQty: number
+  notes?: string | null
   createdBy: string | null
   createdAt: string
   items?: BillItem[]
@@ -235,19 +258,20 @@ export interface BillReturnInfo {
 export interface BillCreateData {
   customerName?: string
   customerPhone?: string
-  customerId?: number | string | null
+  customerId?: number | null
   items: Partial<BillItem>[]
   payment: BillPayment
   discount?: number
   discountType?: 'percentage' | 'amount'
   salesmanName?: string
+  createdBy?: string
 }
 
 export interface HeldBill {
   id: string
   customerName?: string
   customerPhone?: string
-  customerId?: string | null
+  customerId?: number | null
   items: BillItem[]
   discount?: number
   discountType?: 'percentage' | 'amount'
@@ -400,6 +424,8 @@ export interface AppSettings {
   stateCode: string
   bankDetails: string
   logoPath: string
+  upiVpa: string
+  upiPayeeName: string
   billPrefix: string
   financialYearStart: string
   defaultTaxType: 'inclusive' | 'exclusive'
@@ -411,6 +437,11 @@ export interface AppSettings {
   autoPrintReceipt: boolean
   receiptPrinterName: string
   labelPrinterName: string
+  barcodeLabelSize?: string
+  barcodeNudgeX?: string
+  barcodeNudgeY?: string
+  barcodeWidth?: string
+  barcodeHeight?: string
   a4PrinterName: string
   receiptCopies: number
   backupFrequency: 'hourly' | '4hours' | 'daily'
@@ -419,6 +450,26 @@ export interface AppSettings {
   backupRetention: number
   theme: 'light' | 'dark'
   fontSize: 'small' | 'medium' | 'large'
+  barcodeShowName?: boolean
+  barcodeShowShopName?: boolean
+  barcodeShowSaleName?: boolean
+  barcodeSaleNameText?: string
+  barcodeShowMrp?: boolean
+  barcodeShowSellingPrice?: boolean
+  barcodeStrikeMrp?: boolean
+  barcodeShowDiscount?: boolean
+  barcodeShopFontSize?: string
+  barcodeNameFontSize?: string
+  barcodePriceFontSize?: string
+  barcodeCodeFontSize?: string
+  barcodeShopAlign?: string
+  barcodeNameAlign?: string
+  barcodePriceAlign?: string
+  barcodeCodeAlign?: string
+  barcodePaddingX?: string
+  barcodePaddingY?: string
+  barcodeGap?: string
+  barcodeShowCode?: boolean
 }
 
 // ---- Stock Ledger ----

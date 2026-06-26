@@ -42,8 +42,12 @@ import type {
   ReturnItem,
   ExchangeItem,
   BillReturnData,
+  BillReturnInfo,
   BillReturnResult
 } from '@shared/types'
+import { billingService } from '../../services/billing.service'
+import { productsService } from '../../services/products.service'
+import { whatsappService } from '../../services/whatsapp.service'
 
 interface EditBillDialogProps {
   open: boolean
@@ -74,7 +78,7 @@ export function EditBillDialog({
   // Selected bill
   const [bill, setBill] = useState<Bill | null>(null)
   const [returnedQtyMap, setReturnedQtyMap] = useState<Record<number, number>>({})
-  const [returnHistory, setReturnHistory] = useState<Record<string, unknown>[]>([])
+  const [returnHistory, setReturnHistory] = useState<BillReturnInfo[]>([])
   const [showHistory, setShowHistory] = useState(false)
 
   // Return items state: keyed by bill_item id
@@ -99,7 +103,6 @@ export function EditBillDialog({
   // Reset everything when dialog opens/closes
   useEffect(() => {
     if (open) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSearchQuery('')
       setSearchResults([])
       setSelectedBillIdx(0)
@@ -120,12 +123,12 @@ export function EditBillDialog({
       // If initialBillId is provided, auto-load that bill
       if (initialBillId) {
         setStep('search') // brief loading state
-        window.api.billing.getById(initialBillId).then((full) => {
+        billingService.getById(initialBillId).then((full) => {
           if (full && full.items?.length) {
             // Use selectBill-like logic inline
             setBill(full)
-            window.api.billing.getReturnedQtyMap(full.id).then(setReturnedQtyMap)
-            window.api.billing.getReturnHistory(full.id).then(setReturnHistory)
+            billingService.getReturnedQtyMap(full.id).then(setReturnedQtyMap)
+            billingService.getReturnHistory(full.id).then(setReturnHistory)
             const qtys: Record<number, number> = {}
             for (const item of full.items) qtys[Number(item.id)] = 0
             setReturnQtys(qtys)
@@ -156,7 +159,7 @@ export function EditBillDialog({
     }
     setSearching(true)
     try {
-      const bills = await window.api.billing.quickSearch(term)
+      const bills = await billingService.quickSearch(term)
       // Only show completed / partially returned bills
       setSearchResults(bills.filter((b) => b.status !== 'cancelled'))
     } catch {
@@ -167,7 +170,7 @@ export function EditBillDialog({
 
   const selectBill = useCallback(async (b: Bill) => {
     // Load full bill with items
-    const full = await window.api.billing.getById(b.id)
+    const full = await billingService.getById(b.id)
     if (!full || !full.items?.length) {
       toast.error('Could not load bill details')
       return
@@ -175,11 +178,11 @@ export function EditBillDialog({
     setBill(full)
 
     // Load already-returned quantities
-    const qtyMap = await window.api.billing.getReturnedQtyMap(full.id)
+    const qtyMap = await billingService.getReturnedQtyMap(full.id)
     setReturnedQtyMap(qtyMap)
 
     // Load return history
-    const history = await window.api.billing.getReturnHistory(full.id)
+    const history = await billingService.getReturnHistory(full.id)
     setReturnHistory(history)
 
     // Init return qtys to 0
@@ -206,7 +209,7 @@ export function EditBillDialog({
       return
     }
     try {
-      const products = await window.api.products.search(term)
+      const products = await productsService.search(term)
       setExSearchResults(products.slice(0, 10))
       setShowExSearch(products.length > 0)
     } catch {
@@ -392,7 +395,7 @@ export function EditBillDialog({
         refundMode
       }
 
-      const res = await window.api.billing.processReturn(data)
+      const res = await billingService.processReturn(data)
       if (res.success) {
         setResult(res)
         setStep('done')
@@ -580,17 +583,17 @@ export function EditBillDialog({
                       >
                         [{rh.type as string}]
                       </span>
-                      <span>{rh.items_summary as string}</span>
+                      <span>{rh.itemsSummary}</span>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
-                      {(rh.return_amount as number) > 0 && (
+                      {rh.returnAmount > 0 && (
                         <span className="font-amount">
-                          Refund: {formatCurrency(rh.return_amount as number)}
+                          Refund: {formatCurrency(rh.returnAmount)}
                         </span>
                       )}
-                      {(rh.exchange_amount as number) > 0 && (
+                      {rh.exchangeAmount > 0 && (
                         <span className="font-amount text-blue-600">
-                          Exchange: {formatCurrency(rh.exchange_amount as number)}
+                          Exchange: {formatCurrency(rh.exchangeAmount)}
                         </span>
                       )}
                     </div>
@@ -1406,7 +1409,7 @@ export function EditBillDialog({
                     className="flex-1 gap-2 rounded-lg"
                     onClick={async () => {
                       try {
-                        await window.api.billing.printReceipt(result.newBillId!)
+                        await billingService.printReceipt(result.newBillId!)
                         toast.success('Exchange bill sent to printer')
                       } catch {
                         toast.error('Print failed')
@@ -1421,7 +1424,7 @@ export function EditBillDialog({
                     className="flex-1 gap-2 rounded-lg"
                     onClick={async () => {
                       try {
-                        const r = await window.api.billing.generatePdfReceipt(result.newBillId!)
+                        const r = await billingService.generatePdfReceipt(result.newBillId!)
                         if (r.success && r.path) toast.success(`Saved: ${r.path}`)
                         else toast.error('PDF generation failed')
                       } catch {
@@ -1431,6 +1434,40 @@ export function EditBillDialog({
                   >
                     <Download className="h-4 w-4" />
                     Download PDF
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 gap-2 rounded-lg"
+                    onClick={async () => {
+                      if (!result.newBillId) return
+                      try {
+                        const billForThermal = await billingService.getById(result.newBillId)
+                        if (!billForThermal) {
+                          toast.error('Could not load bill details for thermal print')
+                          return
+                        }
+                        const base64 = await billingService.getThermalReceiptImage(billForThermal)
+                        if (base64) {
+                          const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
+                          const blob = new Blob([bytes], { type: 'image/png' })
+                          const url = URL.createObjectURL(blob)
+                          const a = document.createElement('a')
+                          a.href = url
+                          a.download = `thermal-receipt-${billForThermal.billNo}.png`
+                          a.click()
+                          setTimeout(() => URL.revokeObjectURL(url), 1000)
+                          toast.success('Thermal receipt downloaded')
+                        } else {
+                          toast.error('Failed to generate thermal receipt image')
+                        }
+                      } catch (err) {
+                        toast.error('Failed to download thermal receipt')
+                        console.error(err)
+                      }
+                    }}
+                  >
+                    <Download className="h-4 w-4" />
+                    Thermal
                   </Button>
                 </div>
               )}
@@ -1442,7 +1479,7 @@ export function EditBillDialog({
                   className="flex-1 gap-2 rounded-lg"
                   onClick={async () => {
                     try {
-                      await window.api.billing.printReceipt(bill!.id)
+                      await billingService.printReceipt(bill!.id)
                       toast.success('Original bill receipt sent to printer')
                     } catch {
                       toast.error('Print failed')
@@ -1457,7 +1494,7 @@ export function EditBillDialog({
                   className="flex-1 gap-2 rounded-lg"
                   onClick={async () => {
                     try {
-                      const r = await window.api.billing.generatePdfReceipt(bill!.id)
+                      const r = await billingService.generatePdfReceipt(bill!.id)
                       if (r.success && r.path) toast.success(`Saved: ${r.path}`)
                       else toast.error('PDF generation failed')
                     } catch {
@@ -1481,7 +1518,7 @@ export function EditBillDialog({
                       className="w-full gap-2 rounded-lg text-green-600 border-green-200 hover:bg-green-50 dark:hover:bg-green-900/10"
                       onClick={async () => {
                         try {
-                          const res = await window.api.whatsapp.sendBillReceipt(
+                          const res = await whatsappService.sendBillReceipt(
                             bill!.id,
                             bill!.customerPhone!
                           )
@@ -1500,7 +1537,7 @@ export function EditBillDialog({
                       className="w-full gap-2 rounded-lg text-green-600 border-green-200 hover:bg-green-50 dark:hover:bg-green-900/10"
                       onClick={async () => {
                         try {
-                          const res = await window.api.whatsapp.sendBillReceipt(
+                          const res = await whatsappService.sendBillReceipt(
                             result.newBillId!,
                             bill!.customerPhone!
                           )
@@ -1521,7 +1558,7 @@ export function EditBillDialog({
                     className="w-full gap-2 rounded-lg text-green-600 border-green-200 hover:bg-green-50 dark:hover:bg-green-900/10"
                     onClick={async () => {
                       try {
-                        const res = await window.api.whatsapp.sendBillReceipt(
+                        const res = await whatsappService.sendBillReceipt(
                           bill!.id,
                           bill!.customerPhone!
                         )

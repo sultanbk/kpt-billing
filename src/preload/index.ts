@@ -23,7 +23,38 @@ const api = {
     getPriceHistory: (productId: number, limit?: number) =>
       ipcRenderer.invoke('products:getPriceHistory', productId, limit),
     bulkStockUpdate: (items: { sku?: string; barcode?: string; stock: number }[]) =>
-      ipcRenderer.invoke('products:bulkStockUpdate', items)
+      ipcRenderer.invoke('products:bulkStockUpdate', items),
+    downloadLabels: (payload: {
+      productId: number
+      quantity: number
+      labelSize?: '46x25' | '60x40'
+    }) => ipcRenderer.invoke('products:downloadLabels', payload),
+    printLabels: (payload: {
+      productId: number
+      quantity: number
+      printerName?: string
+      labelSize?: '46x25' | '60x40'
+    }) => ipcRenderer.invoke('products:printLabels', payload),
+    printTestLabel: (payload: {
+      printerName?: string
+      labelSize?: '46x25' | '60x40'
+      barcodeNudgeX?: string
+      barcodeNudgeY?: string
+      barcodeWidth?: string
+      barcodeHeight?: string
+      barcodeShopFontSize?: string
+      barcodeNameFontSize?: string
+      barcodePriceFontSize?: string
+      barcodeCodeFontSize?: string
+      barcodeShopAlign?: string
+      barcodeNameAlign?: string
+      barcodePriceAlign?: string
+      barcodeCodeAlign?: string
+      barcodePaddingX?: string
+      barcodePaddingY?: string
+      barcodeGap?: string
+      barcodeShowCode?: boolean
+    }) => ipcRenderer.invoke('products:printTestLabel', payload)
   },
   // Suppliers
   suppliers: {
@@ -44,7 +75,19 @@ const api = {
     getRecent: (limit?: number) => ipcRenderer.invoke('purchases:getRecent', limit),
     getSummary: (dateFrom: string, dateTo: string) =>
       ipcRenderer.invoke('purchases:getSummary', dateFrom, dateTo),
-    delete: (id: number) => ipcRenderer.invoke('purchases:delete', id)
+    delete: (id: number) => ipcRenderer.invoke('purchases:delete', id),
+    onCreated: (
+      callback: (payload: { purchaseId: number; productIds: number[] }) => void
+    ): (() => void) => {
+      const listener = (
+        _event: Electron.IpcRendererEvent,
+        payload: { purchaseId: number; productIds: number[] }
+      ): void => {
+        callback(payload)
+      }
+      ipcRenderer.on('purchases:created', listener)
+      return () => ipcRenderer.removeListener('purchases:created', listener)
+    }
   },
   // Categories
   categories: {
@@ -72,6 +115,8 @@ const api = {
     printReceipt: (billId: number) => ipcRenderer.invoke('billing:printReceipt', billId),
     generatePdfReceipt: (billId: number) =>
       ipcRenderer.invoke('billing:generatePdfReceipt', billId),
+    getThermalReceiptImage: (bill: unknown) =>
+      ipcRenderer.invoke('billing:getThermalReceiptImage', bill),
     getReceiptsDir: () => ipcRenderer.invoke('billing:getReceiptsDir'),
     returnBill: (billId: number, reason?: string) =>
       ipcRenderer.invoke('billing:returnBill', billId, reason),
@@ -156,7 +201,12 @@ const api = {
     getAvailable: () => ipcRenderer.invoke('printer:getAvailable'),
     setReceipt: (name: string) => ipcRenderer.invoke('printer:setReceipt', name),
     testPrint: () => ipcRenderer.invoke('printer:testPrint'),
-    printReceipt: (billId: number) => ipcRenderer.invoke('printer:printReceipt', billId)
+    diagnostics: (name?: string) => ipcRenderer.invoke('printer:diagnostics', name),
+    printReceipt: (billId: number) => ipcRenderer.invoke('printer:printReceipt', billId),
+    printPaymentDetails: (paymentMethod: unknown) =>
+      ipcRenderer.invoke('printer:printPaymentDetails', paymentMethod),
+    downloadPaymentDetailsPdf: (paymentMethod: unknown) =>
+      ipcRenderer.invoke('printer:downloadPaymentDetailsPdf', paymentMethod)
   },
   // Dialogs
   dialog: {

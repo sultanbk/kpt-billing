@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import dayjs from 'dayjs'
+import { exportService } from '../services/export.service'
 
 interface ExportJob {
   key: string
@@ -91,19 +92,19 @@ export default function DataExportPage(): React.JSX.Element {
       let result: { success: boolean; path?: string | null; error?: string }
       switch (key) {
         case 'daily':
-          result = await window.api.export.dailyReport(dateTo)
+          result = await exportService.dailyReport(dateTo)
           break
         case 'bills':
-          result = await window.api.export.billHistory(dateFrom, dateTo)
+          result = await exportService.billHistory(dateFrom, dateTo)
           break
         case 'stock':
-          result = await window.api.export.stockReport()
+          result = await exportService.stockReport()
           break
         case 'customers':
-          result = await window.api.export.customerReport()
+          result = await exportService.customerReport()
           break
         case 'full':
-          result = await window.api.export.fullData()
+          result = await exportService.fullData()
           break
         default:
           result = { success: false, error: 'Unknown export type' }

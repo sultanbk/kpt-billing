@@ -3,6 +3,7 @@
 // ============================================================================
 import { getSqlite } from '../connection'
 import { mapRow, mapRows } from '../utils'
+import log from 'electron-log'
 import type {
   Bill,
   BillCreateData,
@@ -16,6 +17,14 @@ import type {
 import { getFinancialYear, getLocalDateString } from '../../../shared/constants'
 
 export class BillRepository {
+  private allowsNegativeStock(): boolean {
+    const db = getSqlite()
+    const setting = db
+      .prepare("SELECT value FROM settings WHERE key = 'allowNegativeStock'")
+      .get() as { value: string } | undefined
+    return setting?.value === 'true'
+  }
+
   getNextBillNumber(): string {
     const db = getSqlite()
     const fy = getFinancialYear(new Date())
@@ -66,14 +75,12 @@ export class BillRepository {
       const billNo = this.getNextBillNumber()
       const lastSeqStr = billNo.split('/').pop() || '1'
       const lastSeq = parseInt(lastSeqStr)
+      const allowNegativeStock = this.allowsNegativeStock()
 
-      // Calculate totals from items
+      // Calculate subtotal and initial taxable amount (before bill-level discount)
       let subtotal = 0
-      let totalDiscount = 0
-      let totalTaxable = 0
-      let totalCgst = 0
-      let totalSgst = 0
-      const totalItems = data.items.length
+      let itemDiscountsTotal = 0
+      let totalTaxableBeforeBillDiscount = 0
       let totalQty = 0
 
       for (const item of data.items) {
@@ -84,21 +91,13 @@ export class BillRepository {
         } else {
           discount = item.discount || 0
         }
-        const taxable = itemTotal - discount
-        const gstRate = item.gstRate || 0
-        const cgst = (taxable * (gstRate / 2)) / 100
-        const sgst = (taxable * (gstRate / 2)) / 100
-
         subtotal += itemTotal
-        totalDiscount += discount
-        totalTaxable += taxable
-        totalCgst += cgst
-        totalSgst += sgst
+        itemDiscountsTotal += discount
+        totalTaxableBeforeBillDiscount += itemTotal - discount
         totalQty += item.quantity || 0
       }
 
-      // Apply bill-level discount (on top of item-level discounts)
-      // Per CGST Act Section 15(3), bill-level discount reduces taxable value before GST
+      // Calculate bill-level discount
       let billLevelDiscount = 0
       if (data.discount && data.discount > 0) {
         if (data.discountType === 'percentage') {
@@ -108,21 +107,63 @@ export class BillRepository {
         }
         billLevelDiscount = Math.round(billLevelDiscount * 100) / 100
       }
-      totalDiscount += billLevelDiscount
+      const totalDiscount = itemDiscountsTotal + billLevelDiscount
 
-      // Recompute GST on the reduced taxable amount after bill-level discount
-      if (billLevelDiscount > 0) {
-        // Proportionally distribute bill discount across items and recompute GST
-        const discountRatio =
-          totalTaxable > 0 ? (totalTaxable - billLevelDiscount) / totalTaxable : 1
-        totalTaxable = Math.max(0, totalTaxable - billLevelDiscount)
-        totalCgst = Math.round(totalCgst * discountRatio * 100) / 100
-        totalSgst = Math.round(totalSgst * discountRatio * 100) / 100
-      }
+      // Distribute bill-level discount and compute per-item taxes
+      let totalTaxable = 0
+      let totalCgst = 0
+      let totalSgst = 0
+
+      const computedItems = data.items.map((item) => {
+        const itemTotal = (item.price || 0) * (item.quantity || 0)
+        let itemDiscount = 0
+        if (item.discountType === 'percent' || item.discountType === 'percentage') {
+          itemDiscount = (itemTotal * (item.discount || 0)) / 100
+        } else {
+          itemDiscount = item.discount || 0
+        }
+        const itemTaxableBeforeBill = itemTotal - itemDiscount
+
+        // Proportional bill-level discount for this item
+        let itemBillDiscount = 0
+        if (billLevelDiscount > 0 && totalTaxableBeforeBillDiscount > 0) {
+          itemBillDiscount =
+            (billLevelDiscount * itemTaxableBeforeBill) / totalTaxableBeforeBillDiscount
+        }
+
+        const adjustedTaxable =
+          Math.round(Math.max(0, itemTaxableBeforeBill - itemBillDiscount) * 100) / 100
+        const gstRate = item.gstRate || 0
+        const cgstRate = gstRate / 2
+        const sgstRate = gstRate / 2
+        const cgst = Math.round(((adjustedTaxable * cgstRate) / 100) * 100) / 100
+        const sgst = Math.round(((adjustedTaxable * sgstRate) / 100) * 100) / 100
+        const amount = Math.round((adjustedTaxable + cgst + sgst) * 100) / 100
+
+        totalTaxable += adjustedTaxable
+        totalCgst += cgst
+        totalSgst += sgst
+
+        return {
+          productId: item.productId,
+          productName: item.productName,
+          hsn: item.hsn || '',
+          quantity: item.quantity || 0,
+          price: item.price || 0,
+          discountType: item.discountType,
+          discount: item.discount || 0,
+          taxable: adjustedTaxable,
+          cgstRate,
+          cgst,
+          sgstRate,
+          sgst,
+          amount
+        }
+      })
 
       const grandTotalRaw = totalTaxable + totalCgst + totalSgst
       const grandTotal = Math.round(Math.max(0, grandTotalRaw))
-      const roundOff = grandTotal - grandTotalRaw
+      const roundOff = Math.round((grandTotal - grandTotalRaw) * 100) / 100
 
       // Insert bill header
       const billResult = db
@@ -159,9 +200,9 @@ export class BillRepository {
           data.payment.change || 0,
           'completed',
           data.salesmanName || null,
-          totalItems,
+          data.items.length,
           totalQty,
-          null // TODO: current user
+          data.createdBy || null
         )
 
       const billId = Number(billResult.lastInsertRowid)
@@ -173,41 +214,40 @@ export class BillRepository {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
 
-      for (const item of data.items) {
-        const itemTotal = (item.price || 0) * (item.quantity || 0)
-        let discount = 0
-        if (item.discountType === 'percent' || item.discountType === 'percentage') {
-          discount = (itemTotal * (item.discount || 0)) / 100
-        } else {
-          discount = item.discount || 0
-        }
-        const taxable = itemTotal - discount
-        const gstRate = item.gstRate || 0
-        const cgstRate = gstRate / 2
-        const sgstRate = gstRate / 2
-        const cgst = (taxable * cgstRate) / 100
-        const sgst = (taxable * sgstRate) / 100
-        const amount = taxable + cgst + sgst
-
+      for (const item of computedItems) {
         insertItem.run(
           billId,
           item.productId,
           item.productName,
-          item.hsn || '',
-          item.quantity || 0,
-          item.price || 0,
+          item.hsn,
+          item.quantity,
+          item.price,
           item.discountType,
-          item.discount || 0,
-          Math.round(taxable * 100) / 100,
-          cgstRate,
-          Math.round(cgst * 100) / 100,
-          sgstRate,
-          Math.round(sgst * 100) / 100,
-          Math.round(amount * 100) / 100
+          item.discount,
+          item.taxable,
+          item.cgstRate,
+          item.cgst,
+          item.sgstRate,
+          item.sgst,
+          item.amount
         )
 
         // Deduct stock
         if (item.productId) {
+          const product = db
+            .prepare('SELECT name, current_stock FROM products WHERE id = ?')
+            .get(item.productId) as { name: string; current_stock: number } | undefined
+          if (product && product.current_stock < (item.quantity || 0)) {
+            const underflow = (item.quantity || 0) - product.current_stock
+            const message = `Insufficient stock for "${product.name}". Available: ${product.current_stock}, requested: ${item.quantity}.`
+            if (!allowNegativeStock) {
+              throw new Error(message)
+            }
+            log.warn(
+              `Stock underflow for product "${product.name}" (ID: ${item.productId}) in bill ${billNo}. Deducting ${item.quantity} when current stock is ${product.current_stock}. Underflow by ${underflow}.`
+            )
+          }
+
           db.prepare('UPDATE products SET current_stock = current_stock - ? WHERE id = ?').run(
             item.quantity || 0,
             item.productId
@@ -487,16 +527,22 @@ export class BillRepository {
         string,
         unknown
       >[]
+      const returnedQtyMap = this.getReturnedQtyMap(billId)
       for (const item of items) {
         if (item.product_id) {
+          const remainingQty = Math.max(
+            0,
+            ((item.qty as number) || 0) - (returnedQtyMap[(item.id as number) || 0] || 0)
+          )
+          if (remainingQty <= 0) continue
           db.prepare('UPDATE products SET current_stock = current_stock + ? WHERE id = ?').run(
-            item.qty,
+            remainingQty,
             item.product_id
           )
           db.prepare(
             `INSERT INTO stock_ledger (product_id, type, qty, reference_type, reference_id, notes)
              VALUES (?, 'return', ?, 'bill', ?, ?)`
-          ).run(item.product_id, item.qty, billId, reason || 'Bill return')
+          ).run(item.product_id, remainingQty, billId, reason || 'Bill return')
         }
       }
 
@@ -537,16 +583,22 @@ export class BillRepository {
         string,
         unknown
       >[]
+      const returnedQtyMap = this.getReturnedQtyMap(billId)
       for (const item of items) {
         if (item.product_id) {
+          const remainingQty = Math.max(
+            0,
+            ((item.qty as number) || 0) - (returnedQtyMap[(item.id as number) || 0] || 0)
+          )
+          if (remainingQty <= 0) continue
           db.prepare('UPDATE products SET current_stock = current_stock + ? WHERE id = ?').run(
-            item.qty,
+            remainingQty,
             item.product_id
           )
           db.prepare(
             `INSERT INTO stock_ledger (product_id, type, qty, reference_type, reference_id, notes)
              VALUES (?, 'return', ?, 'bill', ?, ?)`
-          ).run(item.product_id, item.qty, billId, reason || 'Bill cancelled')
+          ).run(item.product_id, remainingQty, billId, reason || 'Bill cancelled')
         }
       }
 
@@ -1063,11 +1115,14 @@ export class BillRepository {
           }
         } else if (data.refundMode === 'credit') {
           // Original bill was cash/upi/card but customer chose credit refund:
-          // Give customer store credit (reduce balance, may go negative = shop owes customer)
-          db.prepare('UPDATE customers SET current_balance = current_balance - ? WHERE id = ?').run(
-            Math.round(totalReturnAmount),
-            originalBill.customer_id
-          )
+          // Give customer store credit (reduce balance, clamp to 0 to prevent negative balance)
+          const customer = db
+            .prepare('SELECT current_balance FROM customers WHERE id = ?')
+            .get(originalBill.customer_id) as { current_balance: number }
+          const newBalance = Math.max(0, customer.current_balance - Math.round(totalReturnAmount))
+          db.prepare(
+            "UPDATE customers SET current_balance = ?, updated_at = datetime('now','localtime') WHERE id = ?"
+          ).run(newBalance, originalBill.customer_id)
         }
       }
       // For exchange with net < 0 (return value > exchange value — shop refunds the difference)
@@ -1081,10 +1136,13 @@ export class BillRepository {
             ).run(actualReversal, originalBill.customer_id)
           }
         } else if (data.refundMode === 'credit') {
-          db.prepare('UPDATE customers SET current_balance = current_balance - ? WHERE id = ?').run(
-            refundAmt,
-            originalBill.customer_id
-          )
+          const customer = db
+            .prepare('SELECT current_balance FROM customers WHERE id = ?')
+            .get(originalBill.customer_id) as { current_balance: number }
+          const newBalance = Math.max(0, customer.current_balance - refundAmt)
+          db.prepare(
+            "UPDATE customers SET current_balance = ?, updated_at = datetime('now','localtime') WHERE id = ?"
+          ).run(newBalance, originalBill.customer_id)
         }
       }
 

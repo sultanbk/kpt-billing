@@ -35,9 +35,11 @@ export const products = sqliteTable('products', {
   brand: text('brand'),
   hsnCode: text('hsn_code').notNull().default('5007'),
   purchasePrice: real('purchase_price').notNull().default(0),
+  mrp: real('mrp').notNull().default(0),
   sellingPrice: real('selling_price').notNull().default(0),
   wholesalePrice: real('wholesale_price'),
   gstRate: real('gst_rate').notNull().default(5),
+  priceIncludesGst: integer('price_includes_gst', { mode: 'boolean' }).notNull().default(false),
   openingStock: integer('opening_stock').notNull().default(0),
   currentStock: integer('current_stock').notNull().default(0),
   lowStockAlert: integer('low_stock_alert'),
@@ -158,6 +160,7 @@ export const users = sqliteTable('users', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
   pin: text('pin').notNull(), // hashed PIN
+  salt: text('salt'),
   role: text('role').notNull().default('cashier'), // owner, manager, cashier
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   createdAt: text('created_at')
@@ -198,6 +201,7 @@ export const suppliers = sqliteTable('suppliers', {
   phone: text('phone'),
   email: text('email'),
   address: text('address'),
+  city: text('city'),
   gstin: text('gstin'),
   bankDetails: text('bank_details'),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
@@ -252,4 +256,122 @@ export const estimateItems = sqliteTable('estimate_items', {
   rate: real('rate').notNull().default(0),
   discountValue: real('discount_value').notNull().default(0),
   amount: real('amount').notNull().default(0)
+})
+
+// ---- Bill Returns ----
+export const billReturns = sqliteTable('bill_returns', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  originalBillId: integer('original_bill_id')
+    .notNull()
+    .references(() => bills.id),
+  newBillId: integer('new_bill_id').references(() => bills.id),
+  type: text('type').notNull().default('return'),
+  reason: text('reason'),
+  returnAmount: real('return_amount').notNull().default(0),
+  exchangeAmount: real('exchange_amount').notNull().default(0),
+  netAmount: real('net_amount').notNull().default(0),
+  refundMode: text('refund_mode').notNull().default('cash'),
+  status: text('status').notNull().default('completed'),
+  createdBy: text('created_by'),
+  createdAt: text('created_at')
+    .notNull()
+    .default(sql`(datetime('now','localtime'))`)
+})
+
+// ---- Bill Return Items ----
+export const billReturnItems = sqliteTable('bill_return_items', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  returnId: integer('return_id')
+    .notNull()
+    .references(() => billReturns.id),
+  billItemId: integer('bill_item_id').notNull(),
+  productId: integer('product_id'),
+  productName: text('product_name').notNull(),
+  originalQty: integer('original_qty').notNull().default(0),
+  returnQty: integer('return_qty').notNull().default(0),
+  rate: real('rate').notNull().default(0),
+  gstRate: real('gst_rate').notNull().default(0),
+  refundAmount: real('refund_amount').notNull().default(0)
+})
+
+// ---- Purchases ----
+export const purchases = sqliteTable('purchases', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  purchaseNo: text('purchase_no').notNull().unique(),
+  date: text('date').notNull(),
+  supplierId: integer('supplier_id').references(() => suppliers.id),
+  supplierName: text('supplier_name'),
+  city: text('city'),
+  invoiceNo: text('invoice_no'),
+  invoiceDate: text('invoice_date'),
+  totalItems: integer('total_items').notNull().default(0),
+  totalQty: integer('total_qty').notNull().default(0),
+  subtotal: real('subtotal').notNull().default(0),
+  gstAmount: real('gst_amount').notNull().default(0),
+  discountAmount: real('discount_amount').notNull().default(0),
+  grandTotal: real('grand_total').notNull().default(0),
+  paymentMode: text('payment_mode').notNull().default('cash'),
+  paymentStatus: text('payment_status').notNull().default('paid'),
+  amountPaid: real('amount_paid').notNull().default(0),
+  notes: text('notes'),
+  createdBy: text('created_by'),
+  createdAt: text('created_at')
+    .notNull()
+    .default(sql`(datetime('now','localtime'))`)
+})
+
+// ---- Purchase Items ----
+export const purchaseItems = sqliteTable('purchase_items', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  purchaseId: integer('purchase_id')
+    .notNull()
+    .references(() => purchases.id),
+  productId: integer('product_id').references(() => products.id),
+  productName: text('product_name').notNull(),
+  barcode: text('barcode'),
+  hsnCode: text('hsn_code'),
+  qty: integer('qty').notNull().default(1),
+  purchaseRate: real('purchase_rate').notNull().default(0),
+  sellingRate: real('selling_rate').notNull().default(0),
+  mrp: real('mrp').notNull().default(0),
+  gstRate: real('gst_rate').notNull().default(0),
+  gstAmount: real('gst_amount').notNull().default(0),
+  amount: real('amount').notNull().default(0)
+})
+
+// ---- Credit Payments ----
+export const creditPayments = sqliteTable('credit_payments', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  customerId: integer('customer_id')
+    .notNull()
+    .references(() => customers.id),
+  date: text('date')
+    .notNull()
+    .default(sql`(date('now','localtime'))`),
+  amount: real('amount').notNull().default(0),
+  paymentMode: text('payment_mode').notNull().default('cash'),
+  referenceNo: text('reference_no'),
+  balanceBefore: real('balance_before').notNull().default(0),
+  balanceAfter: real('balance_after').notNull().default(0),
+  billId: integer('bill_id').references(() => bills.id),
+  notes: text('notes'),
+  createdBy: text('created_by'),
+  createdAt: text('created_at')
+    .notNull()
+    .default(sql`(datetime('now','localtime'))`)
+})
+
+// ---- Price History ----
+export const priceHistory = sqliteTable('price_history', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  productId: integer('product_id')
+    .notNull()
+    .references(() => products.id),
+  fieldName: text('field_name').notNull(),
+  oldValue: real('old_value').notNull().default(0),
+  newValue: real('new_value').notNull().default(0),
+  changedBy: text('changed_by'),
+  createdAt: text('created_at')
+    .notNull()
+    .default(sql`(datetime('now','localtime'))`)
 })

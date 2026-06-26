@@ -38,6 +38,10 @@ import {
 import { toast } from 'sonner'
 import { formatCurrency } from '../../lib/utils'
 import type { BillItem, BillPayment, BillCreateData, Customer, Bill } from '@shared/types'
+import { billingService } from '../../services/billing.service'
+import { customersService } from '../../services/customers.service'
+import { productsService } from '../../services/products.service'
+import { whatsappService } from '../../services/whatsapp.service'
 
 type PaymentMode = 'cash' | 'upi' | 'card' | 'credit'
 
@@ -107,6 +111,27 @@ export function BulkBillDialog({
   // Stock warnings for bulk
   const [stockWarnings, setStockWarnings] = useState<string[]>([])
 
+  const checkStockAvailability = useCallback(async (): Promise<string[]> => {
+    const warnings: string[] = []
+    for (const item of items) {
+      if (!item.productId) continue
+      try {
+        const product = await productsService.getById(item.productId)
+        if (product) {
+          const totalNeeded = item.quantity * selectedCustomers.length
+          if (product.stock < totalNeeded) {
+            warnings.push(
+              `${item.productName}: need ${totalNeeded}, only ${product.stock} in stock`
+            )
+          }
+        }
+      } catch {
+        warnings.push(`${item.productName}: could not verify current stock`)
+      }
+    }
+    return warnings
+  }, [items, selectedCustomers.length])
+
   // Helper: get payment mode for a customer
   const getPaymentMode = useCallback(
     (customerId: number): PaymentMode => {
@@ -149,7 +174,7 @@ export function BulkBillDialog({
       return
     }
     try {
-      const res = await window.api.customers.search(query.trim())
+      const res = await customersService.search(query.trim())
       setSearchResults(res as Customer[])
       setHighlightIdx(0)
     } catch {
@@ -206,7 +231,7 @@ export function BulkBillDialog({
     if (!newCustName.trim() || addingCustomer) return
     setAddingCustomer(true)
     try {
-      const created = await window.api.customers.create({
+      const created = await customersService.create({
         name: newCustName.trim(),
         phone: newCustPhone.trim(),
         customerType: 'regular'
@@ -232,6 +257,14 @@ export function BulkBillDialog({
   // Generate all bills
   const handleGenerate = async (): Promise<void> => {
     if (selectedCustomers.length === 0) return
+
+    const warnings = await checkStockAvailability()
+    setStockWarnings(warnings)
+    if (warnings.length > 0) {
+      toast.error('Resolve insufficient stock before generating bulk bills')
+      setStep('review')
+      return
+    }
 
     setStep('processing')
     const billResults: BillResult[] = selectedCustomers.map((c) => ({
@@ -282,7 +315,7 @@ export function BulkBillDialog({
           payment
         }
 
-        const bill = await window.api.billing.createBill(billData)
+        const bill = await billingService.createBill(billData)
         billResults[i] = { ...billResults[i], status: 'done', bill }
       } catch (err: unknown) {
         billResults[i] = {
@@ -302,9 +335,11 @@ export function BulkBillDialog({
     const doneBills = results.filter((r) => r.status === 'done' && r.bill)
     if (doneBills.length === 0) return
     setPrintingAll(true)
+    let successCount = 0
     for (let i = 0; i < doneBills.length; i++) {
       try {
-        await window.api.billing.printReceipt(doneBills[i].bill!.id)
+        const printed = await billingService.printReceipt(doneBills[i].bill!.id)
+        if (printed) successCount++
       } catch {
         /* continue */
       }
@@ -313,13 +348,17 @@ export function BulkBillDialog({
       }
     }
     setPrintingAll(false)
-    toast.success(`Printed ${doneBills.length} bills`)
+    if (successCount === doneBills.length) {
+      toast.success(`Printed ${doneBills.length} bills`)
+    } else {
+      toast.error(`Printed ${successCount}/${doneBills.length} bills. Check printer status.`)
+    }
   }
 
   // WhatsApp share for a bill
   const handleWhatsApp = async (billId: number, phone: string): Promise<void> => {
     try {
-      const res = await window.api.whatsapp.sendBillReceipt(billId, phone)
+      const res = await whatsappService.sendBillReceipt(billId, phone)
       if (!res.success) toast.error(res.error || 'Failed to open WhatsApp')
     } catch {
       toast.error('Failed to open WhatsApp')
@@ -576,25 +615,7 @@ export function BulkBillDialog({
               <Button
                 disabled={selectedCustomers.length === 0}
                 onClick={async () => {
-                  // Check stock availability for bulk
-                  const warnings: string[] = []
-                  for (const item of items) {
-                    if (item.productId) {
-                      try {
-                        const product = await window.api.products.getById(item.productId)
-                        if (product) {
-                          const totalNeeded = item.quantity * selectedCustomers.length
-                          if (product.stock < totalNeeded) {
-                            warnings.push(
-                              `${item.productName}: need ${totalNeeded}, only ${product.stock} in stock`
-                            )
-                          }
-                        }
-                      } catch {
-                        /* ignore */
-                      }
-                    }
-                  }
+                  const warnings = await checkStockAvailability()
                   setStockWarnings(warnings)
                   setStep('review')
                 }}
@@ -699,7 +720,11 @@ export function BulkBillDialog({
               <Button variant="outline" onClick={() => setStep('select')}>
                 Back
               </Button>
-              <Button onClick={handleGenerate} className="gap-2">
+              <Button
+                onClick={handleGenerate}
+                disabled={stockWarnings.length > 0}
+                className="gap-2"
+              >
                 <Printer className="h-4 w-4" />
                 Generate {selectedCustomers.length} Bills
               </Button>
@@ -821,8 +846,14 @@ export function BulkBillDialog({
                             onClick={async () => {
                               if (!r.bill) return
                               try {
-                                await window.api.billing.printReceipt(r.bill.id)
-                                toast.success(`Bill ${r.bill.billNumber} printed successfully`)
+                                const printed = await billingService.printReceipt(r.bill.id)
+                                if (printed) {
+                                  toast.success(`Bill ${r.bill.billNumber} printed successfully`)
+                                } else {
+                                  toast.error(
+                                    'Printer did not accept the job. Check printer status.'
+                                  )
+                                }
                               } catch {
                                 toast.error('Print failed')
                               }

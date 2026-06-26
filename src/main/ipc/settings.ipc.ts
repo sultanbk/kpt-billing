@@ -2,13 +2,14 @@
 // KPT Billing - Settings & Backup IPC Handlers (secured with validation & audit)
 // ============================================================================
 import { ipcMain, dialog, shell, BrowserWindow } from 'electron'
-import { createHash } from 'crypto'
+import { createHash, pbkdf2Sync, randomBytes, scryptSync, timingSafeEqual } from 'crypto'
 import { settingsRepo } from '../database/repositories/settings.repo'
 import { getSqlite } from '../database/connection'
 import { backupService } from '../services/backup.service'
 import { cloudBackupService } from '../services/cloud-backup.service'
 import { thermalPrinterService } from '../services/thermal-printer.service'
 import { writeAuditLog } from '../database/audit'
+import { setCurrentUser } from './ipc-context'
 import { safeHandle, validate } from './ipc-guard'
 import {
   idSchema,
@@ -26,6 +27,47 @@ const PIN_LOCKOUT_MS = 5 * 60 * 1000 // 5 minutes
 let pinAttempts = 0
 let pinLockoutUntil = 0
 
+const PIN_HASH_PREFIX = 'scrypt'
+const PIN_SCRYPT_KEYLEN = 64
+
+function hashPin(
+  pin: string,
+  salt: string = randomBytes(16).toString('hex')
+): {
+  hash: string
+  salt: string
+} {
+  return {
+    hash: `${PIN_HASH_PREFIX}:${scryptSync(pin, salt, PIN_SCRYPT_KEYLEN).toString('hex')}`,
+    salt
+  }
+}
+
+function verifyPinHash(pin: string, storedPin: string, salt: string | null): boolean {
+  if (salt) {
+    if (storedPin.startsWith(`${PIN_HASH_PREFIX}:`)) {
+      const computed = hashPin(pin, salt).hash
+      const storedBuffer = Buffer.from(storedPin)
+      const computedBuffer = Buffer.from(computed)
+      return (
+        storedBuffer.length === computedBuffer.length &&
+        timingSafeEqual(storedBuffer, computedBuffer)
+      )
+    }
+
+    // Legacy salted hashes created before the scrypt migration used PBKDF2.
+    const legacyPbkdf2 = pbkdf2Sync(pin, salt, 1000, 64, 'sha512').toString('hex')
+    const storedBuffer = Buffer.from(storedPin)
+    const legacyBuffer = Buffer.from(legacyPbkdf2)
+    return (
+      storedBuffer.length === legacyBuffer.length && timingSafeEqual(storedBuffer, legacyBuffer)
+    )
+  }
+
+  const hashedLegacy = createHash('sha256').update(pin).digest('hex')
+  return storedPin === hashedLegacy || storedPin === pin
+}
+
 export function registerSettingsIpc(): void {
   // Settings
   safeHandle('settings:get', (_event, key) => {
@@ -36,6 +78,9 @@ export function registerSettingsIpc(): void {
     const validKey = validate(settingsKeySchema, key)
     const validValue = validate(settingsValueSchema, value)
     settingsRepo.set(validKey, validValue)
+    if (validKey === 'receiptPrinterName') {
+      thermalPrinterService.setPrinter(validValue)
+    }
     writeAuditLog({
       action: 'update',
       entityType: 'settings',
@@ -51,6 +96,9 @@ export function registerSettingsIpc(): void {
   safeHandle('settings:setMany', (_event, settings) => {
     const validated = validate(settingsManySchema, settings)
     settingsRepo.setMany(validated)
+    if (typeof validated.receiptPrinterName === 'string') {
+      thermalPrinterService.setPrinter(validated.receiptPrinterName)
+    }
     writeAuditLog({ action: 'update', entityType: 'settings', newValue: validated })
     return true
   })
@@ -128,6 +176,60 @@ export function registerSettingsIpc(): void {
     return thermalPrinterService.testPrint()
   })
 
+  safeHandle('printer:diagnostics', async (_event, name?) => {
+    const validName = name ? validate(z.string().max(200), name).trim() : ''
+    const selectedPrinter = validName || (settingsRepo.get('receiptPrinterName') || '').trim()
+    const configuredPrinter = thermalPrinterService.getConfiguredPrinterName().trim()
+    const availablePrinters = await thermalPrinterService.getAvailablePrinters()
+    const normalizedAvailable = availablePrinters.map((p) => p.trim().toLowerCase())
+    const selectedInAvailable = selectedPrinter
+      ? normalizedAvailable.includes(selectedPrinter.toLowerCase())
+      : false
+    const windowsDetails = selectedPrinter
+      ? await thermalPrinterService.getWindowsPrinterDetails(selectedPrinter)
+      : null
+
+    const checks = {
+      printerSelected: selectedPrinter.length > 0,
+      serviceBoundToSelection:
+        selectedPrinter.length > 0 &&
+        configuredPrinter.length > 0 &&
+        selectedPrinter.toLowerCase() === configuredPrinter.toLowerCase(),
+      selectedExistsInSystem: selectedInAvailable,
+      windowsReportsOffline: windowsDetails?.workOffline === true
+    }
+
+    const recommendations: string[] = []
+    if (!checks.printerSelected) {
+      recommendations.push('Select a receipt printer in Settings and click Save.')
+    }
+    if (checks.printerSelected && !checks.selectedExistsInSystem) {
+      recommendations.push(
+        'Selected printer is not in Windows printer list. Re-select exact printer name.'
+      )
+    }
+    if (checks.windowsReportsOffline) {
+      recommendations.push(
+        'Windows reports this printer as offline. Turn it on and reconnect USB/LAN.'
+      )
+    }
+    if (windowsDetails?.driverName && !/tvs|epson|esc|pos/i.test(windowsDetails.driverName)) {
+      recommendations.push(
+        'Driver may not be ESC/POS compatible. Use TVS/Epson ESC-POS driver if available.'
+      )
+    }
+
+    return {
+      selectedPrinter,
+      configuredPrinter,
+      availablePrinters,
+      windowsDetails,
+      checks,
+      recommendations,
+      checkedAt: new Date().toISOString()
+    }
+  })
+
   safeHandle('printer:printReceipt', async (_event, billId) => {
     const id = validate(idSchema, billId)
     const { billRepo } = await import('../database/repositories/bill.repo')
@@ -135,6 +237,72 @@ export function registerSettingsIpc(): void {
     if (!bill) return false
     const shopInfo = settingsRepo.getAll()
     return thermalPrinterService.printReceipt(bill, shopInfo)
+  })
+
+  safeHandle('printer:printPaymentDetails', async (_event, paymentMethod) => {
+    const validPaymentMethod = validate(
+      z.object({
+        id: z.string(),
+        type: z.enum(['bank', 'upi', 'scanner']),
+        name: z.string().min(1).max(100),
+        details: z
+          .object({
+            bankName: z.string().max(100).optional(),
+            accountNo: z.string().max(50).optional(),
+            ifscCode: z.string().max(20).optional(),
+            branch: z.string().max(100).optional(),
+            upiVpa: z.string().max(100).optional(),
+            payeeName: z.string().max(100).optional(),
+            scannerType: z.string().max(50).optional(),
+            accountName: z.string().max(100).optional()
+          })
+          .optional()
+      }),
+      paymentMethod
+    )
+    const shopInfo = settingsRepo.getAll()
+    return thermalPrinterService.printPaymentDetails(validPaymentMethod, shopInfo)
+  })
+
+  ipcMain.handle('printer:downloadPaymentDetailsPdf', async (_event, paymentMethod) => {
+    const validPaymentMethod = validate(
+      z.object({
+        id: z.string(),
+        type: z.enum(['bank', 'upi', 'scanner']),
+        name: z.string().min(1).max(100),
+        details: z
+          .object({
+            bankName: z.string().max(100).optional(),
+            accountNo: z.string().max(50).optional(),
+            ifscCode: z.string().max(20).optional(),
+            branch: z.string().max(100).optional(),
+            upiVpa: z.string().max(100).optional(),
+            payeeName: z.string().max(100).optional(),
+            scannerType: z.string().max(50).optional(),
+            accountName: z.string().max(100).optional()
+          })
+          .optional()
+      }),
+      paymentMethod
+    )
+    const shopInfo = settingsRepo.getAll()
+    const pdfBuffer = await thermalPrinterService.generatePaymentDetailsPdfBuffer(
+      validPaymentMethod,
+      shopInfo
+    )
+    if (!pdfBuffer) return false
+
+    const { filePath, canceled } = await dialog.showSaveDialog({
+      title: 'Download Thermal Slip PDF',
+      defaultPath: `Thermal_Slip_${validPaymentMethod.name.replace(/\s+/g, '_')}.pdf`,
+      filters: [{ name: 'PDF Files', extensions: ['pdf'] }]
+    })
+
+    if (canceled || !filePath) return false
+
+    const fs = await import('fs')
+    fs.writeFileSync(filePath, pdfBuffer)
+    return true
   })
 
   // File dialogs
@@ -162,7 +330,11 @@ export function registerSettingsIpc(): void {
   })
 
   safeHandle('cloud:getConfig', () => {
-    return cloudBackupService.getConfig()
+    const config = cloudBackupService.getConfig()
+    return {
+      clientId: config?.clientId || '',
+      clientSecret: config?.clientSecret || ''
+    }
   })
 
   // ---- Auth / PIN (with brute-force protection) ----
@@ -179,27 +351,59 @@ export function registerSettingsIpc(): void {
 
     const validPin = validate(pinSchema, pin)
     const db = getSqlite()
-    const hashedPin = createHash('sha256').update(validPin).digest('hex')
-    // Support both hashed and legacy plaintext PINs for migration
-    let user = db.prepare('SELECT * FROM users WHERE pin = ? AND is_active = 1').get(hashedPin) as
-      | { id: number; name: string; role: string }
-      | undefined
-    if (!user) {
-      // Fallback: check plaintext PIN (for users who haven't migrated)
-      user = db.prepare('SELECT * FROM users WHERE pin = ? AND is_active = 1').get(validPin) as
-        | { id: number; name: string; role: string }
-        | undefined
-      if (user) {
-        // Auto-migrate: hash the plaintext PIN
-        db.prepare('UPDATE users SET pin = ? WHERE id = ?').run(hashedPin, user.id)
+
+    // Fetch all active users
+    const users = db.prepare('SELECT * FROM users WHERE is_active = 1').all() as Array<{
+      id: number
+      name: string
+      pin: string
+      salt: string | null
+      role: string
+    }>
+
+    let authenticatedUser: (typeof users)[0] | null = null
+
+    for (const u of users) {
+      if (verifyPinHash(validPin, u.pin, u.salt)) {
+        if (!u.salt || !u.pin.startsWith(`${PIN_HASH_PREFIX}:`)) {
+          const migrated = hashPin(validPin)
+          db.prepare('UPDATE users SET pin = ?, salt = ? WHERE id = ?').run(
+            migrated.hash,
+            migrated.salt,
+            u.id
+          )
+          u.pin = migrated.hash
+          u.salt = migrated.salt
+        }
+        authenticatedUser = u
+        break
       }
     }
-    if (user) {
+
+    if (authenticatedUser) {
       // Reset attempts on success
       pinAttempts = 0
       pinLockoutUntil = 0
-      writeAuditLog({ userId: user.id, userName: user.name, action: 'login', entityType: 'auth' })
-      return { success: true, user: { id: user.id, name: user.name, role: user.role } }
+      // Set IPC context so all subsequent audit entries get user attribution
+      setCurrentUser({
+        id: authenticatedUser.id,
+        name: authenticatedUser.name,
+        role: authenticatedUser.role
+      })
+      writeAuditLog({
+        userId: authenticatedUser.id,
+        userName: authenticatedUser.name,
+        action: 'login',
+        entityType: 'auth'
+      })
+      return {
+        success: true,
+        user: {
+          id: authenticatedUser.id,
+          name: authenticatedUser.name,
+          role: authenticatedUser.role
+        }
+      }
     }
 
     // Failed attempt — increment counter
@@ -219,29 +423,43 @@ export function registerSettingsIpc(): void {
     const validCurrent = validate(pinSchema, currentPin)
     const validNew = validate(pinSchema, newPin)
     const db = getSqlite()
-    const hashedCurrent = createHash('sha256').update(validCurrent).digest('hex')
-    let user = db
-      .prepare('SELECT * FROM users WHERE pin = ? AND is_active = 1')
-      .get(hashedCurrent) as { id: number } | undefined
-    if (!user) {
-      user = db.prepare('SELECT * FROM users WHERE pin = ? AND is_active = 1').get(validCurrent) as
-        | { id: number }
-        | undefined
+
+    const users = db.prepare('SELECT * FROM users WHERE is_active = 1').all() as Array<{
+      id: number
+      pin: string
+      salt: string | null
+    }>
+
+    let targetUser: (typeof users)[0] | null = null
+
+    for (const u of users) {
+      if (verifyPinHash(validCurrent, u.pin, u.salt)) {
+        targetUser = u
+        break
+      }
     }
-    if (!user) return { success: false, error: 'Current PIN is incorrect' }
+
+    if (!targetUser) return { success: false, error: 'Current PIN is incorrect' }
     if (validNew.length < 4) return { success: false, error: 'PIN must be at least 4 digits' }
-    const hashedNew = createHash('sha256').update(validNew).digest('hex')
-    db.prepare('UPDATE users SET pin = ? WHERE id = ?').run(hashedNew, user.id)
-    writeAuditLog({ userId: user.id, action: 'change_pin', entityType: 'auth' })
+
+    const next = hashPin(validNew)
+
+    db.prepare('UPDATE users SET pin = ?, salt = ? WHERE id = ?').run(
+      next.hash,
+      next.salt,
+      targetUser.id
+    )
+    writeAuditLog({ userId: targetUser.id, action: 'change_pin', entityType: 'auth' })
     return { success: true }
   })
 
   ipcMain.handle('cloud:authenticate', async () => {
     try {
-      return await cloudBackupService.authenticate()
+      const ok = await cloudBackupService.authenticate()
+      return ok ? { success: true } : { success: false, error: 'Authentication cancelled' }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      throw new Error(msg)
+      return { success: false, error: msg }
     }
   })
 

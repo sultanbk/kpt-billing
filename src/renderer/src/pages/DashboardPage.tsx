@@ -30,6 +30,9 @@ import {
 import { Button } from '../components/ui/button'
 import { useNavigate } from 'react-router-dom'
 import type { QuickStats, DailySummary, Bill, Product } from '@shared/types'
+import { billingService } from '../services/billing.service'
+import { productsService } from '../services/products.service'
+import { reportsService } from '../services/reports.service'
 
 export default function DashboardPage(): React.JSX.Element {
   const navigate = useNavigate()
@@ -56,13 +59,13 @@ export default function DashboardPage(): React.JSX.Element {
       const today = getLocalDateString()
       const [dailySummary, weekTotal, monthTotal, lowStock, topSelling, recent, enhanced] =
         await Promise.all([
-          window.api.billing.getDailySummary(today),
-          window.api.billing.getWeekSummary(),
-          window.api.billing.getMonthSummary(),
-          window.api.products.getLowStock(),
-          window.api.billing.getTopSellingToday(today),
-          window.api.billing.getRecentBills(10),
-          window.api.reports.getDashboardData(today)
+          billingService.getDailySummary(today),
+          billingService.getWeekSummary(),
+          billingService.getMonthSummary(),
+          productsService.getLowStock(),
+          billingService.getTopSellingToday(today),
+          billingService.getRecentBills(10),
+          reportsService.getDashboardData(today)
         ])
       setSummary(dailySummary)
       setWeekSales(weekTotal)
@@ -85,7 +88,6 @@ export default function DashboardPage(): React.JSX.Element {
   }, [])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData()
     const interval = setInterval(loadData, 60000)
     return () => clearInterval(interval)
