@@ -183,5 +183,34 @@ describe('ProductRepository', () => {
       expect(result.data).toHaveLength(1)
       expect(result.data[0].name).toBe('Findable')
     })
+
+    it('excludes inactive products by default', () => {
+      const activeId = insertTestProduct(testDb, { name: 'Visible', sku: 'KPT-ACT-001' })
+      const inactiveId = insertTestProduct(testDb, {
+        name: 'Deleted',
+        sku: 'KPT-DEL-001',
+        isActive: 0
+      })
+
+      const result = repo.getAll()
+
+      expect(result.data.map((p) => p.id)).toContain(activeId)
+      expect(result.data.map((p) => p.id)).not.toContain(inactiveId)
+    })
+
+    it('returns inactive products when explicitly requested', () => {
+      insertTestProduct(testDb, { name: 'Visible', sku: 'KPT-ACT-001' })
+      const inactiveId = insertTestProduct(testDb, {
+        name: 'Deleted',
+        sku: 'KPT-DEL-001',
+        isActive: 0
+      })
+
+      const result = repo.getAll({ isActive: false })
+
+      expect(result.data).toHaveLength(1)
+      expect(result.data[0].id).toBe(inactiveId)
+      expect(result.data[0].isActive).toBe(false)
+    })
   })
 })

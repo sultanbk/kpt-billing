@@ -85,10 +85,8 @@ export class ProductRepository {
     } else if (stockStatus === 'in') {
       where += ' AND p.current_stock > 0'
     }
-    if (isActive !== undefined) {
-      where += ' AND p.is_active = ?'
-      params.push(isActive ? 1 : 0)
-    }
+    where += ' AND p.is_active = ?'
+    params.push(isActive === undefined ? 1 : isActive ? 1 : 0)
 
     // Allowed sort columns
     const allowedSorts: Record<string, string> = {
@@ -390,7 +388,9 @@ export class ProductRepository {
 
   delete(id: number): void {
     const db = getSqlite()
-    db.prepare('UPDATE products SET is_active = 0 WHERE id = ?').run(id)
+    db.prepare(
+      "UPDATE products SET is_active = 0, updated_at = datetime('now','localtime') WHERE id = ?"
+    ).run(id)
   }
 
   adjustStock(
