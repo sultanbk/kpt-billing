@@ -9,6 +9,7 @@ Developed by **[Sultan Kabadi](https://sultanbk.com)**
 ## Overview
 
 KPT Billing provides 7 report types across 3 modules:
+
 1. **Reports Page** (`/reports`) — Daily, Weekly, Monthly, Yearly, GST, and P&L reports
 2. **Customer Analytics** (`/customer-analytics`) — Revenue, frequency, and credit risk analysis
 3. **Credit Aging** (`/credit-aging`) — Overdue credit analysis with aging buckets
@@ -26,12 +27,14 @@ The Reports page has a tabbed interface with 6 report types:
 **Purpose:** Detailed sales summary for a specific date.
 
 **Summary Cards:**
+
 - Total Sales (amount)
 - Total Bills (count)
 - Total Discount (amount)
 - Average Bill Value
 
 **Payment Breakdown:**
+
 - Cash / UPI / Card / Credit — amounts and bill counts
 - Visual progress bars with percentages
 
@@ -46,6 +49,7 @@ The Reports page has a tabbed interface with 6 report types:
 | Amount | Grand total |
 
 **Bill Detail View:**
+
 - Full bill information: number, date, time, customer, salesman
 - Itemized table: product, HSN, qty, rate, discount, taxable, CGST, SGST, amount
 - Payment breakdown: mode, amounts, UPI reference
@@ -58,6 +62,7 @@ The Reports page has a tabbed interface with 6 report types:
 **Purpose:** 7-day rolling sales summary.
 
 **Summary Cards:**
+
 - Total Sales
 - Total Bills
 - Cash Sales
@@ -79,6 +84,7 @@ The Reports page has a tabbed interface with 6 report types:
 | Discount | Discount given |
 
 **Top Products:**
+
 - Top 10 selling products for the week with quantity and revenue
 
 ---
@@ -88,6 +94,7 @@ The Reports page has a tabbed interface with 6 report types:
 **Purpose:** Month-level sales summary with daily breakdown.
 
 **Features:**
+
 - Month picker (navigate between months)
 - Same summary cards as weekly report
 - Daily breakdown table for each day of the month
@@ -101,6 +108,7 @@ The Reports page has a tabbed interface with 6 report types:
 **Purpose:** Full financial year summary with monthly breakdown.
 
 **Features:**
+
 - Year picker
 - Summary for the entire year
 - Monthly breakdown table (12 rows, one per month)
@@ -117,36 +125,39 @@ The Reports page has a tabbed interface with 6 report types:
 **Three Sections:**
 
 #### a) HSN-wise Summary
-| Column | Description |
-|--------|-------------|
-| HSN Code | Product HSN code |
-| Description | HSN description |
-| Total Quantity | Units sold |
-| Taxable Value | Pre-tax amount |
-| CGST | Central GST amount |
-| SGST | State GST amount |
-| Total Tax | CGST + SGST |
-| Invoice Value | Total including tax |
+
+| Column         | Description         |
+| -------------- | ------------------- |
+| HSN Code       | Product HSN code    |
+| Description    | HSN description     |
+| Total Quantity | Units sold          |
+| Taxable Value  | Pre-tax amount      |
+| CGST           | Central GST amount  |
+| SGST           | State GST amount    |
+| Total Tax      | CGST + SGST         |
+| Invoice Value  | Total including tax |
 
 #### b) Rate-wise Breakdown
+
 | GST Rate | Taxable Value | CGST | SGST | Total Tax |
-|----------|--------------|------|------|-----------|
-| 5% | ... | ... | ... | ... |
-| 12% | ... | ... | ... | ... |
-| 18% | ... | ... | ... | ... |
-| 28% | ... | ... | ... | ... |
+| -------- | ------------- | ---- | ---- | --------- |
+| 5%       | ...           | ...  | ...  | ...       |
+| 12%      | ...           | ...  | ...  | ...       |
+| 18%      | ...           | ...  | ...  | ...       |
+| 28%      | ...           | ...  | ...  | ...       |
 
 #### c) GSTR-1 Invoice List
-| Column | Description |
-|--------|-------------|
-| Invoice No. | Bill number |
-| Invoice Date | Bill date |
-| Customer Name | Buyer name |
-| Customer GSTIN | Buyer's GST number |
-| Taxable Value | Pre-tax amount |
-| CGST Rate & Amount | Per rate |
-| SGST Rate & Amount | Per rate |
-| Total Invoice Value | Grand total |
+
+| Column              | Description        |
+| ------------------- | ------------------ |
+| Invoice No.         | Bill number        |
+| Invoice Date        | Bill date          |
+| Customer Name       | Buyer name         |
+| Customer GSTIN      | Buyer's GST number |
+| Taxable Value       | Pre-tax amount     |
+| CGST Rate & Amount  | Per rate           |
+| SGST Rate & Amount  | Per rate           |
+| Total Invoice Value | Grand total        |
 
 ---
 
@@ -169,7 +180,7 @@ Revenue
 Cost of Goods Sold (COGS)
   Total Purchases                ₹ xxx,xxx
   ─────────────────────────────────────
-  
+
 Gross Profit                     ₹ xxx,xxx
   Gross Margin                   xx.x%
 
@@ -191,6 +202,7 @@ Net Profit                       ₹ xxx,xxx
 ```
 
 **Summary Cards:**
+
 - Total Revenue
 - COGS (Purchases)
 - Gross Profit + Margin %
@@ -256,6 +268,7 @@ Three analysis tabs:
 **Purpose:** Analyze overdue credits by aging buckets.
 
 ### Summary Cards
+
 - Total Outstanding
 - Current (0–30 days)
 - Overdue 31–60 days
@@ -263,18 +276,20 @@ Three analysis tabs:
 - Overdue 90+ days
 
 ### Aging Table
-| Column | Description |
-|--------|-------------|
-| Customer | Name + phone |
-| Total Balance | Outstanding amount |
-| Current (0–30) | Amount in 0–30 day bucket |
-| 31–60 Days | Amount in 31–60 day bucket |
-| 61–90 Days | Amount in 61–90 day bucket |
-| 90+ Days | Amount in 90+ day bucket |
-| Oldest Bill | Date of oldest unpaid bill |
-| Actions | WhatsApp reminder button |
+
+| Column         | Description                |
+| -------------- | -------------------------- |
+| Customer       | Name + phone               |
+| Total Balance  | Outstanding amount         |
+| Current (0–30) | Amount in 0–30 day bucket  |
+| 31–60 Days     | Amount in 31–60 day bucket |
+| 61–90 Days     | Amount in 61–90 day bucket |
+| 90+ Days       | Amount in 90+ day bucket   |
+| Oldest Bill    | Date of oldest unpaid bill |
+| Actions        | WhatsApp reminder button   |
 
 ### WhatsApp Reminder
+
 - Click the WhatsApp icon to send a pre-formatted credit reminder
 - Message includes: customer name, outstanding amount, shop name, contact details
 - Opens `wa.me` with pre-filled message
@@ -286,11 +301,13 @@ Three analysis tabs:
 Reports can be exported as PDF files:
 
 ### Available PDF Exports
+
 1. **Bill Invoice** — A4 professional invoice (from bill detail view)
 2. **Daily Report PDF** — Summary + payment breakdown + bills table
 3. **Report Period PDF** — Summary statistics for any period
 
 ### PDF Generation Method
+
 1. HTML template rendered with data
 2. Hidden `BrowserWindow` loads the HTML
 3. `webContents.printToPDF()` generates the file
@@ -302,13 +319,13 @@ Reports can be exported as PDF files:
 
 From the **Data Export** page (`/data-export`):
 
-| Export Type | Description | Sheets |
-|-------------|-------------|--------|
-| **Daily Report** | Summary + bills for a date | Summary, Bills |
-| **Bill History** | All bills in a date range | Bills with all columns |
-| **Stock Report** | Inventory status | All Products, Low Stock |
-| **Customer Report** | Customers + credits | Customers with balances |
-| **Full Data Export** | Everything | Bills, Items, Products, Customers, Payments, Purchases, Expenses, Stock Ledger |
+| Export Type          | Description                | Sheets                                                                         |
+| -------------------- | -------------------------- | ------------------------------------------------------------------------------ |
+| **Daily Report**     | Summary + bills for a date | Summary, Bills                                                                 |
+| **Bill History**     | All bills in a date range  | Bills with all columns                                                         |
+| **Stock Report**     | Inventory status           | All Products, Low Stock                                                        |
+| **Customer Report**  | Customers + credits        | Customers with balances                                                        |
+| **Full Data Export** | Everything                 | Bills, Items, Products, Customers, Payments, Purchases, Expenses, Stock Ledger |
 
 All exports produce `.xlsx` files using the xlsx library.
 
@@ -318,17 +335,17 @@ All exports produce `.xlsx` files using the xlsx library.
 
 ### Repository Methods Used
 
-| Report | Repository | Method |
-|--------|-----------|--------|
-| Daily | bill.repo | `getDailySummary(date)` |
-| Weekly | bill.repo | `getWeeklySummary()` |
-| Monthly | bill.repo | `getMonthlySummary(year, month)` |
-| Yearly | bill.repo | `getYearlySummary(year)` |
-| GST | report.repo | `getGstReport(startDate, endDate)` |
-| P&L | report.repo | `getProfitLossReport(startDate, endDate)` |
+| Report             | Repository    | Method                                                                           |
+| ------------------ | ------------- | -------------------------------------------------------------------------------- |
+| Daily              | bill.repo     | `getDailySummary(date)`                                                          |
+| Weekly             | bill.repo     | `getWeeklySummary()`                                                             |
+| Monthly            | bill.repo     | `getMonthlySummary(year, month)`                                                 |
+| Yearly             | bill.repo     | `getYearlySummary(year)`                                                         |
+| GST                | report.repo   | `getGstReport(startDate, endDate)`                                               |
+| P&L                | report.repo   | `getProfitLossReport(startDate, endDate)`                                        |
 | Customer Analytics | customer.repo | `getTopCustomersByRevenue()`, `getCustomerFrequency()`, `getCreditRiskScoring()` |
-| Credit Aging | customer.repo | `getCreditAging()`, `getCreditAgingSummary()` |
-| Dashboard | report.repo | `getDashboardData(today)` |
+| Credit Aging       | customer.repo | `getCreditAging()`, `getCreditAgingSummary()`                                    |
+| Dashboard          | report.repo   | `getDashboardData(today)`                                                        |
 
 ---
 
@@ -346,13 +363,13 @@ interface DailySummary {
   creditSales: number
   totalDiscount: number
   totalItems: number
-  cashBills: number    // Number of bills paid by cash
-  upiBills: number     // Number of bills paid by UPI
-  cardBills: number    // Number of bills paid by card
-  creditBills: number  // Number of bills paid on credit
+  cashBills: number // Number of bills paid by cash
+  upiBills: number // Number of bills paid by UPI
+  cardBills: number // Number of bills paid by card
+  creditBills: number // Number of bills paid on credit
 }
 ```
 
 ---
 
-*Developed by [Sultan Kabadi](https://sultanbk.com) — KPT Billing v1.0.0*
+_Developed by [Sultan Kabadi](https://sultanbk.com) — KPT Billing v1.0.0_

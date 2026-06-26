@@ -127,21 +127,25 @@ The core billing system provides a full POS experience:
 ## 7. Reporting & Analytics
 
 ### Standard Reports
+
 - **Daily Report** — Sales summary for a specific date with bills list, payment breakdown, top products
 - **Weekly Report** — 7-day rolling summary with daily breakdown
 - **Monthly Report** — Month summary with daily breakdown and payment trends
 - **Yearly Report** — Year summary with monthly breakdown
 
 ### Financial Reports
+
 - **GST Report** — HSN-wise summary, rate-wise breakdowns (5%, 12%, 18%, 28%), GSTR-1 invoice list with all tax details
 - **Profit & Loss Report** — Revenue, Cost of Goods Sold (purchases), gross profit, expenses by category, net profit, profit margins (gross % and net %)
 
 ### Analytics
+
 - **Customer Analytics** — Three tabs: Top Customers by Revenue, Purchase Frequency, Credit Risk Scoring
 - **Credit Aging Report** — 30/60/90/90+ day overdue buckets with summary statistics and WhatsApp reminder capability
 - **Dashboard Analytics** — Real-time stats: today's sales vs yesterday, week/month totals, payment mode breakdown, top sellers, low stock
 
 ### Report Features
+
 - View individual bill details from any report
 - Return or cancel bills directly from report views
 - Print / Download PDF from bill detail view
@@ -190,6 +194,10 @@ The core billing system provides a full POS experience:
 - **Purchase Integration** — Scan barcodes during purchase entry to find products
 - **Barcode Generation** — Generate barcodes for products using bwip-js
 - **Product Barcode Field** — Each product can store a unique barcode
+- **Balanced Proportions** — Layout optimized with balanced barcode-to-text dimensions to prevent vertical overflow/margins
+- **High-Contrast MRP Strikethrough** — Displays a clean black vector line overlay for thermal compatibility instead of gray fonts
+- **Customizable Barcode Styles & Dimensions** — Complete configuration of barcode label layout directly from Settings: adjust line width (`50%-100%`), line height (`3.0mm-15.0mm`), shop/product/pricing/SKU font sizes (`6pt-20pt`), text alignments (`Left`, `Center`, `Right`), margins (paddings X and Y), gap size, and toggle scannable SKU code text beneath the barcode lines.
+- **Printer Alignment Calibration** — Configurable horizontal (X) and vertical (Y) offsets in millimeters (`[-5.0mm, +5.0mm]`) to fix print misalignment issues on thermal label printers
 
 ---
 
@@ -211,12 +219,12 @@ Three pre-formatted message templates:
 
 Five export types available from the Data Export page:
 
-| Export Type | Contents |
-|------------|----------|
-| **Daily Report** | Summary sheet + all bills for a date |
-| **Bill History** | All bills with full details for a date range |
-| **Stock Report** | Complete inventory + low stock items |
-| **Customer Report** | All customers with credit details |
+| Export Type          | Contents                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------------- |
+| **Daily Report**     | Summary sheet + all bills for a date                                                        |
+| **Bill History**     | All bills with full details for a date range                                                |
+| **Stock Report**     | Complete inventory + low stock items                                                        |
+| **Customer Report**  | All customers with credit details                                                           |
 | **Full Data Export** | Bills, items, products, customers, payments, purchases, expenses, stock ledger — everything |
 
 All exports generate `.xlsx` files using the xlsx library.
@@ -226,12 +234,14 @@ All exports generate `.xlsx` files using the xlsx library.
 ## 13. Backup & Restore
 
 ### Local Backup
+
 - **SQL Dump** — Full database exported as portable `.sql` file (schema + data)
 - **Auto-Backup** — Configurable frequency: hourly, every 4 hours, or daily
 - **Retention** — Configurable retention period (default: 30 days)
 - **Restore** — Restore from any `.sql` dump file. Safety backup of current data created automatically before restore. App reloads after restoration.
 
 ### Cloud Backup (Google Drive)
+
 - **OAuth2 Authentication** — Connects via Google Cloud OAuth 2.0 Desktop credentials
 - **Upload** — Push local backup to Google Drive
 - **Download** — Pull backups from Google Drive
@@ -256,37 +266,40 @@ All exports generate `.xlsx` files using the xlsx library.
 ## 15. Keyboard Shortcuts
 
 ### Navigation (Fixed)
-| Key | Action |
-|-----|--------|
-| F1 | Dashboard |
-| F2 | Billing |
-| F3 | Products |
-| F4 | Purchases |
-| F5 | Customers |
-| F7 | Reports |
-| F10 | Settings |
+
+| Key | Action              |
+| --- | ------------------- |
+| F1  | Dashboard           |
+| F2  | Billing             |
+| F3  | Products            |
+| F4  | Purchases           |
+| F5  | Customers           |
+| F7  | Reports             |
+| F10 | Settings            |
 | F12 | Show shortcuts help |
 
 ### Billing Page
-| Key | Action |
-|-----|--------|
-| Esc | Focus product search |
-| Alt+O | Add Other (custom) item * |
-| Alt+N | Quick add new customer * |
-| F6 | Hold current bill |
-| F8 | Recall held bill |
-| F9 | Clear cart |
-| F11 | Pay & Print |
+
+| Key   | Action                     |
+| ----- | -------------------------- |
+| Esc   | Focus product search       |
+| Alt+O | Add Other (custom) item \* |
+| Alt+N | Quick add new customer \*  |
+| F6    | Hold current bill          |
+| F8    | Recall held bill           |
+| F9    | Clear cart                 |
+| F11   | Pay & Print                |
 
 ### Quick Actions
-| Key | Action |
-|-----|--------|
-| Ctrl+K | Quick Bill Search |
-| Alt+L | Lock Screen |
-| Ctrl+L | Lock Screen (alternate) |
-| Ctrl+N | New Bill |
-| Ctrl+Shift+D | Go to Dashboard |
-| Ctrl+Shift+R | Go to Reports |
+
+| Key          | Action                  |
+| ------------ | ----------------------- |
+| Ctrl+K       | Quick Bill Search       |
+| Alt+L        | Lock Screen             |
+| Ctrl+L       | Lock Screen (alternate) |
+| Ctrl+N       | New Bill                |
+| Ctrl+Shift+D | Go to Dashboard         |
+| Ctrl+Shift+R | Go to Reports           |
 
 \* Configurable via Settings → Shortcuts tab
 
@@ -297,34 +310,38 @@ All exports generate `.xlsx` files using the xlsx library.
 A command-palette style interface for rapid bill lookup and actions, accessible via **Ctrl+K** or the dedicated sidebar search button.
 
 ### Features
+
 - **Recent Bills** — Shows the 15 most recent bills immediately on open (no typing needed)
 - **Full-Text Search** — Search by bill number, customer name, or phone number
 - **3-Mode Interface** — List → Actions → View, navigable entirely by keyboard
 - **Dedicated Sidebar Button** — "Search bills... Ctrl+K" button always visible in the sidebar
 
 ### Quick Actions Per Bill
-| Action | Shortcut | Description |
-|--------|----------|-------------|
-| View Bill Details | **V** | Full bill view with items table, GST breakup, totals, return history |
-| Print Receipt | **P** | Send thermal receipt to printer |
-| Download PDF | **D** | Generate and open a PDF invoice |
-| Send via WhatsApp | **W** | Send bill receipt to customer (requires phone number) |
-| Return / Exchange | **R** | Open the return/exchange dialog for the bill |
+
+| Action            | Shortcut | Description                                                          |
+| ----------------- | -------- | -------------------------------------------------------------------- |
+| View Bill Details | **V**    | Full bill view with items table, GST breakup, totals, return history |
+| Print Receipt     | **P**    | Send thermal receipt to printer                                      |
+| Download PDF      | **D**    | Generate and open a PDF invoice                                      |
+| Send via WhatsApp | **W**    | Send bill receipt to customer (requires phone number)                |
+| Return / Exchange | **R**    | Open the return/exchange dialog for the bill                         |
 
 ### Keyboard Navigation
-| Mode | Shortcut | Action |
-|------|----------|--------|
-| List | ↑↓ | Navigate between bills |
-| List | Enter / → | Open actions for selected bill |
-| List | Esc | Close search |
-| Actions | V / P / D / W / R | Execute action directly |
-| Actions | ↑↓ | Navigate between actions |
-| Actions | Enter | Execute highlighted action |
-| Actions | ← / Esc | Go back to list |
-| View | P / D / W | Quick actions on viewed bill |
-| View | ← / Esc / Backspace | Go back to actions |
+
+| Mode    | Shortcut            | Action                         |
+| ------- | ------------------- | ------------------------------ |
+| List    | ↑↓                  | Navigate between bills         |
+| List    | Enter / →           | Open actions for selected bill |
+| List    | Esc                 | Close search                   |
+| Actions | V / P / D / W / R   | Execute action directly        |
+| Actions | ↑↓                  | Navigate between actions       |
+| Actions | Enter               | Execute highlighted action     |
+| Actions | ← / Esc             | Go back to list                |
+| View    | P / D / W           | Quick actions on viewed bill   |
+| View    | ← / Esc / Backspace | Go back to actions             |
 
 ### Bill Detail View
+
 - Bill header: number, status badge, date, time, salesman
 - Customer info: name, phone, payment mode with UPI reference
 - Items table: product name, SKU, quantity, price, GST%, total
@@ -340,17 +357,20 @@ A command-palette style interface for rapid bill lookup and actions, accessible 
 Full return and exchange processing with automatic stock restoration and bill recalculation.
 
 ### Access Points
+
 - **Quick Bill Search** (Ctrl+K) → select bill → **R** (Return/Exchange)
 - **Reports Page** → Bill detail → Return/Exchange dropdown
 - **Bill History** → Actions dropdown → Return or Exchange
 
 ### 4-Step Workflow
+
 1. **Search** — Find the original bill by number, customer, or phone
 2. **Edit** — Select items and quantities to return, choose mode (Return or Exchange)
 3. **Confirm** — Review summary with amounts and refund details
 4. **Done** — Success screen with print/WhatsApp options
 
 ### Return Mode
+
 - Select items and quantities to return
 - Choose refund method: Cash, Credit to account, or Adjust
 - Stock is automatically restored for returned items
@@ -358,6 +378,7 @@ Full return and exchange processing with automatic stock restoration and bill re
 - Refund amount calculated with proportional GST
 
 ### Exchange Mode
+
 - Select items to return (same as return mode)
 - Add new replacement items with search or "Other" custom items
 - Net amount calculated: exchange total minus return credit
@@ -367,18 +388,21 @@ Full return and exchange processing with automatic stock restoration and bill re
 - Original bill recalculated
 
 ### Bill Recalculation After Return
+
 - Original bill's subtotal, discount, taxable amount, GST, round-off, and grand total are recalculated
 - Based on effective remaining quantities (original qty minus returned qty)
 - Total items and total quantity updated
 - Proportional discount applied to remaining items
 
 ### Return History
+
 - Full return/exchange history stored in `bill_returns` and `bill_return_items` tables
 - Each return records: type, reason, amounts, refund mode, linked new bill (for exchanges)
 - Return history displayed in bill detail views (PDF, thermal receipt, Reports, Quick Bill Search)
 - Items show return annotations: "(2 returned)" or "(Returned)" with visual strike-through
 
 ### PDF & Print Integration
+
 - PDF invoices show return annotations on items and a "Returns / Exchanges Applied" section
 - Thermal receipts show "** RETURNED **" annotations and a "RETURNS / EXCHANGES" section
 - Both formats show the updated (recalculated) totals
@@ -390,18 +414,21 @@ Full return and exchange processing with automatic stock restoration and bill re
 Real-time dashboard with auto-refresh (every 60 seconds):
 
 ### Primary Stats (4 cards)
+
 - **Today's Sales** — Total amount with bill count and % change vs yesterday
 - **Cash In Hand** — Cash collected today with UPI and Card sub-totals
 - **Pending Credits** — Total outstanding credit with customer count and today's collections
 - **Stock Alerts** — Low stock + out of stock counts with quick navigation
 
 ### Secondary Stats (4 cards)
+
 - **Week Sales** — Last 7 days total
 - **Month Sales** — Current month total
 - **Avg Bill Value** — Today's average bill amount
 - **Today's Expenses** — Expense total with net income calculation
 
 ### Additional Sections
+
 - **Payment Breakdown** — Visual bar chart with per-mode amounts, bill counts, and percentages
 - **Recent Bills** — Last 10 bills with bill number, time, customer, payment mode, amount
 - **Top Selling Today** — Ranked product list by revenue with quantity sold
@@ -412,27 +439,63 @@ Real-time dashboard with auto-refresh (every 60 seconds):
 
 ## 19. Settings & Configuration
 
-Four-tab settings interface:
+An eight-tab comprehensive settings interface:
 
 ### General Tab
-- Shop name, GSTIN, address, phone, receipt footer
-- Printer selection, test print, auto-print toggle
+
+- Shop name, GSTIN, address, phone info
+- Financial year and state code selection
+
+### Payments Tab (Owner Only)
+
+- Manage bank accounts, default billing UPI VPAs, payee names, and QR scanner codes
+
+### Printers Tab
+
+- Active Receipt Printer and Active Label Printer selections
+- Test Print and live Printer Diagnostics (checks spooler state, port, offline status)
+
+### Barcode Tab
+
+- **Collapsible Accordion Panels** — All configurations are neatly organized into four collapsible accordion panels (Content Visibility, Dimensions, Advanced Typography, Calibration), ensuring only one section is open at a time for a clean dashboard view.
+- **Premium Switch Toggle Cards** — Raw checkbox controls are replaced by elegant, grid-aligned custom card switches (iOS-style toggles) that illuminate when active.
+- **Content Visibility** — Toggle visibility of Shop Name, Product Name, MRP, Selling Price, and Discount Percentage on labels.
+- **Strike-through MRP Formatting** — Vector strikethrough line overlay for high-contrast thermal barcode compliance.
+- **Shop Name Override** — Override shop header text with a Custom Sale Name (with collapsible input field).
+- **Label & Barcode Dimensions** — Configurable default label size (`46x25`mm standard or `60x40`mm large presets), barcode width (`50%` to `100%`), and barcode height (`3.0` to `15.0` mm).
+- **Advanced Typography & Layout** — Adjust element-level alignments, custom point (`pt`) font sizes, margins (X & Y paddings), element gap spacing, and readable SKU code text toggle.
+- **Printer Alignment Calibration** — Fine-tune horizontal (X-axis) and vertical (Y-axis) margins within `[-5.0 mm, +5.0 mm]` to resolve physical print misalignment on thermal printers.
+- **Live Barcode Preview** — Interactive visual mockup card that scales automatically and shifts in real-time according to alignment nudge, margins, alignments, and sizing settings.
+- **One-Click "Test Print Label"** — Directly print a sample label using current (including unsaved) calibration adjustments for immediate physical validation.
+
+
+### Receipt Tab
+
+- Thermal receipt paper width profiles selection (58mm, 72mm, 80mm)
+- Auto-print receipt on bill completion toggle
+- Customizable Exchange Policy Footer (Standard, Custom Text with presets, or No Footer)
+- Floating live receipt layout preview panel with SVG jagged edges scaling dynamically
 
 ### Backup Tab
+
 - Create / restore local backups
 - Open backups, receipts, reports folders
 - Auto-backup frequency and retention
 - Google Drive cloud backup setup and management
 
 ### Security Tab
+
 - Change PIN (current → new → confirm)
+- Cashier user accounts management (Owner Only)
 
 ### Shortcuts Tab
+
 - Fixed shortcuts reference (F1–F12, Ctrl combos)
 - Configurable shortcuts: Add Other Item, Quick New Customer
 - Duplicate prevention — already-assigned shortcuts disabled
 
 ### Hidden Settings (stored in DB)
+
 - Default tax type (inclusive/exclusive), round-off mode, default payment mode
 - Require customer on bill, enable salesman, enable wholesale
 - Receipt copies, state code, bill prefix, financial year start
@@ -471,4 +534,4 @@ Four-tab settings interface:
 
 ---
 
-*Developed by [Sultan Kabadi](https://sultanbk.com) — KPT Billing v1.0.0*
+_Developed by [Sultan Kabadi](https://sultanbk.com) — KPT Billing v2.0.0_

@@ -14,45 +14,45 @@ The Customers module provides complete customer lifecycle management including a
 
 ## Customer Fields
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `name` | string | Yes | Customer full name |
-| `phone` | string | Unique | Phone number (unique identifier) |
-| `email` | string | No | Email address |
-| `address` | string | No | Full address |
-| `city` | string | No | City |
-| `gstin` | string | No | GST identification number |
-| `customer_type` | enum | No | `regular`, `wholesale`, or `walkin` |
-| `credit_limit` | decimal | No | Maximum allowed credit (default: 0) |
-| `opening_balance` | decimal | No | Initial credit balance |
-| `current_balance` | decimal | Auto | Current outstanding amount (auto-managed) |
-| `created_at` | datetime | Auto | Registration timestamp |
-| `updated_at` | datetime | Auto | Last update timestamp |
+| Field             | Type     | Required | Description                               |
+| ----------------- | -------- | -------- | ----------------------------------------- |
+| `name`            | string   | Yes      | Customer full name                        |
+| `phone`           | string   | Unique   | Phone number (unique identifier)          |
+| `email`           | string   | No       | Email address                             |
+| `address`         | string   | No       | Full address                              |
+| `city`            | string   | No       | City                                      |
+| `gstin`           | string   | No       | GST identification number                 |
+| `customer_type`   | enum     | No       | `regular`, `wholesale`, or `walkin`       |
+| `credit_limit`    | decimal  | No       | Maximum allowed credit (default: 0)       |
+| `opening_balance` | decimal  | No       | Initial credit balance                    |
+| `current_balance` | decimal  | Auto     | Current outstanding amount (auto-managed) |
+| `created_at`      | datetime | Auto     | Registration timestamp                    |
+| `updated_at`      | datetime | Auto     | Last update timestamp                     |
 
 ---
 
 ## Customer Operations
 
-| Operation | Description |
-|-----------|-------------|
-| **Create** | Add new customer, phone must be unique |
-| **Update** | Edit customer details |
-| **Delete** | Remove customer (if no linked bills) |
-| **Search** | Real-time search by name or phone |
-| **Get All** | Paginated customer list |
-| **Get With Credit** | Customers with outstanding balances |
-| **Bill History** | View all bills for a customer |
-| **Credit Ledger** | Chronological credit/payment log |
+| Operation           | Description                            |
+| ------------------- | -------------------------------------- |
+| **Create**          | Add new customer, phone must be unique |
+| **Update**          | Edit customer details                  |
+| **Delete**          | Remove customer (if no linked bills)   |
+| **Search**          | Real-time search by name or phone      |
+| **Get All**         | Paginated customer list                |
+| **Get With Credit** | Customers with outstanding balances    |
+| **Bill History**    | View all bills for a customer          |
+| **Credit Ledger**   | Chronological credit/payment log       |
 
 ---
 
 ## Customer Types
 
-| Type | Description |
-|------|-------------|
-| **Regular** | Standard retail customer |
+| Type          | Description                           |
+| ------------- | ------------------------------------- |
+| **Regular**   | Standard retail customer              |
 | **Wholesale** | Bulk buyer, may get wholesale pricing |
-| **Walk-in** | One-time customer (no record kept) |
+| **Walk-in**   | One-time customer (no record kept)    |
 
 ---
 
@@ -79,17 +79,17 @@ A streamlined inline form accessible during billing:
 
 ### Credit Payment Recording
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `customer_id` | integer | Customer reference |
-| `date` | string | Payment date |
-| `amount` | decimal | Amount received |
-| `payment_mode` | string | cash / upi / card / cheque / bank_transfer |
-| `reference_no` | string | Payment reference (cheque no., UTR, etc.) |
-| `notes` | string | Optional notes |
-| `balance_before` | decimal | Balance before this payment |
-| `balance_after` | decimal | Balance after this payment |
-| `bill_id` | integer | Optional: linked to a specific bill |
+| Field            | Type    | Description                                |
+| ---------------- | ------- | ------------------------------------------ |
+| `customer_id`    | integer | Customer reference                         |
+| `date`           | string  | Payment date                               |
+| `amount`         | decimal | Amount received                            |
+| `payment_mode`   | string  | cash / upi / card / cheque / bank_transfer |
+| `reference_no`   | string  | Payment reference (cheque no., UTR, etc.)  |
+| `notes`          | string  | Optional notes                             |
+| `balance_before` | decimal | Balance before this payment                |
+| `balance_after`  | decimal | Balance after this payment                 |
+| `bill_id`        | integer | Optional: linked to a specific bill        |
 
 ### Credit Ledger
 
@@ -106,21 +106,21 @@ Date        | Type    | Reference     | Debit    | Credit   | Balance
 
 ### Credit Aging Buckets
 
-| Bucket | Days Overdue | Risk Level |
-|--------|-------------|------------|
-| Current | 0–30 days | Low |
-| Aging | 31–60 days | Medium |
-| Overdue | 61–90 days | High |
-| Critical | 90+ days | Critical |
+| Bucket   | Days Overdue | Risk Level |
+| -------- | ------------ | ---------- |
+| Current  | 0–30 days    | Low        |
+| Aging    | 31–60 days   | Medium     |
+| Overdue  | 61–90 days   | High       |
+| Critical | 90+ days     | Critical   |
 
 ### Credit Risk Scoring
 
-| Utilization % | Risk Level | Color |
-|--------------|------------|-------|
-| 0% | None | Green |
-| 1–50% | Low | Blue |
-| 51–80% | Medium | Orange |
-| > 80% | High | Red |
+| Utilization % | Risk Level | Color  |
+| ------------- | ---------- | ------ |
+| 0%            | None       | Green  |
+| 1–50%         | Low        | Blue   |
+| 51–80%        | Medium     | Orange |
+| > 80%         | High       | Red    |
 
 Formula: `Utilization = (current_balance / credit_limit) × 100`
 
@@ -129,16 +129,19 @@ Formula: `Utilization = (current_balance / credit_limit) × 100`
 ## Customer Analytics
 
 ### Top Customers by Revenue
+
 - Ranked by total purchase amount
 - Shows: total bills, total revenue, average bill value, last purchase date
 - Date range filterable
 
 ### Purchase Frequency Analysis
+
 - Tracks visit frequency per customer
 - Calculates average days between visits
 - Categorizes: Regular, Occasional, Rare
 
 ### Credit Risk Assessment
+
 - All customers with credit limits
 - Current utilization percentage
 - Risk level categorization
@@ -151,6 +154,7 @@ Formula: `Utilization = (current_balance / credit_limit) × 100`
 Three message templates available:
 
 ### 1. Bill Receipt
+
 Sends a formatted bill receipt to the customer's WhatsApp:
 
 ```
@@ -172,6 +176,7 @@ Thank you for shopping! 🙏
 ```
 
 ### 2. Credit Reminder
+
 Sends a payment reminder for overdue credits:
 
 ```
@@ -188,6 +193,7 @@ Thank you! 🙏
 ```
 
 ### 3. Payment Confirmation
+
 Confirms a credit payment received:
 
 ```
@@ -203,6 +209,7 @@ KRISHNAPRIYA TEXTILES
 ```
 
 ### How It Works
+
 - Opens `wa.me/{phone}?text={encoded_message}` URL
 - Phone numbers prefixed with `+91` (India)
 - Message is URL-encoded and pre-filled in WhatsApp
@@ -213,11 +220,13 @@ KRISHNAPRIYA TEXTILES
 ## Customers Page Features
 
 ### Customer List
+
 - Paginated table with search
 - Shows: name, phone, city, type, credit balance
 - Color-coded balance (red for outstanding)
 
 ### Customer Detail View
+
 - Full customer information
 - Credit summary: limit, balance, utilization
 - Bill history table
@@ -226,6 +235,7 @@ KRISHNAPRIYA TEXTILES
 - WhatsApp action buttons
 
 ### Credit Filters
+
 - All customers
 - With outstanding balance
 - High credit utilization
@@ -235,10 +245,11 @@ KRISHNAPRIYA TEXTILES
 ## Dashboard Integration
 
 Customer-related dashboard widgets:
+
 - **Pending Credits Card** — Total outstanding with customer count
 - **Today's Collections Badge** — Amount collected today
 - **Credit Sales Today Section** — Credit issued vs. collected comparison
 
 ---
 
-*Developed by [Sultan Kabadi](https://sultanbk.com) — KPT Billing v1.0.0*
+_Developed by [Sultan Kabadi](https://sultanbk.com) — KPT Billing v1.0.0_

@@ -10,10 +10,10 @@ Developed by **[Sultan Kabadi](https://sultanbk.com)**
 
 KPT Billing supports two backup strategies:
 
-| Strategy | Storage | Automation | Internet Required |
-|----------|---------|------------|-------------------|
-| **Local Backup** | User-selected folder | Manual + Auto | No |
-| **Cloud Backup** | Google Drive | Manual | Yes |
+| Strategy         | Storage              | Automation    | Internet Required |
+| ---------------- | -------------------- | ------------- | ----------------- |
+| **Local Backup** | User-selected folder | Manual + Auto | No                |
+| **Cloud Backup** | Google Drive         | Manual        | Yes               |
 
 All backups are full SQL dumps of the SQLite database, ensuring data integrity and easy restoration.
 
@@ -29,11 +29,11 @@ All backups are full SQL dumps of the SQLite database, ensuring data integrity a
 
 ### Configuration
 
-| Setting | Description | Default |
-|---------|-------------|---------|
-| `backup_path` | Directory to store backups | Not set (user must configure) |
-| `auto_backup` | Enable automatic backup on exit | `true` |
-| `backup_retention_days` | Days to keep old backups | `30` |
+| Setting                 | Description                     | Default                       |
+| ----------------------- | ------------------------------- | ----------------------------- |
+| `backup_path`           | Directory to store backups      | Not set (user must configure) |
+| `auto_backup`           | Enable automatic backup on exit | `true`                        |
+| `backup_retention_days` | Days to keep old backups        | `30`                          |
 
 ### Manual Backup
 
@@ -46,6 +46,7 @@ All backups are full SQL dumps of the SQLite database, ensuring data integrity a
 ### Auto Backup
 
 When enabled:
+
 - Triggers automatically when the application is closed
 - Uses the configured `backup_path`
 - Silent operation — no user interaction required
@@ -82,12 +83,12 @@ Cloud backup uses Google Drive API with OAuth2 authentication.
 
 ### Cloud Backup Operations
 
-| Operation | Description |
-|-----------|-------------|
-| **Upload Backup** | Create local backup then upload to Google Drive |
-| **List Cloud Backups** | Show all KPT backups on Google Drive |
-| **Download Backup** | Download a specific backup from Google Drive |
-| **Disconnect** | Revoke Google Drive access and remove tokens |
+| Operation              | Description                                     |
+| ---------------------- | ----------------------------------------------- |
+| **Upload Backup**      | Create local backup then upload to Google Drive |
+| **List Cloud Backups** | Show all KPT backups on Google Drive            |
+| **Download Backup**    | Download a specific backup from Google Drive    |
+| **Disconnect**         | Revoke Google Drive access and remove tokens    |
 
 ### Upload to Google Drive
 
@@ -127,12 +128,12 @@ Cloud backup uses Google Drive API with OAuth2 authentication.
 
 ### Safety Measures
 
-| Safety Feature | Description |
-|----------------|-------------|
-| **Pre-restore backup** | Automatic backup created before any restore |
-| **File validation** | Backup file is validated before restoration |
-| **Atomic operation** | Restore runs in a transaction — all or nothing |
-| **Restart prompt** | Application restarts after successful restore |
+| Safety Feature         | Description                                    |
+| ---------------------- | ---------------------------------------------- |
+| **Pre-restore backup** | Automatic backup created before any restore    |
+| **File validation**    | Backup file is validated before restoration    |
+| **Atomic operation**   | Restore runs in a transaction — all or nothing |
+| **Restart prompt**     | Application restarts after successful restore  |
 
 ---
 
@@ -164,18 +165,18 @@ Located in **Settings → Backup** tab:
 
 ## IPC Channels
 
-| Channel | Direction | Description |
-|---------|-----------|-------------|
-| `backup:create` | Renderer → Main | Create local backup |
-| `backup:restore` | Renderer → Main | Restore from file |
-| `backup:get-path` | Renderer → Main | Get configured backup path |
-| `backup:set-path` | Renderer → Main | Set backup directory |
-| `gdrive:connect` | Renderer → Main | Start OAuth2 flow |
+| Channel             | Direction       | Description                |
+| ------------------- | --------------- | -------------------------- |
+| `backup:create`     | Renderer → Main | Create local backup        |
+| `backup:restore`    | Renderer → Main | Restore from file          |
+| `backup:get-path`   | Renderer → Main | Get configured backup path |
+| `backup:set-path`   | Renderer → Main | Set backup directory       |
+| `gdrive:connect`    | Renderer → Main | Start OAuth2 flow          |
 | `gdrive:disconnect` | Renderer → Main | Revoke Google Drive access |
-| `gdrive:upload` | Renderer → Main | Upload backup to Drive |
-| `gdrive:download` | Renderer → Main | Download backup from Drive |
-| `gdrive:list` | Renderer → Main | List Drive backups |
-| `gdrive:status` | Renderer → Main | Check connection status |
+| `gdrive:upload`     | Renderer → Main | Upload backup to Drive     |
+| `gdrive:download`   | Renderer → Main | Download backup from Drive |
+| `gdrive:list`       | Renderer → Main | List Drive backups         |
+| `gdrive:status`     | Renderer → Main | Check connection status    |
 
 ---
 
@@ -190,4 +191,4 @@ Located in **Settings → Backup** tab:
 
 ---
 
-*Developed by [Sultan Kabadi](https://sultanbk.com) — KPT Billing v1.0.0*
+_Developed by [Sultan Kabadi](https://sultanbk.com) — KPT Billing v1.0.0_

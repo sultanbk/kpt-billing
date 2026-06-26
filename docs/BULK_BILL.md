@@ -18,16 +18,16 @@ Generate the same bill for multiple customers at once — useful for distributin
 
 ### Step 1 — Select Customers
 
-| Feature | Description |
-|---------|-------------|
-| **Search** | Type a customer name or phone number to search. Results appear in a dropdown list. |
-| **Keyboard Navigation** | Use `↑` / `↓` arrow keys to navigate results, `Enter` to select/deselect. |
-| **Toggle Selection** | Click a customer row (or press Enter) to add/remove them from the selection. |
-| **Per-Customer Payment Mode** | Each selected customer shows a 4-icon toggle (Cash / UPI / Card / Credit). Click an icon to override that customer's payment mode. |
-| **Default Payment Mode** | A grid of 4 buttons at the bottom. Changing the default resets all per-customer overrides. |
-| **Add New Customer** | Expand the "Add New Customer" section to create a customer inline (Name required, Phone optional). The new customer is auto-selected upon creation. |
-| **Summary Card** | Shows per-bill total, customer count, and combined total. |
-| **Clear All** | Removes all selected customers at once. |
+| Feature                       | Description                                                                                                                                         |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Search**                    | Type a customer name or phone number to search. Results appear in a dropdown list.                                                                  |
+| **Keyboard Navigation**       | Use `↑` / `↓` arrow keys to navigate results, `Enter` to select/deselect.                                                                           |
+| **Toggle Selection**          | Click a customer row (or press Enter) to add/remove them from the selection.                                                                        |
+| **Per-Customer Payment Mode** | Each selected customer shows a 4-icon toggle (Cash / UPI / Card / Credit). Click an icon to override that customer's payment mode.                  |
+| **Default Payment Mode**      | A grid of 4 buttons at the bottom. Changing the default resets all per-customer overrides.                                                          |
+| **Add New Customer**          | Expand the "Add New Customer" section to create a customer inline (Name required, Phone optional). The new customer is auto-selected upon creation. |
+| **Summary Card**              | Shows per-bill total, customer count, and combined total.                                                                                           |
+| **Clear All**                 | Removes all selected customers at once.                                                                                                             |
 
 Click **"Review (N bills)"** to proceed.
 
@@ -57,14 +57,14 @@ If one bill fails, the remaining bills continue unaffected.
 
 Shows the final results:
 
-| Element | Description |
-|---------|-------------|
-| **Results list** | Each customer with status — green for success (with bill number), red for failure (with error) |
-| **Print button** | Per-bill print icon next to each successful bill |
-| **WhatsApp button** | Per-bill WhatsApp icon (only shown if the customer has a valid phone number) |
-| **Print All** | Prints all successful bills sequentially with a 500ms delay between each |
-| **Summary card** | Total amount billed and count of successful bills |
-| **Done button** | Closes the dialog and clears the cart |
+| Element             | Description                                                                                    |
+| ------------------- | ---------------------------------------------------------------------------------------------- |
+| **Results list**    | Each customer with status — green for success (with bill number), red for failure (with error) |
+| **Print button**    | Per-bill print icon next to each successful bill                                               |
+| **WhatsApp button** | Per-bill WhatsApp icon (only shown if the customer has a valid phone number)                   |
+| **Print All**       | Prints all successful bills sequentially with a 500ms delay between each                       |
+| **Summary card**    | Total amount billed and count of successful bills                                              |
+| **Done button**     | Closes the dialog and clears the cart                                                          |
 
 ---
 
@@ -129,13 +129,13 @@ On the results screen, each successful bill with a valid customer phone shows a 
 
 ## Error Handling
 
-| Scenario | Behavior |
-|----------|----------|
+| Scenario                             | Behavior                                                    |
+| ------------------------------------ | ----------------------------------------------------------- |
 | Bill creation fails for one customer | Marked as "Failed" with error message; other bills continue |
-| All bills fail | Summary shows 0 billed, Print All hidden |
-| Network/database error during search | Search results cleared silently |
-| Customer creation fails | Toast error message shown |
-| WhatsApp send fails | Toast error message shown |
+| All bills fail                       | Summary shows 0 billed, Print All hidden                    |
+| Network/database error during search | Search results cleared silently                             |
+| Customer creation fails              | Toast error message shown                                   |
+| WhatsApp send fails                  | Toast error message shown                                   |
 
 ---
 
@@ -143,13 +143,13 @@ On the results screen, each successful bill with a valid customer phone shows a 
 
 ### Files Involved
 
-| File | Role |
-|------|------|
-| `src/renderer/src/components/billing/BulkBillDialog.tsx` | Main dialog component (4-step wizard UI) |
-| `src/renderer/src/pages/BillingPage.tsx` | Hosts the dialog, passes cart data as props |
-| `src/shared/types/index.ts` | `BillCreateData` type definition |
-| `src/main/ipc/validation.ts` | Zod schema for `billCreateSchema` |
-| `src/main/ipc/billing.ipc.ts` | IPC handler (auto-print removed) |
+| File                                                     | Role                                        |
+| -------------------------------------------------------- | ------------------------------------------- |
+| `src/renderer/src/components/billing/BulkBillDialog.tsx` | Main dialog component (4-step wizard UI)    |
+| `src/renderer/src/pages/BillingPage.tsx`                 | Hosts the dialog, passes cart data as props |
+| `src/shared/types/index.ts`                              | `BillCreateData` type definition            |
+| `src/main/ipc/validation.ts`                             | Zod schema for `billCreateSchema`           |
+| `src/main/ipc/billing.ipc.ts`                            | IPC handler (auto-print removed)            |
 
 ### Props Interface
 
@@ -171,10 +171,10 @@ All state is local to the component (no external store). State is fully reset ev
 
 ### APIs Used
 
-| API Call | Purpose |
-|----------|---------|
-| `window.api.customers.search(query)` | Search customers by name/phone |
-| `window.api.customers.create(data)` | Create new customer inline |
-| `window.api.billing.createBill(data)` | Create a bill |
-| `window.api.billing.printReceipt(billId)` | Print a single bill receipt |
-| `window.api.whatsapp.sendBillReceipt(billId, phone)` | Share bill via WhatsApp |
+| API Call                                             | Purpose                        |
+| ---------------------------------------------------- | ------------------------------ |
+| `window.api.customers.search(query)`                 | Search customers by name/phone |
+| `window.api.customers.create(data)`                  | Create new customer inline     |
+| `window.api.billing.createBill(data)`                | Create a bill                  |
+| `window.api.billing.printReceipt(billId)`            | Print a single bill receipt    |
+| `window.api.whatsapp.sendBillReceipt(billId, phone)` | Share bill via WhatsApp        |

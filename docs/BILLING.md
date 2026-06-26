@@ -39,12 +39,14 @@ The Billing page (`/`) is the primary POS interface of KPT Billing. It is the **
 ## Product Search
 
 ### Text Search
+
 - Type in the search bar to search products by **name**, **SKU**, or **short name**
 - Results appear in a dropdown (max 15 results)
 - Navigate with **Arrow Up/Down**, select with **Enter**
 - Pressing **Escape** focuses the search bar from anywhere on the page
 
 ### Barcode Scanning
+
 - The app auto-detects barcode scanner input
 - Detection logic: keystrokes arriving faster than 80–100ms with minimum 4 characters
 - On successful scan, the barcode is looked up via `products:getByBarcode`
@@ -56,17 +58,21 @@ The Billing page (`/`) is the primary POS interface of KPT Billing. It is the **
 ## Cart Management
 
 ### Adding Items
+
 - Click a product from search results, or press Enter on the highlighted result
 - If the product already exists in the cart, its **quantity increments by 1**
 - New products are added with quantity 1 at their selling price
 
 ### Custom Items ("Other")
+
 - Press **Alt+O** (configurable) or click **+ Other** button
 - Adds a row with `productId: 0` — editable name and price
 - Useful for miscellaneous items not in the product database
 
 ### Cart Item Row
+
 Each cart row displays:
+
 - Sequential number
 - Product name (editable for custom items)
 - Quantity controls: `-` / `+` buttons, or direct input
@@ -76,12 +82,13 @@ Each cart row displays:
 - Delete button
 
 ### Cart Actions
-| Action | Shortcut | Description |
-|--------|----------|-------------|
-| Add Other Item | Alt+O * | Add custom/miscellaneous item |
-| Hold Bill | F6 | Park current bill for later |
-| Recall Bill | F8 | Show held bills, recall one |
-| Clear Cart | F9 | Remove all items from cart |
+
+| Action         | Shortcut | Description                   |
+| -------------- | -------- | ----------------------------- |
+| Add Other Item | Alt+O \* | Add custom/miscellaneous item |
+| Hold Bill      | F6       | Park current bill for later   |
+| Recall Bill    | F8       | Show held bills, recall one   |
+| Clear Cart     | F9       | Remove all items from cart    |
 
 \* Configurable via Settings → Shortcuts
 
@@ -90,11 +97,13 @@ Each cart row displays:
 ## Customer Association
 
 ### Search Existing Customer
+
 - Type customer name or phone in the customer search field
 - Results appear in a dropdown (max 8 results)
 - Click to select — customer name and phone are linked to the bill
 
 ### Quick Add New Customer
+
 - Click **New** button or press **Alt+N** (configurable)
 - Inline form appears with:
   - Customer name (required)
@@ -103,6 +112,7 @@ Each cart row displays:
 - Press Escape to dismiss the form
 
 ### Walk-In Customers
+
 - If no customer is selected, the bill is created as a **Walk-in** sale
 - Walk-in bills do not affect any customer's credit balance
 
@@ -133,15 +143,16 @@ Triggered by the **Pay & Print** button or **F11** shortcut.
 
 ### Payment Modes
 
-| Mode | Fields | Notes |
-|------|--------|-------|
-| **Cash** | Cash tendered, auto-calculated change | Default mode |
-| **UPI** | UPI reference number | For digital payments |
-| **Card** | — | Card payments |
-| **Credit** | — | Requires linked customer; updates customer balance |
-| **Mixed** | Cash amount, UPI amount + ref, Card amount, Credit amount | Split payment across modes |
+| Mode       | Fields                                                    | Notes                                              |
+| ---------- | --------------------------------------------------------- | -------------------------------------------------- |
+| **Cash**   | Cash tendered, auto-calculated change                     | Default mode                                       |
+| **UPI**    | UPI reference number                                      | For digital payments                               |
+| **Card**   | —                                                         | Card payments                                      |
+| **Credit** | —                                                         | Requires linked customer; updates customer balance |
+| **Mixed**  | Cash amount, UPI amount + ref, Card amount, Credit amount | Split payment across modes                         |
 
 ### Payment Flow
+
 1. Select payment mode
 2. Enter payment details (if applicable)
 3. Click **Complete Payment**
@@ -154,6 +165,7 @@ Triggered by the **Pay & Print** button or **F11** shortcut.
 10. Bill number is displayed in success toast
 
 ### Round-Off
+
 - Configurable in settings: No rounding, Round to ₹1, Round to ₹0.50
 - Applied to the grand total after tax
 
@@ -162,12 +174,14 @@ Triggered by the **Pay & Print** button or **F11** shortcut.
 ## Hold / Recall Bills
 
 ### Hold (F6)
+
 - Parks the current cart (items + customer) into the `held_bills` table
 - Each held bill gets a UUID
 - Cart is cleared after holding
 - Multiple bills can be held simultaneously
 
 ### Recall (F8)
+
 - Opens a dialog showing all held bills
 - Each entry shows: customer name, item count, timestamp
 - Click **Recall** to restore items and customer to the active cart
@@ -248,6 +262,7 @@ Example: `KPT/25-26/0147`
 ## Receipt Output
 
 ### PDF Invoice (A4)
+
 - Professional A4 layout with shop header, GSTIN, customer details
 - Itemized table with HSN code, qty, rate, discount, tax breakup, amount
 - GST summary: CGST + SGST per rate
@@ -256,6 +271,7 @@ Example: `KPT/25-26/0147`
 - Digital "Authorized By" footer
 
 ### Thermal Receipt (80mm)
+
 - 48-character width format
 - Centered shop header
 - Bill details: number, date, time, customer
@@ -271,50 +287,52 @@ Example: `KPT/25-26/0147`
 The billing page uses the `useBillingStore` (Zustand + Immer):
 
 ### State
-| Field | Type | Description |
-|-------|------|-------------|
-| `items` | `BillItem[]` | Cart line items |
-| `customerName` | `string` | Selected customer name |
-| `customerPhone` | `string` | Selected customer phone |
-| `customerId` | `string \| null` | Selected customer ID |
-| `discountType` | `'percent' \| 'flat'` | Bill discount type |
-| `discountValue` | `number` | Bill discount value |
-| `subtotal` | `number` | Calculated subtotal |
-| `discountAmount` | `number` | Calculated discount amount |
-| `taxAmount` | `number` | Calculated tax total |
-| `grandTotal` | `number` | Final payable amount |
-| `totalItems` | `number` | Total quantity of all items |
+
+| Field            | Type                  | Description                 |
+| ---------------- | --------------------- | --------------------------- |
+| `items`          | `BillItem[]`          | Cart line items             |
+| `customerName`   | `string`              | Selected customer name      |
+| `customerPhone`  | `string`              | Selected customer phone     |
+| `customerId`     | `string \| null`      | Selected customer ID        |
+| `discountType`   | `'percent' \| 'flat'` | Bill discount type          |
+| `discountValue`  | `number`              | Bill discount value         |
+| `subtotal`       | `number`              | Calculated subtotal         |
+| `discountAmount` | `number`              | Calculated discount amount  |
+| `taxAmount`      | `number`              | Calculated tax total        |
+| `grandTotal`     | `number`              | Final payable amount        |
+| `totalItems`     | `number`              | Total quantity of all items |
 
 ### Actions
-| Action | Description |
-|--------|-------------|
-| `addItem(product)` | Add product to cart (or increment if exists) |
-| `addCustomItem()` | Add custom/Other item |
-| `removeItem(index)` | Remove item at index |
-| `updateQuantity(index, qty)` | Update item quantity |
-| `updatePrice(index, price)` | Update item price (custom items) |
-| `updateName(index, name)` | Update item name (custom items) |
-| `updateDiscount(index, type, value)` | Update per-item discount |
-| `setCustomer(name, phone, id)` | Link/unlink customer |
-| `setDiscount(type, value)` | Set bill-level discount |
-| `clearCart()` | Remove all items and reset |
-| `holdBill()` | Save cart to held_bills |
-| `recallBill(id)` | Restore held bill to cart |
-| `recalculate()` | Recalculate all totals |
+
+| Action                               | Description                                  |
+| ------------------------------------ | -------------------------------------------- |
+| `addItem(product)`                   | Add product to cart (or increment if exists) |
+| `addCustomItem()`                    | Add custom/Other item                        |
+| `removeItem(index)`                  | Remove item at index                         |
+| `updateQuantity(index, qty)`         | Update item quantity                         |
+| `updatePrice(index, price)`          | Update item price (custom items)             |
+| `updateName(index, name)`            | Update item name (custom items)              |
+| `updateDiscount(index, type, value)` | Update per-item discount                     |
+| `setCustomer(name, phone, id)`       | Link/unlink customer                         |
+| `setDiscount(type, value)`           | Set bill-level discount                      |
+| `clearCart()`                        | Remove all items and reset                   |
+| `holdBill()`                         | Save cart to held_bills                      |
+| `recallBill(id)`                     | Restore held bill to cart                    |
+| `recalculate()`                      | Recalculate all totals                       |
 
 ---
 
 ## Keyboard Shortcuts (Billing Page)
 
-| Key | Action |
-|-----|--------|
-| Escape | Focus search bar |
-| Alt+O | Add Other item * |
-| Alt+N | Quick add customer * |
-| F6 | Hold bill |
-| F8 | Recall held bill |
-| F9 | Clear cart |
-| F11 | Pay & Print |
+| Key    | Action                |
+| ------ | --------------------- |
+| Escape | Focus search bar      |
+| Alt+O  | Add Other item \*     |
+| Alt+N  | Quick add customer \* |
+| F6     | Hold bill             |
+| F8     | Recall held bill      |
+| F9     | Clear cart            |
+| F11    | Pay & Print           |
 
 \* Configurable via Settings → Shortcuts tab
 
@@ -325,6 +343,7 @@ The billing page uses the `useBillingStore` (Zustand + Immer):
 The Quick Bill Search is a command-palette accessible from anywhere via **Ctrl+K** or the sidebar search button. It provides rapid access to any bill for viewing, printing, downloading, WhatsApp sharing, and return/exchange processing.
 
 ### Features
+
 - **Recent Bills** — 15 most recent bills shown on open (no typing needed)
 - **Search** — Type 2+ characters to search by bill number, customer name, or phone
 - **3-Mode Interface** — List → Actions → View, fully keyboard-navigable
@@ -340,6 +359,7 @@ See [SHORTCUTS.md](SHORTCUTS.md) for complete keyboard shortcut reference.
 Bills can be returned or exchanged through the Quick Bill Search (Ctrl+K → R) or from the Reports page.
 
 ### Return Flow
+
 1. Search and select the original bill
 2. Select items and quantities to return
 3. Choose refund mode (Cash, Credit, or Adjust)
@@ -347,6 +367,7 @@ Bills can be returned or exchanged through the Quick Bill Search (Ctrl+K → R) 
 5. Confirm — stock is restored, original bill is recalculated, refund is processed
 
 ### Exchange Flow
+
 1. Search and select the original bill
 2. Select items to return
 3. Switch to Exchange mode
@@ -354,6 +375,7 @@ Bills can be returned or exchanged through the Quick Bill Search (Ctrl+K → R) 
 5. Confirm — original bill recalculated, new bill created for exchange items, net amount settled
 
 ### After Return/Exchange
+
 - Original bill quantities and amounts are recalculated based on remaining items
 - Stock is restored for returned items
 - PDF and thermal receipts show return annotations on affected items
@@ -362,4 +384,4 @@ Bills can be returned or exchanged through the Quick Bill Search (Ctrl+K → R) 
 
 ---
 
-*Developed by [Sultan Kabadi](https://sultanbk.com) — KPT Billing v1.0.0*
+_Developed by [Sultan Kabadi](https://sultanbk.com) — KPT Billing v1.0.0_

@@ -11,10 +11,16 @@ import { test, expect, _electron as electron } from '@playwright/test'
  */
 
 test.describe('KPT Billing - App Launch', () => {
+  const launchEnv = (): NodeJS.ProcessEnv => {
+    const env = { ...process.env, NODE_ENV: 'test' }
+    delete env.ELECTRON_RUN_AS_NODE
+    return env
+  }
+
   test('should launch the Electron app', async () => {
     const electronApp = await electron.launch({
       args: ['.'],
-      env: { ...process.env, NODE_ENV: 'test' }
+      env: launchEnv()
     })
 
     // Get the first window
@@ -34,7 +40,7 @@ test.describe('KPT Billing - App Launch', () => {
   test('should show PIN gate on startup', async () => {
     const electronApp = await electron.launch({
       args: ['.'],
-      env: { ...process.env, NODE_ENV: 'test' }
+      env: launchEnv()
     })
 
     const window = await electronApp.firstWindow()

@@ -26,7 +26,14 @@ module.exports = async function afterPack(context) {
   }
 
   // Find rcedit in the electron-builder cache
-  const cacheRoot = path.join(os.homedir(), 'AppData', 'Local', 'electron-builder', 'Cache', 'winCodeSign')
+  const cacheRoot = path.join(
+    os.homedir(),
+    'AppData',
+    'Local',
+    'electron-builder',
+    'Cache',
+    'winCodeSign'
+  )
   let rceditPath = null
 
   if (fs.existsSync(cacheRoot)) {
@@ -57,16 +64,31 @@ module.exports = async function afterPack(context) {
   console.log('  icon   :', iconPath)
 
   try {
-    execFileSync(rceditPath, [
-      exePath,
-      '--set-icon', iconPath,
-      '--set-file-version', '1.0.0.0',
-      '--set-product-version', '1.0.0.0',
-      '--set-version-string', 'ProductName', 'KPT Billing',
-      '--set-version-string', 'FileDescription', 'KPT Billing - Krishnapriya Textiles',
-      '--set-version-string', 'CompanyName', 'Krishnapriya Textiles',
-      '--set-version-string', 'LegalCopyright', 'Sultan Kabadi',
-    ], { stdio: 'inherit' })
+    execFileSync(
+      rceditPath,
+      [
+        exePath,
+        '--set-icon',
+        iconPath,
+        '--set-file-version',
+        '1.0.0.0',
+        '--set-product-version',
+        '1.0.0.0',
+        '--set-version-string',
+        'ProductName',
+        'KPT Billing',
+        '--set-version-string',
+        'FileDescription',
+        'KPT Billing - Krishnapriya Textiles',
+        '--set-version-string',
+        'CompanyName',
+        'Krishnapriya Textiles',
+        '--set-version-string',
+        'LegalCopyright',
+        'Sultan Kabadi'
+      ],
+      { stdio: 'inherit' }
+    )
     console.log('[afterPack] Icon embedded successfully.')
   } catch (err) {
     console.error('[afterPack] rcedit failed:', err.message)

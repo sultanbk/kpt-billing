@@ -16,13 +16,13 @@ KPT Billing uses a PIN-based authentication system designed for fast point-of-sa
 
 ### PIN-Based Login
 
-| Feature | Description |
-|---------|-------------|
-| **PIN Length** | 4–8 digits |
-| **Input Method** | On-screen number pad + keyboard |
-| **Hash Algorithm** | Stored securely (not plain text) |
-| **Auto-submit** | Automatically submits after correct length |
-| **Visual Feedback** | Dot indicators for entered digits |
+| Feature             | Description                                |
+| ------------------- | ------------------------------------------ |
+| **PIN Length**      | 4–8 digits                                 |
+| **Input Method**    | On-screen number pad + keyboard            |
+| **Hash Algorithm**  | Stored securely (not plain text)           |
+| **Auto-submit**     | Automatically submits after correct length |
+| **Visual Feedback** | Dot indicators for entered digits          |
 
 ### Login Flow
 
@@ -38,8 +38,8 @@ KPT Billing uses a PIN-based authentication system designed for fast point-of-sa
 
 ### Default Credentials
 
-| User | Role | PIN |
-|------|------|-----|
+| User   | Role  | PIN    |
+| ------ | ----- | ------ |
 | Puneet | Owner | `1234` |
 
 > ⚠️ **Change the default PIN immediately after first login!**
@@ -50,31 +50,31 @@ KPT Billing uses a PIN-based authentication system designed for fast point-of-sa
 
 ### Role Hierarchy
 
-| Role | Level | Description |
-|------|-------|-------------|
-| **Owner** | Highest | Full access to all features |
-| **Manager** | Mid | Most features except sensitive settings |
-| **Cashier** | Basic | Billing and basic customer operations |
+| Role        | Level   | Description                             |
+| ----------- | ------- | --------------------------------------- |
+| **Owner**   | Highest | Full access to all features             |
+| **Manager** | Mid     | Most features except sensitive settings |
+| **Cashier** | Basic   | Billing and basic customer operations   |
 
 ### Access Control Matrix
 
-| Feature | Owner | Manager | Cashier |
-|---------|:-----:|:-------:|:-------:|
-| Billing / POS | ✅ | ✅ | ✅ |
-| View Products | ✅ | ✅ | ✅ |
-| Add/Edit Products | ✅ | ✅ | ❌ |
-| Delete Products | ✅ | ❌ | ❌ |
-| View Customers | ✅ | ✅ | ✅ |
-| Manage Customers | ✅ | ✅ | ❌ |
-| Record Credit Payments | ✅ | ✅ | ❌ |
-| View Reports | ✅ | ✅ | ❌ |
-| Purchases | ✅ | ✅ | ❌ |
-| Suppliers | ✅ | ✅ | ❌ |
-| Expenses | ✅ | ✅ | ❌ |
-| Settings | ✅ | ❌ | ❌ |
-| User Management | ✅ | ❌ | ❌ |
-| Backup & Restore | ✅ | ❌ | ❌ |
-| Delete Bills | ✅ | ❌ | ❌ |
+| Feature                | Owner | Manager | Cashier |
+| ---------------------- | :---: | :-----: | :-----: |
+| Billing / POS          |  ✅   |   ✅    |   ✅    |
+| View Products          |  ✅   |   ✅    |   ✅    |
+| Add/Edit Products      |  ✅   |   ✅    |   ❌    |
+| Delete Products        |  ✅   |   ❌    |   ❌    |
+| View Customers         |  ✅   |   ✅    |   ✅    |
+| Manage Customers       |  ✅   |   ✅    |   ❌    |
+| Record Credit Payments |  ✅   |   ✅    |   ❌    |
+| View Reports           |  ✅   |   ✅    |   ❌    |
+| Purchases              |  ✅   |   ✅    |   ❌    |
+| Suppliers              |  ✅   |   ✅    |   ❌    |
+| Expenses               |  ✅   |   ✅    |   ❌    |
+| Settings               |  ✅   |   ❌    |   ❌    |
+| User Management        |  ✅   |   ❌    |   ❌    |
+| Backup & Restore       |  ✅   |   ❌    |   ❌    |
+| Delete Bills           |  ✅   |   ❌    |   ❌    |
 
 ---
 
@@ -105,16 +105,17 @@ App
 
 ### Triggering Lock
 
-| Method | Description |
-|--------|-------------|
-| **Lock Button** | Click the lock icon in the sidebar |
-| **Ctrl+L** | Global keyboard shortcut |
-| **Alt+L** | Alternative keyboard shortcut |
-| **Inactivity** | (If configured) Auto-lock after timeout |
+| Method          | Description                             |
+| --------------- | --------------------------------------- |
+| **Lock Button** | Click the lock icon in the sidebar      |
+| **Ctrl+L**      | Global keyboard shortcut                |
+| **Alt+L**       | Alternative keyboard shortcut           |
+| **Inactivity**  | (If configured) Auto-lock after timeout |
 
 ### Lock Button UI
 
 The sidebar lock button features:
+
 - Gradient background (indigo to purple)
 - Lock icon with user badge
 - Current user's name display
@@ -166,6 +167,7 @@ Located in **Settings → Security** tab:
 ### User Management
 
 Owner can:
+
 - Add new users with name, role, and PIN
 - Edit existing user details and roles
 - Delete users (cannot delete last owner)
@@ -177,48 +179,48 @@ Owner can:
 
 All significant actions are logged to the `audit_log` table:
 
-| Field | Description |
-|-------|-------------|
-| `user_id` | Who performed the action |
-| `action` | What was done (e.g., `bill_created`, `product_updated`) |
-| `entity_type` | Entity type (bill, product, customer, etc.) |
-| `entity_id` | ID of the affected entity |
-| `details` | JSON with additional context |
-| `created_at` | Timestamp of the action |
+| Field         | Description                                             |
+| ------------- | ------------------------------------------------------- |
+| `user_id`     | Who performed the action                                |
+| `action`      | What was done (e.g., `bill_created`, `product_updated`) |
+| `entity_type` | Entity type (bill, product, customer, etc.)             |
+| `entity_id`   | ID of the affected entity                               |
+| `details`     | JSON with additional context                            |
+| `created_at`  | Timestamp of the action                                 |
 
 ### Tracked Actions
 
-| Action | Description |
-|--------|-------------|
-| `login` | User logged in |
-| `logout` | User locked screen / logged out |
-| `bill_created` | New bill created |
-| `bill_deleted` | Bill deleted |
-| `product_created` | Product added |
-| `product_updated` | Product details changed |
-| `product_deleted` | Product removed |
-| `customer_created` | Customer added |
-| `credit_payment` | Credit payment recorded |
-| `settings_updated` | Settings changed |
-| `backup_created` | Backup created |
-| `backup_restored` | Backup restored |
+| Action             | Description                     |
+| ------------------ | ------------------------------- |
+| `login`            | User logged in                  |
+| `logout`           | User locked screen / logged out |
+| `bill_created`     | New bill created                |
+| `bill_deleted`     | Bill deleted                    |
+| `product_created`  | Product added                   |
+| `product_updated`  | Product details changed         |
+| `product_deleted`  | Product removed                 |
+| `customer_created` | Customer added                  |
+| `credit_payment`   | Credit payment recorded         |
+| `settings_updated` | Settings changed                |
+| `backup_created`   | Backup created                  |
+| `backup_restored`  | Backup restored                 |
 
 ---
 
 ## Protected vs. Unprotected Routes
 
-| Route | Protection |
-|-------|-----------|
-| `/` | Dashboard — requires login |
-| `/billing` | POS — requires login |
-| `/products` | Products — requires login |
-| `/customers` | Customers — requires login |
-| `/reports` | Reports — requires login + role check |
-| `/settings` | Settings — requires login + owner role |
+| Route        | Protection                              |
+| ------------ | --------------------------------------- |
+| `/`          | Dashboard — requires login              |
+| `/billing`   | POS — requires login                    |
+| `/products`  | Products — requires login               |
+| `/customers` | Customers — requires login              |
+| `/reports`   | Reports — requires login + role check   |
+| `/settings`  | Settings — requires login + owner role  |
 | `/purchases` | Purchases — requires login + role check |
 | `/suppliers` | Suppliers — requires login + role check |
-| `/expenses` | Expenses — requires login + role check |
-| `/estimates` | Estimates — requires login |
+| `/expenses`  | Expenses — requires login + role check  |
+| `/estimates` | Estimates — requires login              |
 
 ---
 
@@ -234,4 +236,4 @@ All significant actions are logged to the `audit_log` table:
 
 ---
 
-*Developed by [Sultan Kabadi](https://sultanbk.com) — KPT Billing v1.0.0*
+_Developed by [Sultan Kabadi](https://sultanbk.com) — KPT Billing v1.0.0_
