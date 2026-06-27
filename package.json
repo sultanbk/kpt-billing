@@ -1,6 +1,6 @@
 {
   "name": "kpt-billing",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Krishnapriya Textiles - Billing & Inventory Management System",
   "main": "./out/main/index.js",
   "author": "Krishnapriya Textiles",
