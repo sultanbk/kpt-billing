@@ -8,9 +8,13 @@ import { registerBillingIpc } from './ipc/billing.ipc'
 import { registerSettingsIpc } from './ipc/settings.ipc'
 import { registerExportIpc } from './ipc/export.ipc'
 import { registerSupplierPurchaseIpc } from './ipc/supplier-purchase.ipc'
+import { registerLicenseIpc } from './ipc/licenseHandlers'
+import { licenseManager } from './license/LicenseManager'
 import { backupService } from './services/backup.service'
 import { settingsRepo } from './database/repositories/settings.repo'
 import { thermalPrinterService } from './services/thermal-printer.service'
+import { registerUpdaterIpc } from './ipc/updater.ipc'
+import { initAutoUpdater, disposeAutoUpdater } from './services/auto-updater.service'
 import log from 'electron-log'
 
 // Configure logging
@@ -79,7 +83,7 @@ function setupAutoBackup(): void {
   }, intervalMs)
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   electronApp.setAppUserModelId('com.krishnapriyatextiles.billing')
 
   app.on('browser-window-created', (_, window) => {
@@ -118,12 +122,15 @@ app.whenReady().then(() => {
   // Initialize database
   log.info('Starting KPT Billing...')
   initializeDatabase()
+  await licenseManager.initialize()
 
   // Register IPC handlers
+  registerLicenseIpc()
   registerProductIpc()
   registerBillingIpc()
   registerSettingsIpc()
   registerSupplierPurchaseIpc()
+  registerUpdaterIpc()
   registerExportIpc()
 
   // Set up printer from saved settings
@@ -136,6 +143,9 @@ app.whenReady().then(() => {
   setupAutoBackup()
 
   createWindow()
+
+  // Initialise auto-updater (checks GitHub Releases in background)
+  initAutoUpdater()
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
@@ -151,5 +161,6 @@ app.on('window-all-closed', () => {
 app.on('before-quit', () => {
   log.info('Shutting down KPT Billing...')
   if (backupInterval) clearInterval(backupInterval)
+  disposeAutoUpdater()
   closeDatabase()
 })

@@ -16,6 +16,11 @@ KPT Billing provides 7 report types across 3 modules:
 
 All reports support PDF export, and most support Excel export via the Data Export page.
 
+Some advanced reporting surfaces are licence-gated. The Profit & Loss tab uses
+`profitLossReport`, Customer Analytics uses `customerAnalytics`, Credit Aging uses `creditAging`,
+and the Data Export page uses `dataExport`. Disabled features show an upgrade prompt instead of the
+report content.
+
 ---
 
 ## Reports Page (`/reports`)
@@ -165,6 +170,9 @@ The Reports page has a tabbed interface with 6 report types:
 
 **Purpose:** Comprehensive profitability analysis.
 
+**Licence:** Requires the `profitLossReport` feature flag. When disabled, the tab shows an upgrade
+prompt.
+
 **Date Range:** User-selectable period.
 
 **Report Structure:**
@@ -212,6 +220,8 @@ Net Profit                       ₹ xxx,xxx
 ---
 
 ## Customer Analytics (`/customer-analytics`)
+
+**Licence:** Requires the `customerAnalytics` feature flag.
 
 Three analysis tabs:
 
@@ -267,6 +277,8 @@ Three analysis tabs:
 
 **Purpose:** Analyze overdue credits by aging buckets.
 
+**Licence:** Requires the `creditAging` feature flag.
+
 ### Summary Cards
 
 - Total Outstanding
@@ -318,6 +330,8 @@ Reports can be exported as PDF files:
 ## Data Export (Excel)
 
 From the **Data Export** page (`/data-export`):
+
+**Licence:** Requires the `dataExport` feature flag.
 
 | Export Type          | Description                | Sheets                                                                         |
 | -------------------- | -------------------------- | ------------------------------------------------------------------------------ |

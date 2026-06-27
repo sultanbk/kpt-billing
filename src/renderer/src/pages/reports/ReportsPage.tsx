@@ -64,6 +64,7 @@ import { exportService } from '../../services/export.service'
 import { reportService } from '../../services/report.service'
 import { reportsService } from '../../services/reports.service'
 import { whatsappService } from '../../services/whatsapp.service'
+import { FeatureGate } from '../../components/license'
 
 // ---- Types for period reports ----
 interface PeriodBreakdownRow {
@@ -1636,342 +1637,344 @@ export default function ReportsPage(): React.JSX.Element {
 
           {/* ==================== PROFIT & LOSS TAB ==================== */}
           <TabsContent value="pnl" className="space-y-4 mt-4">
-            {/* Date Range Picker */}
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">From:</span>
-                <Input
-                  type="date"
-                  value={plDateFrom}
-                  onChange={(e) => setPlDateFrom(e.target.value)}
-                  className="w-44"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">To:</span>
-                <Input
-                  type="date"
-                  value={plDateTo}
-                  onChange={(e) => setPlDateTo(e.target.value)}
-                  className="w-44"
-                />
-              </div>
-              <div className="flex gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setPlDateFrom(dayjs().startOf('month').format('YYYY-MM-DD'))
-                    setPlDateTo(dayjs().format('YYYY-MM-DD'))
-                  }}
-                >
-                  This Month
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    const prev = dayjs().subtract(1, 'month')
-                    setPlDateFrom(prev.startOf('month').format('YYYY-MM-DD'))
-                    setPlDateTo(prev.endOf('month').format('YYYY-MM-DD'))
-                  }}
-                >
-                  Last Month
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setPlDateFrom(dayjs().startOf('year').format('YYYY-MM-DD'))
-                    setPlDateTo(dayjs().format('YYYY-MM-DD'))
-                  }}
-                >
-                  This Year
-                </Button>
-              </div>
-            </div>
-
-            {plLoading && (
-              <div className="py-8 text-center text-muted-foreground">Loading P&L Report...</div>
-            )}
-
-            {plReport && !plLoading && (
-              <>
-                {/* P&L Summary Cards */}
-                <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">
-                        Net Sales
-                      </CardTitle>
-                      <TrendingUp className="h-4 w-4 text-green-500" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold font-amount text-green-600">
-                        {formatCurrency(plReport.revenue.netSales)}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {plReport.revenue.totalBills} bills
-                      </p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">
-                        Cost of Goods
-                      </CardTitle>
-                      <ShoppingCart className="h-4 w-4 text-orange-500" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold font-amount text-orange-600">
-                        {formatCurrency(plReport.costOfGoods.netPurchases)}
-                      </div>
-                      <p className="text-xs text-muted-foreground">Purchases + GST</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">
-                        Gross Profit
-                      </CardTitle>
-                      <BarChart3 className="h-4 w-4 text-blue-500" />
-                    </CardHeader>
-                    <CardContent>
-                      <div
-                        className={`text-2xl font-bold font-amount ${plReport.grossProfit >= 0 ? 'text-green-600' : 'text-destructive'}`}
-                      >
-                        {formatCurrency(plReport.grossProfit)}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {plReport.grossMarginPercent.toFixed(1)}% margin
-                      </p>
-                    </CardContent>
-                  </Card>
-                  <Card
-                    className={
-                      plReport.netProfit >= 0
-                        ? 'border-green-200 bg-green-50/50'
-                        : 'border-red-200 bg-red-50/50'
-                    }
+            <FeatureGate feature="profitLossReport">
+              {/* Date Range Picker */}
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">From:</span>
+                  <Input
+                    type="date"
+                    value={plDateFrom}
+                    onChange={(e) => setPlDateFrom(e.target.value)}
+                    className="w-44"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">To:</span>
+                  <Input
+                    type="date"
+                    value={plDateTo}
+                    onChange={(e) => setPlDateTo(e.target.value)}
+                    className="w-44"
+                  />
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setPlDateFrom(dayjs().startOf('month').format('YYYY-MM-DD'))
+                      setPlDateTo(dayjs().format('YYYY-MM-DD'))
+                    }}
                   >
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">
-                        Net Profit
-                      </CardTitle>
-                      {plReport.netProfit >= 0 ? (
-                        <ArrowUpRight className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <ArrowDownRight className="h-4 w-4 text-destructive" />
-                      )}
-                    </CardHeader>
-                    <CardContent>
-                      <div
-                        className={`text-2xl font-bold font-amount ${plReport.netProfit >= 0 ? 'text-green-600' : 'text-destructive'}`}
-                      >
-                        {formatCurrency(plReport.netProfit)}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {plReport.netMarginPercent.toFixed(1)}% margin
+                    This Month
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const prev = dayjs().subtract(1, 'month')
+                      setPlDateFrom(prev.startOf('month').format('YYYY-MM-DD'))
+                      setPlDateTo(prev.endOf('month').format('YYYY-MM-DD'))
+                    }}
+                  >
+                    Last Month
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setPlDateFrom(dayjs().startOf('year').format('YYYY-MM-DD'))
+                      setPlDateTo(dayjs().format('YYYY-MM-DD'))
+                    }}
+                  >
+                    This Year
+                  </Button>
+                </div>
+              </div>
+
+              {plLoading && (
+                <div className="py-8 text-center text-muted-foreground">Loading P&L Report...</div>
+              )}
+
+              {plReport && !plLoading && (
+                <>
+                  {/* P&L Summary Cards */}
+                  <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">
+                          Net Sales
+                        </CardTitle>
+                        <TrendingUp className="h-4 w-4 text-green-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold font-amount text-green-600">
+                          {formatCurrency(plReport.revenue.netSales)}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {plReport.revenue.totalBills} bills
+                        </p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">
+                          Cost of Goods
+                        </CardTitle>
+                        <ShoppingCart className="h-4 w-4 text-orange-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold font-amount text-orange-600">
+                          {formatCurrency(plReport.costOfGoods.netPurchases)}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Purchases + GST</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">
+                          Gross Profit
+                        </CardTitle>
+                        <BarChart3 className="h-4 w-4 text-blue-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <div
+                          className={`text-2xl font-bold font-amount ${plReport.grossProfit >= 0 ? 'text-green-600' : 'text-destructive'}`}
+                        >
+                          {formatCurrency(plReport.grossProfit)}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {plReport.grossMarginPercent.toFixed(1)}% margin
+                        </p>
+                      </CardContent>
+                    </Card>
+                    <Card
+                      className={
+                        plReport.netProfit >= 0
+                          ? 'border-green-200 bg-green-50/50'
+                          : 'border-red-200 bg-red-50/50'
+                      }
+                    >
+                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">
+                          Net Profit
+                        </CardTitle>
+                        {plReport.netProfit >= 0 ? (
+                          <ArrowUpRight className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <ArrowDownRight className="h-4 w-4 text-destructive" />
+                        )}
+                      </CardHeader>
+                      <CardContent>
+                        <div
+                          className={`text-2xl font-bold font-amount ${plReport.netProfit >= 0 ? 'text-green-600' : 'text-destructive'}`}
+                        >
+                          {formatCurrency(plReport.netProfit)}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {plReport.netMarginPercent.toFixed(1)}% margin
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* P&L Statement */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Profit & Loss Statement</CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        {formatDate(plReport.period.from)} to {formatDate(plReport.period.to)}
                       </p>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* P&L Statement */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Profit & Loss Statement</CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      {formatDate(plReport.period.from)} to {formatDate(plReport.period.to)}
-                    </p>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {/* Revenue Section */}
-                      <div>
-                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                          Revenue
-                        </h3>
-                        <div className="space-y-1">
-                          <div className="flex justify-between py-1">
-                            <span>Total Sales</span>
-                            <span className="font-amount">
-                              {formatCurrency(plReport.revenue.totalSales)}
-                            </span>
-                          </div>
-                          {plReport.revenue.totalReturns > 0 && (
-                            <div className="flex justify-between py-1 text-destructive">
-                              <span>Less: Returns</span>
-                              <span className="font-amount">
-                                -{formatCurrency(plReport.revenue.totalReturns)}
-                              </span>
-                            </div>
-                          )}
-                          <Separator />
-                          <div className="flex justify-between py-1 font-bold">
-                            <span>Net Sales Revenue</span>
-                            <span className="font-amount text-green-600">
-                              {formatCurrency(plReport.revenue.netSales)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Cost of Goods Section */}
-                      <div>
-                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                          Cost of Goods Sold
-                        </h3>
-                        <div className="space-y-1">
-                          <div className="flex justify-between py-1">
-                            <span>Purchases</span>
-                            <span className="font-amount">
-                              {formatCurrency(plReport.costOfGoods.totalPurchases)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between py-1">
-                            <span>Purchase GST (Input Tax)</span>
-                            <span className="font-amount">
-                              {formatCurrency(plReport.costOfGoods.purchaseGst)}
-                            </span>
-                          </div>
-                          <Separator />
-                          <div className="flex justify-between py-1 font-bold">
-                            <span>Total Cost of Goods</span>
-                            <span className="font-amount text-orange-600">
-                              {formatCurrency(plReport.costOfGoods.netPurchases)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Gross Profit */}
-                      <div className="bg-muted/50 rounded-md p-3">
-                        <div className="flex justify-between font-bold text-lg">
-                          <span>Gross Profit</span>
-                          <span
-                            className={`font-amount ${plReport.grossProfit >= 0 ? 'text-green-600' : 'text-destructive'}`}
-                          >
-                            {formatCurrency(plReport.grossProfit)}
-                          </span>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          Gross Margin: {plReport.grossMarginPercent.toFixed(1)}%
-                        </p>
-                      </div>
-
-                      {/* Expenses Section */}
-                      <div>
-                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                          Operating Expenses
-                        </h3>
-                        <div className="space-y-1">
-                          {plReport.expenses.byCategory.length > 0 ? (
-                            plReport.expenses.byCategory.map((cat) => (
-                              <div key={cat.category} className="flex justify-between py-1">
-                                <span className="capitalize">{cat.category}</span>
-                                <span className="font-amount">{formatCurrency(cat.amount)}</span>
-                              </div>
-                            ))
-                          ) : (
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {/* Revenue Section */}
+                        <div>
+                          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                            Revenue
+                          </h3>
+                          <div className="space-y-1">
                             <div className="flex justify-between py-1">
-                              <span className="text-muted-foreground italic">
-                                No expenses recorded
+                              <span>Total Sales</span>
+                              <span className="font-amount">
+                                {formatCurrency(plReport.revenue.totalSales)}
                               </span>
-                              <span className="font-amount">{formatCurrency(0)}</span>
                             </div>
-                          )}
-                          <Separator />
-                          <div className="flex justify-between py-1 font-bold">
-                            <span>Total Expenses</span>
-                            <span className="font-amount text-destructive">
-                              {formatCurrency(plReport.expenses.total)}
-                            </span>
+                            {plReport.revenue.totalReturns > 0 && (
+                              <div className="flex justify-between py-1 text-destructive">
+                                <span>Less: Returns</span>
+                                <span className="font-amount">
+                                  -{formatCurrency(plReport.revenue.totalReturns)}
+                                </span>
+                              </div>
+                            )}
+                            <Separator />
+                            <div className="flex justify-between py-1 font-bold">
+                              <span>Net Sales Revenue</span>
+                              <span className="font-amount text-green-600">
+                                {formatCurrency(plReport.revenue.netSales)}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      {/* Net Profit */}
-                      <div
-                        className={`rounded-md p-4 ${plReport.netProfit >= 0 ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}
-                      >
-                        <div className="flex justify-between font-bold text-xl">
-                          <span className="flex items-center gap-2">
-                            {plReport.netProfit >= 0 ? (
-                              <TrendingUp className="h-5 w-5 text-green-600" />
-                            ) : (
-                              <TrendingDown className="h-5 w-5 text-destructive" />
-                            )}
-                            Net {plReport.netProfit >= 0 ? 'Profit' : 'Loss'}
-                          </span>
-                          <span
-                            className={`font-amount ${plReport.netProfit >= 0 ? 'text-green-600' : 'text-destructive'}`}
-                          >
-                            {formatCurrency(Math.abs(plReport.netProfit))}
-                          </span>
+                        {/* Cost of Goods Section */}
+                        <div>
+                          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                            Cost of Goods Sold
+                          </h3>
+                          <div className="space-y-1">
+                            <div className="flex justify-between py-1">
+                              <span>Purchases</span>
+                              <span className="font-amount">
+                                {formatCurrency(plReport.costOfGoods.totalPurchases)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between py-1">
+                              <span>Purchase GST (Input Tax)</span>
+                              <span className="font-amount">
+                                {formatCurrency(plReport.costOfGoods.purchaseGst)}
+                              </span>
+                            </div>
+                            <Separator />
+                            <div className="flex justify-between py-1 font-bold">
+                              <span>Total Cost of Goods</span>
+                              <span className="font-amount text-orange-600">
+                                {formatCurrency(plReport.costOfGoods.netPurchases)}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Net Margin: {plReport.netMarginPercent.toFixed(1)}%
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
 
-                {/* Other Info */}
-                <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">
-                        Discount Given
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-xl font-bold font-amount text-destructive">
-                        {formatCurrency(plReport.otherInfo.totalDiscount)}
+                        {/* Gross Profit */}
+                        <div className="bg-muted/50 rounded-md p-3">
+                          <div className="flex justify-between font-bold text-lg">
+                            <span>Gross Profit</span>
+                            <span
+                              className={`font-amount ${plReport.grossProfit >= 0 ? 'text-green-600' : 'text-destructive'}`}
+                            >
+                              {formatCurrency(plReport.grossProfit)}
+                            </span>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Gross Margin: {plReport.grossMarginPercent.toFixed(1)}%
+                          </p>
+                        </div>
+
+                        {/* Expenses Section */}
+                        <div>
+                          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                            Operating Expenses
+                          </h3>
+                          <div className="space-y-1">
+                            {plReport.expenses.byCategory.length > 0 ? (
+                              plReport.expenses.byCategory.map((cat) => (
+                                <div key={cat.category} className="flex justify-between py-1">
+                                  <span className="capitalize">{cat.category}</span>
+                                  <span className="font-amount">{formatCurrency(cat.amount)}</span>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="flex justify-between py-1">
+                                <span className="text-muted-foreground italic">
+                                  No expenses recorded
+                                </span>
+                                <span className="font-amount">{formatCurrency(0)}</span>
+                              </div>
+                            )}
+                            <Separator />
+                            <div className="flex justify-between py-1 font-bold">
+                              <span>Total Expenses</span>
+                              <span className="font-amount text-destructive">
+                                {formatCurrency(plReport.expenses.total)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Net Profit */}
+                        <div
+                          className={`rounded-md p-4 ${plReport.netProfit >= 0 ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}
+                        >
+                          <div className="flex justify-between font-bold text-xl">
+                            <span className="flex items-center gap-2">
+                              {plReport.netProfit >= 0 ? (
+                                <TrendingUp className="h-5 w-5 text-green-600" />
+                              ) : (
+                                <TrendingDown className="h-5 w-5 text-destructive" />
+                              )}
+                              Net {plReport.netProfit >= 0 ? 'Profit' : 'Loss'}
+                            </span>
+                            <span
+                              className={`font-amount ${plReport.netProfit >= 0 ? 'text-green-600' : 'text-destructive'}`}
+                            >
+                              {formatCurrency(Math.abs(plReport.netProfit))}
+                            </span>
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Net Margin: {plReport.netMarginPercent.toFixed(1)}%
+                          </p>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">
-                        Credit Sales
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-xl font-bold font-amount text-orange-600">
-                        {formatCurrency(plReport.otherInfo.totalCreditSales)}
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">
-                        Credit Collected
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-xl font-bold font-amount text-green-600">
-                        {formatCurrency(plReport.otherInfo.totalCreditCollected)}
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">
-                        Avg Bill Value
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-xl font-bold font-amount">
-                        {formatCurrency(plReport.otherInfo.avgBillValue)}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </>
-            )}
+
+                  {/* Other Info */}
+                  <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">
+                          Discount Given
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-xl font-bold font-amount text-destructive">
+                          {formatCurrency(plReport.otherInfo.totalDiscount)}
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">
+                          Credit Sales
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-xl font-bold font-amount text-orange-600">
+                          {formatCurrency(plReport.otherInfo.totalCreditSales)}
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">
+                          Credit Collected
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-xl font-bold font-amount text-green-600">
+                          {formatCurrency(plReport.otherInfo.totalCreditCollected)}
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">
+                          Avg Bill Value
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-xl font-bold font-amount">
+                          {formatCurrency(plReport.otherInfo.avgBillValue)}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </>
+              )}
+            </FeatureGate>
           </TabsContent>
         </Tabs>
         <Dialog open={showBillDetail} onOpenChange={setShowBillDetail}>

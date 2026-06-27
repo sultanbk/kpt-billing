@@ -5,6 +5,9 @@ out
 eslint-output.json
 .eslintcache
 electron.vite.config.*.mjs
+.env
+.env.*
+!.env.example
 
 # OS
 .DS_Store

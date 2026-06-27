@@ -142,3 +142,18 @@ const mockApi = {
 }
 Object.defineProperty(window, 'api', { value: mockApi })
 ```
+
+### D. Testing Licence Gates
+
+Licence-aware renderer tests should mock both `window.api.license` and `window.license` because the
+store supports both surfaces. Cover these states for gated UI:
+
+- Feature enabled: children render normally.
+- Feature disabled with no fallback: upgrade prompt renders.
+- Feature disabled with `silent`: gated action is hidden.
+- Limit below 80%: child action renders normally.
+- Limit at or above 80%: warning banner renders.
+- Limit reached: primary child action is disabled and upgrade CTA is available.
+
+Main-process licence IPC tests should invoke the registered `license:*` handlers and verify Zod
+validation rejects invalid feature names, limit keys, counts, and licence keys.

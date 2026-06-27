@@ -102,7 +102,13 @@ const navSections: { label: string; items: NavItem[] }[] = [
   }
 ]
 
-export function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void }): React.JSX.Element {
+export function Sidebar({
+  onOpenSearch,
+  limitedMode = false
+}: {
+  onOpenSearch?: () => void
+  limitedMode?: boolean
+}): React.JSX.Element {
   const { isUnlocked, user, lock } = useAuthStore()
   const isOwner = user?.role === 'owner'
 
@@ -110,7 +116,9 @@ export function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void }): React.
   const filteredSections = navSections
     .map((section) => ({
       ...section,
-      items: section.items.filter((item) => !item.ownerOnly || isOwner)
+      items: section.items.filter(
+        (item) => (!limitedMode || item.to === '/') && (!item.ownerOnly || isOwner)
+      )
     }))
     .filter((section) => section.items.length > 0)
 

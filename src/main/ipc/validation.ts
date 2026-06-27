@@ -16,6 +16,31 @@ export const pageSchema = z.number().int().positive().optional()
 export const pageSizeSchema = z.number().int().positive().max(500).optional()
 export const pinSchema = z.string().min(4).max(20)
 
+// ---- License ----
+export const licenseKeySchema = z.string().min(1).max(255)
+export const licenseFeatureSchema = z.enum([
+  'maxBillsPerMonth',
+  'maxProducts',
+  'maxCustomers',
+  'whatsappIntegration',
+  'creditManagement',
+  'creditAging',
+  'customerAnalytics',
+  'expenseTracking',
+  'estimates',
+  'returnExchange',
+  'barcodeLabels',
+  'dataExport',
+  'googleDriveBackup',
+  'auditTrail',
+  'profitLossReport',
+  'gstReports',
+  'multiUser',
+  'maxUsers'
+])
+export const licenseLimitKeySchema = z.enum(['maxBillsPerMonth', 'maxProducts', 'maxCustomers'])
+export const licenseCountSchema = z.number().int().min(0)
+
 // ---- Product ----
 export const productFormSchema = z.object({
   name: z.string().min(1).max(255),

@@ -175,6 +175,22 @@ KPT Billing uses Electron's `ipcMain.handle` / `ipcRenderer.invoke` pattern for 
 
 ---
 
+## Licence API
+
+**Namespace:** `window.license` and `window.api.license`
+
+| Channel                      | Parameters                    | Returns            | Description                                |
+| ---------------------------- | ----------------------------- | ------------------ | ------------------------------------------ |
+| `license:get-state`          | -                             | `LicenseState`     | Current licence status, plan, and features |
+| `license:activate`           | `key: string`                 | `ActivationResult` | Activate a `SARVA-XXXX-XXXX-XXXX-XXXX` key |
+| `license:is-feature-enabled` | `feature: keyof FeatureFlags` | `boolean`          | Check whether a feature is enabled         |
+| `license:check-limit`        | `limitKey, currentCount`      | `boolean`          | Check a numeric plan limit                 |
+
+Inputs are validated in `src/main/ipc/validation.ts`. See [LICENCE.md](LICENCE.md) for status,
+feature flag, and UI gating details.
+
+---
+
 ## Backup API
 
 **Namespace:** `window.api.backup`
@@ -354,7 +370,8 @@ try {
 | Advanced Reports | 3        |
 | WhatsApp         | 3        |
 | Auth             | 2        |
-| **Total**        | **127**  |
+| Licence          | 4        |
+| **Total**        | **131**  |
 
 ---
 

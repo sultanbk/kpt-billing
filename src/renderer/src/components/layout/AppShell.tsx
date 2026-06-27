@@ -7,8 +7,9 @@ import { QuickBillSearch } from './QuickBillSearch'
 import { ShortcutsHelp } from './ShortcutsHelp'
 import { LockScreen } from './LockScreen'
 import { useAuthStore } from '../../stores/auth.store'
+import { RenewalBanner } from '../license'
 
-export function AppShell(): React.JSX.Element {
+export function AppShell({ limitedMode = false }: { limitedMode?: boolean }): React.JSX.Element {
   const [showBillSearch, setShowBillSearch] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [locked, setLocked] = useState(false)
@@ -25,9 +26,12 @@ export function AppShell(): React.JSX.Element {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground">
-      <Sidebar onOpenSearch={() => setShowBillSearch(true)} />
-      <main className="flex-1 overflow-auto bg-muted/20">
-        <Outlet />
+      <Sidebar onOpenSearch={() => setShowBillSearch(true)} limitedMode={limitedMode} />
+      <main className="flex flex-1 flex-col overflow-hidden bg-muted/20">
+        <RenewalBanner />
+        <div className="flex-1 overflow-auto">
+          <Outlet />
+        </div>
       </main>
       <Toaster position="bottom-right" richColors closeButton />
       <QuickBillSearch open={showBillSearch} onClose={() => setShowBillSearch(false)} />

@@ -1,8 +1,16 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
+const license = {
+  getState: () => ipcRenderer.invoke('license:get-state'),
+  activate: (key: string) => ipcRenderer.invoke('license:activate', key),
+  isFeatureEnabled: (feature: string) => ipcRenderer.invoke('license:is-feature-enabled', feature),
+  checkLimit: (key: string, count: number) => ipcRenderer.invoke('license:check-limit', key, count)
+}
+
 // Typed API exposed to renderer
 const api = {
+  license,
   // Products
   products: {
     search: (term: string) => ipcRenderer.invoke('products:search', term),
@@ -281,6 +289,24 @@ const api = {
     verifyPin: (pin: string) => ipcRenderer.invoke('auth:verifyPin', pin),
     changePin: (currentPin: string, newPin: string) =>
       ipcRenderer.invoke('auth:changePin', currentPin, newPin)
+  },
+  // Auto-Updater
+  updater: {
+    check: () => ipcRenderer.invoke('updater:check'),
+    install: () => ipcRenderer.invoke('updater:install'),
+    getStatus: () => ipcRenderer.invoke('updater:getStatus'),
+    onStatusChanged: (
+      callback: (status: import('../shared/types').UpdateStatus) => void
+    ): (() => void) => {
+      const listener = (
+        _event: Electron.IpcRendererEvent,
+        status: import('../shared/types').UpdateStatus
+      ): void => {
+        callback(status)
+      }
+      ipcRenderer.on('updater:status-changed', listener)
+      return () => ipcRenderer.removeListener('updater:status-changed', listener)
+    }
   }
 }
 
@@ -290,6 +316,7 @@ if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
     contextBridge.exposeInMainWorld('api', api)
+    contextBridge.exposeInMainWorld('license', license)
   } catch (error) {
     console.error(error)
   }
@@ -298,4 +325,6 @@ if (process.contextIsolated) {
   window.electron = electronAPI
   // @ts-ignore (define in dts)
   window.api = api
+  // @ts-ignore (define in dts)
+  window.license = license
 }

@@ -27,6 +27,7 @@ The main process owns trusted operations:
 - local files, backups, reports, and exports
 - native printer and PDF functionality
 - audit logging and PIN verification
+- licence activation, server validation, local licence cache, and feature/limit checks
 
 Keep main-process business rules close to the relevant repository or service. For example, billing stock deductions belong in `bill.repo.ts`, while purchase stock-in behavior belongs in purchase services.
 
@@ -42,6 +43,17 @@ The renderer owns UI state and user workflows:
 
 Renderer components should not import Electron, filesystem, or database modules.
 
+## Licence Boundary
+
+Licence state is owned by the main process and exposed to the renderer through the preload bridge.
+`src/main/license/LicenseManager.ts` validates licence keys with the configured licence server,
+caches the latest valid state in SQLite, and falls back to the cache for offline use.
+
+The renderer consumes the cached state through `src/renderer/src/stores/licenseStore.ts` and the UI
+components in `src/renderer/src/components/license`. Use `FeatureGate` for boolean feature flags and
+`LimitGate` for numeric plan limits. Renderer components should not read the `license_cache` table
+directly.
+
 ## Preload API
 
 `src/preload/index.ts` is the API surface between renderer and main. Keep it boring and stable:
@@ -52,6 +64,10 @@ Renderer components should not import Electron, filesystem, or database modules.
 - no business logic beyond event subscription cleanup
 
 When adding a channel, update `src/preload/index.d.ts`, the relevant renderer service, IPC validation, and docs.
+
+Licence channels are exposed as both `window.license` and `window.api.license` for compatibility.
+Keep their channel names stable unless the store, preload types, tests, and docs are updated
+together.
 
 ## Database
 

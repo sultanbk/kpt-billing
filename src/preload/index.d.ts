@@ -362,7 +362,22 @@ interface AuthApi {
   changePin(currentPin: string, newPin: string): Promise<{ success: boolean; error?: string }>
 }
 
+interface UpdaterApi {
+  check(): Promise<import('../shared/types').UpdateStatus>
+  install(): Promise<void>
+  getStatus(): Promise<import('../shared/types').UpdateStatus>
+  onStatusChanged(callback: (status: import('../shared/types').UpdateStatus) => void): () => void
+}
+
+interface LicenseApi {
+  getState(): Promise<import('../shared/licenseTypes').LicenseState>
+  activate(key: string): Promise<import('../shared/licenseTypes').ActivationResult>
+  isFeatureEnabled(feature: string): Promise<boolean>
+  checkLimit(key: string, count: number): Promise<boolean>
+}
+
 interface KptApi {
+  license: LicenseApi
   products: ProductsApi
   suppliers: SuppliersApi
   purchases: PurchasesApi
@@ -381,11 +396,13 @@ interface KptApi {
   reports: ReportsApi
   whatsapp: WhatsAppApi
   auth: AuthApi
+  updater: UpdaterApi
 }
 
 declare global {
   interface Window {
     electron: ElectronAPI
     api: KptApi
+    license: LicenseApi
   }
 }

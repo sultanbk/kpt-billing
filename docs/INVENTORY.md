@@ -44,6 +44,10 @@ Developed by **[Sultan Kabadi](https://sultanbk.com)**
 | **Get by Barcode** | Lookup product by barcode (for scanner)               |
 | **Paginated List** | Filtered, paginated product listing                   |
 
+The Add Product action is wrapped in the licence `LimitGate` for `maxProducts`. When the current
+product count reaches 80% of the plan limit, the page shows an upgrade warning. At the limit, the
+primary add action is disabled until the licence is upgraded or the limit changes.
+
 ### Product Filters
 
 | Filter        | Options                             |

@@ -30,6 +30,7 @@ Developed by **[Sultan Kabadi](https://sultanbk.com)**
 20. [Estimates / Quotations](#20-estimates--quotations)
 21. [Expense Tracking](#21-expense-tracking)
 22. [Audit Trail](#22-audit-trail)
+23. [Licence & Plan Gating](#23-licence--plan-gating)
 
 ---
 
@@ -47,6 +48,7 @@ The core billing system provides a full POS experience:
 - **Multiple Payment Modes** — Cash, UPI (with reference number), Card, Credit, and Mixed (split across modes)
 - **Cash Tendered & Change** — Calculates change when cash tendered exceeds bill amount
 - **Hold / Recall Bills** — Park a bill in progress (F6) and recall it later (F8), persisted to database
+- **Plan Limit Awareness** — The hold-bill action warns near the monthly bill limit and is disabled when the plan limit is reached
 - **Round-Off** — Configurable rounding: none, round to ₹1, or round to ₹0.50
 - **Auto Print** — Optionally auto-print receipt on bill creation
 - **Bill Numbering** — Auto-generated sequential bill numbers: `KPT/{FY}/0001`
@@ -58,6 +60,7 @@ The core billing system provides a full POS experience:
 ## 2. Product & Inventory Management
 
 - **Full CRUD** — Create, read, update, delete products
+- **Plan Limit Awareness** — Add Product warns near the product limit and is disabled when the plan limit is reached
 - **Product Fields** — Name, short name, SKU (auto-generated), barcode, category, HSN code, purchase price, selling price, wholesale price, GST rate, stock, location, color, size, material, supplier, image
 - **Category Management** — Hierarchical categories with parent/child support (default: Saree, Blouse Piece, Dress Material, Dupatta, Fabric, Readymade, Accessories, Other)
 - **Stock Tracking** — Current stock with opening stock, low stock alerts, out-of-stock detection
@@ -81,6 +84,7 @@ The core billing system provides a full POS experience:
 - **Bill History** — View all bills for a specific customer
 - **Quick Add** — Inline customer creation directly from the billing page (Alt+N shortcut)
 - **WhatsApp Messaging** — Send bills, reminders, and confirmations to customer phone via WhatsApp
+- **Plan-Gated WhatsApp Actions** — Reminder buttons are hidden when the active plan does not include WhatsApp integration
 
 ---
 
@@ -96,6 +100,7 @@ The core billing system provides a full POS experience:
 - **Collection Summary** — Total collections by date range
 - **WhatsApp Reminders** — Send overdue credit reminders via WhatsApp
 - **Customer Analytics** — Top customers by revenue, purchase frequency analysis, credit risk analysis
+- **Plan-Gated Analytics** — Customer Analytics and Credit Aging render upgrade prompts when their feature flags are disabled
 
 ---
 
@@ -137,6 +142,7 @@ The core billing system provides a full POS experience:
 
 - **GST Report** — HSN-wise summary, rate-wise breakdowns (5%, 12%, 18%, 28%), GSTR-1 invoice list with all tax details
 - **Profit & Loss Report** — Revenue, Cost of Goods Sold (purchases), gross profit, expenses by category, net profit, profit margins (gross % and net %)
+- **Plan-Gated P&L** — The Profit & Loss tab is gated by the `profitLossReport` feature flag
 
 ### Analytics
 
@@ -228,6 +234,8 @@ Five export types available from the Data Export page:
 | **Full Data Export** | Bills, items, products, customers, payments, purchases, expenses, stock ledger — everything |
 
 All exports generate `.xlsx` files using the xlsx library.
+
+The Data Export page is gated by the `dataExport` licence feature flag.
 
 ---
 
@@ -468,7 +476,6 @@ An eight-tab comprehensive settings interface:
 - **Live Barcode Preview** — Interactive visual mockup card that scales automatically and shifts in real-time according to alignment nudge, margins, alignments, and sizing settings.
 - **One-Click "Test Print Label"** — Directly print a sample label using current (including unsaved) calibration adjustments for immediate physical validation.
 
-
 ### Receipt Tab
 
 - Thermal receipt paper width profiles selection (58mm, 72mm, 80mm)
@@ -531,6 +538,22 @@ An eight-tab comprehensive settings interface:
 - **Stock Ledger** — Every stock movement logged with reference (sale, purchase, adjustment, return, damage)
 - **Price History** — Every price change recorded with before/after values and who changed it
 - **Credit Ledger** — Every credit transaction logged with running balance
+
+---
+
+## 23. Licence & Plan Gating
+
+Sarva One Billing includes a local-first licence system with plan-based feature flags and numeric
+limits.
+
+- **Activation Screen** — Accepts `SARVA-XXXX-XXXX-XXXX-XXXX` licence keys and shows specific error messages for machine mismatch, invalid, expired, and suspended licences.
+- **Status Bar** — Shows trial, active, grace, expired, and suspended licence states.
+- **Upgrade Prompts** — Locked features show a helpful card with the Growth/Pro/Custom plan comparison and WhatsApp upgrade CTA.
+- **Feature Gates** — `FeatureGate` controls premium pages or page sections such as P&L, Customer Analytics, Credit Aging, Data Export, and WhatsApp actions.
+- **Limit Gates** — `LimitGate` warns at 80% of a numeric plan limit and disables actions at the limit.
+- **Offline Cache** — The main process validates with the licence server when available and falls back to the local `license_cache` table during offline use.
+
+See [LICENCE.md](LICENCE.md) for implementation details.
 
 ---
 

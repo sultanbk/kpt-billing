@@ -179,6 +179,7 @@ Triggered by the **Pay & Print** button or **F11** shortcut.
 - Each held bill gets a UUID
 - Cart is cleared after holding
 - Multiple bills can be held simultaneously
+- The hold action is wrapped in the licence `LimitGate` for `maxBillsPerMonth`; the UI warns at 80% usage and disables the action once the plan limit is reached
 
 ### Recall (F8)
 

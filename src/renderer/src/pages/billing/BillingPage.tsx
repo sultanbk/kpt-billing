@@ -24,6 +24,8 @@ import { useSearchLookup } from '../../hooks/useSearchLookup'
 import { productsService } from '../../services/products.service'
 import { settingsService } from '../../services/settings.service'
 import type { Product } from '@shared/types'
+import { LimitGate } from '../../components/license'
+import { billingService } from '../../services/billing.service'
 
 // Sub-components extracted from the original monolith
 import { CartRow } from './CartRow'
@@ -41,6 +43,7 @@ export default function BillingPage(): React.JSX.Element {
   const [showEditBill, setShowEditBill] = useState(false)
   const [showDaySummary, setShowDaySummary] = useState(false)
   const [showBulkBill, setShowBulkBill] = useState(false)
+  const [monthlyBillCount, setMonthlyBillCount] = useState(0)
 
   const productLookup = useSearchLookup<Product>({
     search: (query) => productsService.search(query),
@@ -69,6 +72,13 @@ export default function BillingPage(): React.JSX.Element {
         if (all.shortcut_newCustomer) setShortcutNewCustomer(all.shortcut_newCustomer)
       })
       .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    billingService
+      .getMonthSummary()
+      .then(setMonthlyBillCount)
+      .catch(() => setMonthlyBillCount(0))
   }, [])
 
   // Barcode scanner detection
@@ -455,16 +465,18 @@ export default function BillingPage(): React.JSX.Element {
 
         {/* Bottom Actions */}
         <div className="flex items-center gap-2 border-t border-border bg-muted/30 px-4 py-2.5">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => store.holdBill()}
-            disabled={store.items.length === 0}
-            className="gap-1.5 rounded-lg"
-          >
-            <PauseCircle className="h-4 w-4" />
-            Hold <kbd className="ml-1 rounded bg-muted px-1 py-0.5 text-[9px] font-mono">F6</kbd>
-          </Button>
+          <LimitGate limitKey="maxBillsPerMonth" currentCount={monthlyBillCount}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => store.holdBill()}
+              disabled={store.items.length === 0}
+              className="gap-1.5 rounded-lg"
+            >
+              <PauseCircle className="h-4 w-4" />
+              Hold <kbd className="ml-1 rounded bg-muted px-1 py-0.5 text-[9px] font-mono">F6</kbd>
+            </Button>
+          </LimitGate>
           <Button
             variant="outline"
             size="sm"
@@ -623,6 +635,7 @@ export default function BillingPage(): React.JSX.Element {
         discountType={store.discountType}
         onSetCustomer={(name, phone, id) => store.setCustomer(name, phone, id)}
         onBillCreated={() => {
+          setMonthlyBillCount((count) => count + 1)
           store.clearCart()
           searchRef.current?.focus()
         }}
@@ -637,6 +650,10 @@ export default function BillingPage(): React.JSX.Element {
         discountType={store.discountType}
         grandTotal={store.grandTotal}
         onAllDone={() => {
+          billingService
+            .getMonthSummary()
+            .then(setMonthlyBillCount)
+            .catch(() => {})
           store.clearCart()
           searchRef.current?.focus()
         }}

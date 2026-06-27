@@ -561,3 +561,20 @@ export interface BillFilters {
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
 }
+
+// ---- Auto-Updater ----
+export interface UpdateStatus {
+  state:
+    | 'idle'
+    | 'checking'
+    | 'available'
+    | 'not-available'
+    | 'downloading'
+    | 'downloaded'
+    | 'error'
+  currentVersion: string
+  availableVersion?: string
+  downloadProgress?: { percent: number; transferred: number; total: number }
+  error?: string
+  lastChecked?: string // ISO timestamp
+}

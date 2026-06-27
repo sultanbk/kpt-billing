@@ -68,6 +68,21 @@ function runMigrations(sqlite: Database.Database): void {
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
 
+    CREATE TABLE IF NOT EXISTS license_cache (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      license_key TEXT NOT NULL,
+      plan TEXT NOT NULL,
+      status TEXT NOT NULL,
+      shop_name TEXT,
+      owner_name TEXT,
+      expires_at TEXT,
+      grace_period_days INTEGER NOT NULL DEFAULT 7,
+      features TEXT,
+      machine_id TEXT,
+      last_validated TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+    );
+
     CREATE TABLE IF NOT EXISTS categories (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,

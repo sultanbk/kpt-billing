@@ -1,19 +1,25 @@
-import { HashRouter, Routes, Route } from 'react-router-dom'
-import { AppShell } from './components/layout'
+import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { lazy, Suspense, useEffect, useState } from 'react'
+import type { LicenseStatus } from '@shared/licenseTypes'
+import { AppShell, OwnerPinGate } from './components/layout'
 import { PinGate } from './components/layout/PinGate'
 import { ErrorBoundary } from './components/ErrorBoundary'
-import { lazy, Suspense } from 'react'
+import { SplashScreen } from './components/SplashScreen'
+import { RenewalScreen } from './components/RenewalScreen'
+import { SuspendedScreen } from './components/SuspendedScreen'
+import { ActivationScreen } from './components/license'
+import { useLicenseStore } from './stores/licenseStore'
 
-const DashboardPage = lazy(() => import('./pages/DashboardPage'))
+const DashboardPage = lazy(() => import('./pages/dashboard'))
 const BillingPage = lazy(() => import('./pages/billing'))
 const ProductsPage = lazy(() => import('./pages/products'))
 const CustomersPage = lazy(() => import('./pages/customers'))
 const ReportsPage = lazy(() => import('./pages/reports'))
 const SettingsPage = lazy(() => import('./pages/settings'))
 const PurchasesPage = lazy(() => import('./pages/purchases'))
-const CustomerAnalyticsPage = lazy(() => import('./pages/CustomerAnalyticsPage'))
-const CreditAgingPage = lazy(() => import('./pages/CreditAgingPage'))
-const DataExportPage = lazy(() => import('./pages/DataExportPage'))
+const CustomerAnalyticsPage = lazy(() => import('./pages/customer-analytics'))
+const CreditAgingPage = lazy(() => import('./pages/credit-aging'))
+const DataExportPage = lazy(() => import('./pages/data-export'))
 
 function PageLoader(): React.JSX.Element {
   return (
@@ -23,34 +29,31 @@ function PageLoader(): React.JSX.Element {
   )
 }
 
-import { OwnerPinGate } from './components/layout'
-
-/** Wrapper that requires PIN for protected pages */
 function Protected({ children }: { children: React.ReactNode }): React.JSX.Element {
   return <PinGate>{children}</PinGate>
 }
 
-/** Wrapper that requires Owner PIN for owner-only pages */
 function OwnerProtected({ children }: { children: React.ReactNode }): React.JSX.Element {
   return <OwnerPinGate>{children}</OwnerPinGate>
 }
 
-function App(): React.JSX.Element {
+function BillingRoute(): React.JSX.Element {
   return (
-    <ErrorBoundary>
-      <HashRouter>
-        <Routes>
-          <Route element={<AppShell />}>
-            {/* Billing is the default page — no PIN required */}
-            <Route
-              index
-              element={
-                <Suspense fallback={<PageLoader />}>
-                  <BillingPage />
-                </Suspense>
-              }
-            />
-            {/* All other pages require PIN */}
+    <Suspense fallback={<PageLoader />}>
+      <BillingPage />
+    </Suspense>
+  )
+}
+
+function AppRoutes({ limitedMode = false }: { limitedMode?: boolean }): React.JSX.Element {
+  return (
+    <Routes>
+      <Route element={<AppShell limitedMode={limitedMode} />}>
+        <Route index element={<BillingRoute />} />
+        {limitedMode ? (
+          <Route path="*" element={<Navigate to="/" replace />} />
+        ) : (
+          <>
             <Route
               path="dashboard"
               element={
@@ -141,9 +144,83 @@ function App(): React.JSX.Element {
                 </Suspense>
               }
             />
-          </Route>
-        </Routes>
-      </HashRouter>
+          </>
+        )}
+      </Route>
+    </Routes>
+  )
+}
+
+function App(): React.JSX.Element {
+  const initialize = useLicenseStore((state) => state.initialize)
+  const licenseState = useLicenseStore((state) => state.licenseState)
+  const [startupStatus, setStartupStatus] = useState<LicenseStatus | null>(null)
+  const [splashExiting, setSplashExiting] = useState(false)
+  const [startupReady, setStartupReady] = useState(false)
+  const [limitedMode, setLimitedMode] = useState(false)
+  const [activatedFromStartup, setActivatedFromStartup] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    let fadeTimer: number | undefined
+
+    async function boot(): Promise<void> {
+      const minimumSplash = new Promise((resolve) => window.setTimeout(resolve, 1500))
+      await Promise.all([initialize(), minimumSplash])
+      if (cancelled) return
+
+      setStartupStatus(useLicenseStore.getState().licenseState?.status ?? 'not_activated')
+      setSplashExiting(true)
+      fadeTimer = window.setTimeout(() => {
+        if (!cancelled) setStartupReady(true)
+      }, 300)
+    }
+
+    void boot()
+
+    return () => {
+      cancelled = true
+      if (fadeTimer) window.clearTimeout(fadeTimer)
+    }
+  }, [initialize])
+
+  if (!startupReady) {
+    return <SplashScreen exiting={splashExiting} />
+  }
+
+  const openApp =
+    startupStatus === 'trial' || startupStatus === 'active' || startupStatus === 'grace'
+  const appContent = (
+    <HashRouter>
+      <AppRoutes limitedMode={limitedMode} />
+    </HashRouter>
+  )
+
+  return (
+    <ErrorBoundary>
+      {openApp || limitedMode ? (
+        <div className={activatedFromStartup ? 'animate-activation-to-app' : undefined}>
+          {appContent}
+        </div>
+      ) : startupStatus === 'suspended' && licenseState ? (
+        <SuspendedScreen licenseState={licenseState} />
+      ) : (startupStatus === 'expired' || startupStatus === 'grace_expired') && licenseState ? (
+        <RenewalScreen
+          licenseState={licenseState}
+          onContinueLimited={
+            licenseState.daysRemaining !== null && licenseState.daysRemaining > 0
+              ? () => setLimitedMode(true)
+              : undefined
+          }
+        />
+      ) : (
+        <ActivationScreen
+          onActivated={() => {
+            setActivatedFromStartup(true)
+            setStartupStatus(useLicenseStore.getState().licenseState?.status ?? 'active')
+          }}
+        />
+      )}
     </ErrorBoundary>
   )
 }

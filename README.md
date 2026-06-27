@@ -15,18 +15,19 @@ Built with Electron, React, TypeScript, and SQLite, it is designed for fast shop
 - Barcode label printing and scanner-friendly billing
 - Local backups and optional cloud backup workflow
 - PIN-protected owner pages
+- Sarva One licence activation, plan feature gates, and plan usage limits
 
 ## Tech Stack
 
-| Layer | Technology |
-| --- | --- |
-| Desktop | Electron, electron-vite |
-| UI | React, TypeScript, Tailwind CSS, Radix UI |
-| State | Zustand |
-| Database | SQLite through better-sqlite3 |
-| Validation | Zod |
-| Testing | Vitest, React Testing Library, Playwright |
-| Build | Vite, electron-builder |
+| Layer      | Technology                                |
+| ---------- | ----------------------------------------- |
+| Desktop    | Electron, electron-vite                   |
+| UI         | React, TypeScript, Tailwind CSS, Radix UI |
+| State      | Zustand                                   |
+| Database   | SQLite through better-sqlite3             |
+| Validation | Zod                                       |
+| Testing    | Vitest, React Testing Library, Playwright |
+| Build      | Vite, electron-builder                    |
 
 ## Project Structure
 
@@ -87,6 +88,7 @@ The default owner PIN for a new installation is `1234`. Change it from Settings 
 - [Customers](docs/CUSTOMERS.md)
 - [Reports](docs/REPORTS.md)
 - [Settings](docs/SETTINGS.md)
+- [Licence](docs/LICENCE.md)
 - [Security](docs/SECURITY.md)
 - [Database](docs/DATABASE.md)
 - [API](docs/API.md)

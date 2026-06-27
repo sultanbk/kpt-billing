@@ -214,6 +214,7 @@ KRISHNAPRIYA TEXTILES
 - Phone numbers prefixed with `+91` (India)
 - Message is URL-encoded and pre-filled in WhatsApp
 - Available from: Customer detail view, Credit Aging report
+- WhatsApp reminder buttons are wrapped in `FeatureGate feature="whatsappIntegration"` and are hidden when the active plan does not include WhatsApp integration
 
 ---
 

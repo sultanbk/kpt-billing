@@ -22,6 +22,9 @@ nsis:
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: false
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
@@ -42,8 +45,8 @@ linux:
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
-# Auto-update: disabled until a real update server is configured.
-# To enable, replace with your actual update server URL:
-# publish:
-#   provider: generic
-#   url: https://your-update-server.com/releases
+publish:
+  provider: github
+  owner: sultanbk
+  repo: kpt-billing
+  releaseType: release

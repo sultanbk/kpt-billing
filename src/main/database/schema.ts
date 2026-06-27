@@ -13,6 +13,24 @@ export const settings = sqliteTable('settings', {
     .default(sql`(datetime('now','localtime'))`)
 })
 
+// ---- License Cache ----
+export const licenseCache = sqliteTable('license_cache', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  licenseKey: text('license_key').notNull(),
+  plan: text('plan').notNull(),
+  status: text('status').notNull(),
+  shopName: text('shop_name'),
+  ownerName: text('owner_name'),
+  expiresAt: text('expires_at'),
+  gracePeriodDays: integer('grace_period_days').notNull().default(7),
+  features: text('features'),
+  machineId: text('machine_id'),
+  lastValidated: text('last_validated'),
+  createdAt: text('created_at')
+    .notNull()
+    .default(sql`(datetime('now','localtime'))`)
+})
+
 // ---- Categories ----
 export const categories = sqliteTable('categories', {
   id: integer('id').primaryKey({ autoIncrement: true }),

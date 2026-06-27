@@ -70,6 +70,7 @@ import { creditService } from '../../services/credit.service'
 import { customersService } from '../../services/customers.service'
 import { exportService } from '../../services/export.service'
 import { whatsappService } from '../../services/whatsapp.service'
+import { FeatureGate } from '../../components/license'
 
 const EMPTY_FORM: CustomerFormData = {
   name: '',
@@ -526,23 +527,25 @@ export default function CustomersPage(): React.JSX.Element {
                             {customer.currentBalance > 0 &&
                               customer.phone &&
                               customer.phone.length >= 10 && (
-                                <DropdownMenuItem
-                                  onClick={async () => {
-                                    const res = await whatsappService.sendCreditReminder(
-                                      customer.phone,
-                                      customer.name,
-                                      customer.currentBalance
-                                    )
-                                    if (res.success) {
-                                      toast.success('WhatsApp opened with reminder')
-                                    } else {
-                                      toast.error(res.error || 'Failed')
-                                    }
-                                  }}
-                                >
-                                  <span className="mr-2">ðŸ“±</span>
-                                  WhatsApp Reminder
-                                </DropdownMenuItem>
+                                <FeatureGate feature="whatsappIntegration" silent>
+                                  <DropdownMenuItem
+                                    onClick={async () => {
+                                      const res = await whatsappService.sendCreditReminder(
+                                        customer.phone,
+                                        customer.name,
+                                        customer.currentBalance
+                                      )
+                                      if (res.success) {
+                                        toast.success('WhatsApp opened with reminder')
+                                      } else {
+                                        toast.error(res.error || 'Failed')
+                                      }
+                                    }}
+                                  >
+                                    <span className="mr-2">ðŸ“±</span>
+                                    WhatsApp Reminder
+                                  </DropdownMenuItem>
+                                </FeatureGate>
                               )}
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -965,24 +968,26 @@ export default function CustomersPage(): React.JSX.Element {
                         outstanding)
                       </Button>
                       {selectedCustomer.phone && selectedCustomer.phone.length >= 10 && (
-                        <Button
-                          variant="outline"
-                          className="border-green-500 text-green-600 hover:bg-green-50"
-                          onClick={async () => {
-                            const res = await whatsappService.sendCreditReminder(
-                              selectedCustomer.phone,
-                              selectedCustomer.name,
-                              selectedCustomer.currentBalance
-                            )
-                            if (res.success) {
-                              toast.success('WhatsApp opened with reminder')
-                            } else {
-                              toast.error(res.error || 'Failed to open WhatsApp')
-                            }
-                          }}
-                        >
-                          ðŸ“± Remind
-                        </Button>
+                        <FeatureGate feature="whatsappIntegration" silent>
+                          <Button
+                            variant="outline"
+                            className="border-green-500 text-green-600 hover:bg-green-50"
+                            onClick={async () => {
+                              const res = await whatsappService.sendCreditReminder(
+                                selectedCustomer.phone,
+                                selectedCustomer.name,
+                                selectedCustomer.currentBalance
+                              )
+                              if (res.success) {
+                                toast.success('WhatsApp opened with reminder')
+                              } else {
+                                toast.error(res.error || 'Failed to open WhatsApp')
+                              }
+                            }}
+                          >
+                            ðŸ“± Remind
+                          </Button>
+                        </FeatureGate>
                       )}
                     </div>
                   )}

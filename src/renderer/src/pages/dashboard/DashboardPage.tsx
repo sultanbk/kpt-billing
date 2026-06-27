@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
-import { Badge } from '../components/ui/badge'
-import { formatCurrency, formatTime } from '../lib/utils'
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
+import { Badge } from '../../components/ui/badge'
+import { formatCurrency, formatTime } from '../../lib/utils'
 import { getLocalDateString } from '@shared/constants'
 import {
   Table,
@@ -10,7 +10,7 @@ import {
   TableHead,
   TableHeader,
   TableRow
-} from '../components/ui/table'
+} from '../../components/ui/table'
 import {
   ShoppingCart,
   Package,
@@ -27,12 +27,12 @@ import {
   CreditCard,
   Banknote
 } from 'lucide-react'
-import { Button } from '../components/ui/button'
+import { Button } from '../../components/ui/button'
 import { useNavigate } from 'react-router-dom'
 import type { QuickStats, DailySummary, Bill, Product } from '@shared/types'
-import { billingService } from '../services/billing.service'
-import { productsService } from '../services/products.service'
-import { reportsService } from '../services/reports.service'
+import { billingService } from '../../services/billing.service'
+import { productsService } from '../../services/products.service'
+import { reportsService } from '../../services/reports.service'
 
 export default function DashboardPage(): React.JSX.Element {
   const navigate = useNavigate()

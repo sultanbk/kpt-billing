@@ -21,7 +21,10 @@ const mockApi = {
     adjustStock: createMockFn(),
     getStockLedger: createMockFn(),
     getPriceHistory: createMockFn(),
-    bulkStockUpdate: createMockFn()
+    bulkStockUpdate: createMockFn(),
+    downloadLabels: createMockFn(),
+    printLabels: createMockFn(),
+    printTestLabel: createMockFn()
   },
   billing: {
     getNextBillNumber: createMockFn(),
@@ -96,6 +99,29 @@ const mockApi = {
     getDir: createMockFn(),
     selectFolder: createMockFn(),
     restore: createMockFn()
+  },
+  printer: {
+    getAvailable: createMockFn(),
+    setReceipt: createMockFn(),
+    testPrint: createMockFn(),
+    diagnostics: createMockFn(),
+    printReceipt: createMockFn(),
+    printPaymentDetails: createMockFn(),
+    downloadPaymentDetailsPdf: createMockFn()
+  },
+  dialog: {
+    openFile: createMockFn(),
+    openFolder: createMockFn()
+  },
+  cloud: {
+    getStatus: createMockFn(),
+    saveConfig: createMockFn(),
+    getConfig: createMockFn(),
+    authenticate: createMockFn(),
+    disconnect: createMockFn(),
+    backup: createMockFn(),
+    listBackups: createMockFn(),
+    downloadBackup: createMockFn()
   },
   expenses: {
     create: createMockFn(),

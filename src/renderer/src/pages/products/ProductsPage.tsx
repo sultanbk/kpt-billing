@@ -66,6 +66,7 @@ import { printerService } from '../../services/printer.service'
 import { settingsService } from '../../services/settings.service'
 import { useAuthStore } from '../../stores/auth.store'
 import { OwnerActionGuard } from '../../components/layout'
+import { LimitGate } from '../../components/license'
 
 const PAGE_SIZE = 25
 
@@ -315,18 +316,20 @@ export default function ProductsPage(): React.JSX.Element {
             <Upload className="h-4 w-4" />
             Import CSV
           </Button>
-          <Button
-            onClick={() =>
-              checkOwnerPermission('add products', () => {
-                setEditingProduct(null)
-                setShowForm(true)
-              })
-            }
-            className="gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Add Product
-          </Button>
+          <LimitGate limitKey="maxProducts" currentCount={total}>
+            <Button
+              onClick={() =>
+                checkOwnerPermission('add products', () => {
+                  setEditingProduct(null)
+                  setShowForm(true)
+                })
+              }
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Product
+            </Button>
+          </LimitGate>
         </div>
       </div>
 
