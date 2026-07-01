@@ -54,7 +54,7 @@ function parseCSV(text: string): ParsedRow[] {
     const line = lines[i].trim()
     if (!line) continue
     const values = parseDelimitedLine(line, sep)
-    const stock = parseInt(values[stockIdx])
+    const stock = parseFloat(values[stockIdx])
     if (isNaN(stock)) continue
 
     rows.push({

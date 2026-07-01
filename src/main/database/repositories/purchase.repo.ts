@@ -49,6 +49,7 @@ export class PurchaseRepository {
     qty: number
     purchaseRate: number
     sellingRate: number
+    mrp: number
   }[] {
     return this.itemRepo.getPurchaseItemsForDeletion(id)
   }
@@ -71,7 +72,13 @@ export class PurchaseRepository {
   }
 
   revertProductStock(
-    item: { productId: number; qty: number; purchaseRate: number; sellingRate: number },
+    item: {
+      productId: number
+      qty: number
+      purchaseRate: number
+      sellingRate: number
+      mrp: number
+    },
     purchaseId: number
   ): void {
     this.stockRepo.revertProductStock(item, purchaseId)

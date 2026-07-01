@@ -296,8 +296,7 @@ export default function PurchasesPage(): React.JSX.Element {
                         <div className="font-medium">{product.name}</div>
                         <div className="text-xs text-muted-foreground">
                           {product.sku}
-                          {product.barcode && ` Ã¢â‚¬Â¢ ${product.barcode}`} Ã¢â‚¬Â¢ Stock:{' '}
-                          {product.stock}
+                          {product.barcode && ` • ${product.barcode}`} • Stock: {product.stock}
                         </div>
                       </div>
                       <div className="text-right text-xs">
@@ -327,11 +326,11 @@ export default function PurchasesPage(): React.JSX.Element {
                       <th className="w-[30px] px-3 py-2">#</th>
                       <th className="px-2 py-2">Product</th>
                       <th className="w-[80px] px-2 py-2 text-right">Qty</th>
-                      <th className="w-[100px] px-2 py-2 text-right">Purchase Ã¢â€šÂ¹</th>
-                      <th className="w-[100px] px-2 py-2 text-right">MRP Ã¢â€šÂ¹</th>
-                      <th className="w-[100px] px-2 py-2 text-right">Selling Ã¢â€šÂ¹</th>
+                      <th className="w-[100px] px-2 py-2 text-right">Purchase ₹</th>
+                      <th className="w-[100px] px-2 py-2 text-right">MRP ₹</th>
+                      <th className="w-[100px] px-2 py-2 text-right">Selling ₹</th>
                       <th className="w-[60px] px-2 py-2 text-right">GST%</th>
-                      <th className="w-[80px] px-2 py-2 text-right">GST Ã¢â€šÂ¹</th>
+                      <th className="w-[80px] px-2 py-2 text-right">GST ₹</th>
                       <th className="w-[100px] px-2 py-2 text-right">Amount</th>
                       <th className="w-[40px] px-2 py-2" />
                     </tr>
@@ -360,10 +359,11 @@ export default function PurchasesPage(): React.JSX.Element {
                         <td className="px-2 py-1.5">
                           <Input
                             type="number"
-                            min={1}
+                            min={0.001}
+                            step="any"
                             value={item.qty}
                             onChange={(e) =>
-                              updateItemNumeric(item._uid, 'qty', parseInt(e.target.value) || 1)
+                              updateItemNumeric(item._uid, 'qty', parseFloat(e.target.value) || 1)
                             }
                             className="h-7 w-full text-right text-sm"
                           />
@@ -451,7 +451,7 @@ export default function PurchasesPage(): React.JSX.Element {
             {items.length > 0 && (
               <div className="flex items-center justify-between border-t border-border bg-muted/30 px-4 py-2 text-sm">
                 <span>
-                  {items.length} items Ã¢â‚¬Â¢ {totalQty} qty
+                  {items.length} items • {totalQty} qty
                 </span>
                 <div className="flex items-center gap-4">
                   <span>
@@ -777,8 +777,8 @@ export default function PurchasesPage(): React.JSX.Element {
             <DialogHeader>
               <DialogTitle>Purchase: {viewPurchase.purchaseNo}</DialogTitle>
               <DialogDescription>
-                {viewPurchase.date} Ã¢â‚¬Â¢ {viewPurchase.supplierName || 'No supplier'}{' '}
-                {viewPurchase.city && `Ã¢â‚¬Â¢ ${viewPurchase.city}`}
+                {viewPurchase.date} • {viewPurchase.supplierName || 'No supplier'}{' '}
+                {viewPurchase.city && `• ${viewPurchase.city}`}
               </DialogDescription>
             </DialogHeader>
             <div className="max-h-[400px] overflow-auto">
@@ -788,8 +788,8 @@ export default function PurchasesPage(): React.JSX.Element {
                     <th className="px-3 py-2">#</th>
                     <th className="px-2 py-2">Product</th>
                     <th className="px-2 py-2 text-right">Qty</th>
-                    <th className="px-2 py-2 text-right">Purchase Ã¢â€šÂ¹</th>
-                    <th className="px-2 py-2 text-right">Selling Ã¢â€šÂ¹</th>
+                    <th className="px-2 py-2 text-right">Purchase ₹</th>
+                    <th className="px-2 py-2 text-right">Selling ₹</th>
                     <th className="px-2 py-2 text-right">Amount</th>
                   </tr>
                 </thead>

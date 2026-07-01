@@ -4,7 +4,6 @@ import {
   AlignLeft,
   AlignRight,
   Barcode,
-  ChevronDown,
   RotateCcw,
   SlidersHorizontal,
   Tag,
@@ -60,10 +59,10 @@ function AlignmentSelector({ value, onChange }: AlignmentSelectorProps): React.J
         className={`flex h-7 w-8 items-center justify-center rounded-md transition-all duration-200 ${
           value === 'left'
             ? 'bg-primary text-primary-foreground shadow-sm'
-            : 'text-muted-foreground hover:bg-accent/40 hover:text-foreground'
+            : 'text-muted-foreground hover:bg-accent/45 hover:text-foreground'
         }`}
       >
-        <AlignLeft className="h-4 w-4" />
+        <AlignLeft className="h-3.5 w-3.5" />
       </button>
       <button
         type="button"
@@ -72,10 +71,10 @@ function AlignmentSelector({ value, onChange }: AlignmentSelectorProps): React.J
         className={`flex h-7 w-8 items-center justify-center rounded-md transition-all duration-200 ${
           value === 'center'
             ? 'bg-primary text-primary-foreground shadow-sm'
-            : 'text-muted-foreground hover:bg-accent/40 hover:text-foreground'
+            : 'text-muted-foreground hover:bg-accent/45 hover:text-foreground'
         }`}
       >
-        <AlignCenter className="h-4 w-4" />
+        <AlignCenter className="h-3.5 w-3.5" />
       </button>
       <button
         type="button"
@@ -84,13 +83,22 @@ function AlignmentSelector({ value, onChange }: AlignmentSelectorProps): React.J
         className={`flex h-7 w-8 items-center justify-center rounded-md transition-all duration-200 ${
           value === 'right'
             ? 'bg-primary text-primary-foreground shadow-sm'
-            : 'text-muted-foreground hover:bg-accent/40 hover:text-foreground'
+            : 'text-muted-foreground hover:bg-accent/45 hover:text-foreground'
         }`}
       >
-        <AlignRight className="h-4 w-4" />
+        <AlignRight className="h-3.5 w-3.5" />
       </button>
     </div>
   )
+}
+
+interface NumericOrDefaultInputProps {
+  value: string
+  onChange: (val: string) => void
+  placeholder: string
+  min?: string
+  max?: string
+  step?: string
 }
 
 function NumericOrDefaultInput({
@@ -100,14 +108,7 @@ function NumericOrDefaultInput({
   min,
   max,
   step
-}: {
-  value: string
-  onChange: (val: string) => void
-  placeholder: string
-  min?: string
-  max?: string
-  step?: string
-}): React.JSX.Element {
+}: NumericOrDefaultInputProps): React.JSX.Element {
   const displayValue = value === 'default' ? '' : value
   return (
     <Input
@@ -121,35 +122,82 @@ function NumericOrDefaultInput({
         const val = e.target.value
         onChange(val === '' ? 'default' : val)
       }}
-      className="h-9 w-full rounded-lg bg-background"
+      className="h-9 w-full rounded-lg bg-background text-sm"
     />
   )
 }
 
+const CODE39_WIDTHS: Record<string, number[]> = {
+  '0': [1, 1, 1, 3, 3, 1, 3, 1, 1],
+  '1': [3, 1, 1, 3, 1, 1, 1, 1, 3],
+  '2': [1, 1, 3, 3, 1, 1, 1, 1, 3],
+  '3': [3, 1, 3, 3, 1, 1, 1, 1, 1],
+  '4': [1, 1, 1, 3, 3, 1, 1, 1, 3],
+  '5': [3, 1, 1, 3, 3, 1, 1, 1, 1],
+  '6': [1, 1, 3, 3, 3, 1, 1, 1, 1],
+  '7': [1, 1, 1, 3, 1, 1, 3, 1, 3],
+  '8': [3, 1, 1, 3, 1, 1, 3, 1, 1],
+  '9': [1, 1, 3, 3, 1, 1, 3, 1, 1],
+  A: [3, 1, 1, 1, 1, 3, 1, 1, 3],
+  B: [1, 1, 3, 1, 1, 3, 1, 1, 3],
+  C: [3, 1, 3, 1, 1, 3, 1, 1, 1],
+  D: [1, 1, 1, 1, 3, 3, 1, 1, 3],
+  E: [3, 1, 1, 1, 3, 3, 1, 1, 1],
+  F: [1, 1, 3, 1, 3, 3, 1, 1, 1],
+  G: [1, 1, 1, 1, 1, 3, 3, 1, 3],
+  H: [3, 1, 1, 1, 1, 3, 3, 1, 1],
+  I: [1, 1, 3, 1, 1, 3, 3, 1, 1],
+  J: [1, 1, 1, 1, 3, 3, 3, 1, 1],
+  K: [3, 1, 1, 1, 1, 1, 1, 3, 3],
+  L: [1, 1, 3, 1, 1, 1, 1, 3, 3],
+  M: [3, 1, 3, 1, 1, 1, 1, 3, 1],
+  N: [1, 1, 1, 1, 3, 1, 1, 3, 3],
+  O: [3, 1, 1, 1, 3, 1, 1, 3, 1],
+  P: [1, 1, 3, 1, 3, 1, 1, 3, 1],
+  Q: [1, 1, 1, 1, 1, 1, 3, 3, 3],
+  R: [3, 1, 1, 1, 1, 1, 3, 3, 1],
+  S: [1, 1, 3, 1, 1, 1, 3, 3, 1],
+  T: [1, 1, 1, 1, 3, 1, 3, 3, 1],
+  U: [3, 3, 1, 1, 1, 1, 1, 1, 3],
+  V: [1, 3, 3, 1, 1, 1, 1, 1, 3],
+  W: [3, 3, 3, 1, 1, 1, 1, 1, 1],
+  X: [1, 3, 1, 1, 3, 1, 1, 1, 3],
+  Y: [3, 3, 1, 1, 3, 1, 1, 1, 1],
+  Z: [1, 3, 3, 1, 3, 1, 1, 1, 1],
+  '-': [1, 3, 1, 1, 1, 1, 3, 1, 3],
+  '.': [3, 3, 1, 1, 1, 1, 3, 1, 1],
+  ' ': [1, 3, 3, 1, 1, 1, 3, 1, 1],
+  '*': [1, 3, 1, 1, 3, 1, 3, 1, 1],
+  $: [1, 3, 1, 3, 1, 3, 1, 1, 1],
+  '/': [1, 3, 1, 3, 1, 1, 1, 3, 1],
+  '+': [1, 3, 1, 1, 1, 3, 1, 3, 1],
+  '%': [1, 1, 1, 3, 1, 3, 1, 3, 1]
+}
+
 function generateBarcodeSvg(value: string): React.JSX.Element {
-  let hash = 0
-  for (let i = 0; i < value.length; i++) {
-    hash = value.charCodeAt(i) + ((hash << 5) - hash)
-  }
-  hash = Math.abs(hash)
+  const cleanValue = `*${value.toUpperCase().replace(/[^*A-Z0-9\-.$/+% ]/g, '')}*`
 
-  const bars: number[] = []
-  let currentVal = hash
-  for (let i = 0; i < 44; i++) {
-    const width = (currentVal % 3) + 1
-    bars.push(width)
-    currentVal = Math.floor(currentVal / 3) ^ 0x12345
-  }
-
-  let x = 0
   const elements: React.JSX.Element[] = []
-  bars.forEach((width, index) => {
-    const isBar = index % 2 === 0
-    if (isBar) {
-      elements.push(<rect key={index} x={x} y={0} width={width} height={100} fill="black" />)
+  let x = 0
+
+  for (let c = 0; c < cleanValue.length; c++) {
+    const char = cleanValue[c]
+    const widths = CODE39_WIDTHS[char] || CODE39_WIDTHS[' ']
+
+    for (let i = 0; i < widths.length; i++) {
+      const w = widths[i]
+      const isBar = i % 2 === 0
+
+      if (isBar) {
+        elements.push(<rect key={`${c}-${i}`} x={x} y={0} width={w} height={100} fill="black" />)
+      }
+      x += w
     }
-    x += width
-  })
+
+    if (c < cleanValue.length - 1) {
+      x += 1
+    }
+  }
 
   return (
     <svg
@@ -164,13 +212,15 @@ function generateBarcodeSvg(value: string): React.JSX.Element {
   )
 }
 
+interface BarcodeStickerPreviewProps {
+  settings: SettingsMap
+  labelSize: '46x25' | '60x40'
+}
+
 function BarcodeStickerPreview({
   settings,
   labelSize
-}: {
-  settings: SettingsMap
-  labelSize: '46x25' | '60x40'
-}): React.JSX.Element {
+}: BarcodeStickerPreviewProps): React.JSX.Element {
   const showShopName = settingBool(settings, 'barcodeShowShopName')
   const showSaleName = settingBool(settings, 'barcodeShowSaleName')
   const saleNameText = settingValue(settings, 'barcodeSaleNameText')
@@ -245,10 +295,10 @@ function BarcodeStickerPreview({
   const widthPx = widthMm * scale
   const heightPx = heightMm * scale
 
-  const headerText = showSaleName && saleNameText ? saleNameText : shopName || 'SHOP NAME'
+  const headerText = showSaleName && saleNameText ? saleNameText : shopName || 'ASHAD SALE'
 
-  const dummyMrp = 1999
-  const dummySp = 1499
+  const dummyMrp = 400
+  const dummySp = 350
   const discountPercent = Math.round(((dummyMrp - dummySp) / dummyMrp) * 100)
 
   const getPriceJustify = (): string => {
@@ -261,13 +311,13 @@ function BarcodeStickerPreview({
     <div className="flex flex-col items-center gap-4">
       {/* Label Sticker Container */}
       <div
-        className="relative border border-border/80 bg-white text-black shadow-lg overflow-hidden transition-all duration-300 rounded-sm"
+        className="relative border border-neutral-200/85 bg-white text-black shadow-[0_8px_30px_rgb(0,0,0,0.06),0_1px_3px_rgb(0,0,0,0.02)] overflow-hidden transition-all duration-300 rounded-[6px]"
         style={{
           width: `${widthPx}px`,
           height: `${heightPx}px`
         }}
       >
-        {/* Printable Area Wrapper (Nudged by calibration values) */}
+        {/* Printable Area Wrapper */}
         <div
           className="w-full h-full flex flex-col justify-start items-start"
           style={{
@@ -279,7 +329,7 @@ function BarcodeStickerPreview({
           {/* Shop Name */}
           {showShopName && (
             <div
-              className="w-full truncate font-extrabold uppercase tracking-wide select-none leading-none shrink-0"
+              className="w-full truncate font-extrabold uppercase tracking-wider select-none leading-none shrink-0"
               style={{
                 fontSize: `${shopFS}px`,
                 textAlign: shopAlign as 'left' | 'center' | 'right'
@@ -292,13 +342,13 @@ function BarcodeStickerPreview({
           {/* Product Name */}
           {showName && (
             <div
-              className="w-full font-bold select-none leading-tight shrink-0 line-clamp-2"
+              className="w-full font-bold select-none leading-tight shrink-0 line-clamp-1 font-sans"
               style={{
                 fontSize: `${nameFS}px`,
                 textAlign: nameAlign as 'left' | 'center' | 'right'
               }}
             >
-              Cotton Silk Saree
+              ALFINE NIGHTY
             </div>
           )}
 
@@ -309,20 +359,18 @@ function BarcodeStickerPreview({
               style={{
                 fontSize: `${priceFS}px`,
                 justifyContent: getPriceJustify(),
-                gap: '6px'
+                gap: '8px'
               }}
             >
               {showMrp && (
                 <span
-                  className="relative font-semibold shrink-0"
+                  className="font-semibold shrink-0 text-neutral-600"
                   style={{
-                    fontSize: `${priceFS * 0.85}px`
+                    fontSize: `${priceFS * 0.85}px`,
+                    textDecoration: strikeMrp ? 'line-through' : 'none'
                   }}
                 >
                   ₹{dummyMrp.toFixed(2)}
-                  {strikeMrp && (
-                    <span className="absolute left-0 right-0 top-[50%] h-[1px] bg-black pointer-events-none" />
-                  )}
                 </span>
               )}
               {showSellingPrice && (
@@ -334,7 +382,7 @@ function BarcodeStickerPreview({
                 </span>
               )}
               {showDiscount && (
-                <span className="font-bold shrink-0 text-[0.85em]">({discountPercent}% OFF)</span>
+                <span className="font-bold shrink-0 text-[0.82em]">({discountPercent}% OFF)</span>
               )}
             </div>
           )}
@@ -352,20 +400,20 @@ function BarcodeStickerPreview({
                 width: `${barcodeWidth}%`
               }}
             >
-              {generateBarcodeSvg('KPT00001')}
+              {generateBarcodeSvg('000025')}
             </div>
           </div>
 
           {/* SKU Code Text */}
           {showCode && (
             <div
-              className="w-full font-mono font-bold select-none leading-none shrink-0"
+              className="w-full font-mono font-semibold select-none leading-none shrink-0 tracking-[0.15em]"
               style={{
                 fontSize: `${codeFS}px`,
                 textAlign: codeAlign as 'left' | 'center' | 'right'
               }}
             >
-              KPT00001
+              000025
             </div>
           )}
         </div>
@@ -378,75 +426,31 @@ function BarcodeStickerPreview({
   )
 }
 
-interface CollapsibleSectionProps {
+interface CardSectionProps {
   title: string
   description?: string
   icon: React.ReactNode
-  isOpen: boolean
-  onToggle: () => void
-  action?: React.ReactNode
   children: React.ReactNode
 }
 
-function CollapsibleSection({
-  title,
-  description,
-  icon,
-  isOpen,
-  onToggle,
-  action,
-  children
-}: CollapsibleSectionProps): React.JSX.Element {
+function CardSection({ title, description, icon, children }: CardSectionProps): React.JSX.Element {
   return (
-    <div className="group/section relative rounded-xl border border-border/60 bg-card shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
-      {/* Gradient top accent */}
-      <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-primary/60 via-primary/20 to-transparent" />
-
-      {/* Header (clickable) */}
-      <div
-        onClick={onToggle}
-        className="flex items-center justify-between p-5 cursor-pointer select-none hover:bg-muted/30 transition-colors duration-200"
-      >
-        <div className="flex items-start gap-3">
-          {icon && (
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/8 text-primary mt-0.5">
-              {icon}
-            </div>
-          )}
-          <div>
-            <h2 className="text-base font-semibold text-foreground tracking-tight">{title}</h2>
-            {description && (
-              <p className="mt-1 text-sm text-muted-foreground leading-relaxed">{description}</p>
-            )}
+    <div className="relative rounded-xl border border-border/40 bg-card/65 backdrop-blur-sm shadow-sm p-5 space-y-4 transition-all duration-300 hover:border-border/60 hover:shadow-md">
+      <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-primary/30 to-transparent" />
+      <div className="flex items-start gap-3">
+        {icon && (
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            {icon}
           </div>
-        </div>
-
-        <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
-          {action}
-          <button
-            type="button"
-            onClick={onToggle}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-all duration-200"
-          >
-            <ChevronDown
-              className={`h-4 w-4 transition-transform duration-300 ${
-                isOpen ? 'rotate-180' : 'rotate-0'
-              }`}
-            />
-          </button>
+        )}
+        <div>
+          <h3 className="text-sm font-semibold text-foreground tracking-tight">{title}</h3>
+          {description && (
+            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{description}</p>
+          )}
         </div>
       </div>
-
-      {/* Content */}
-      <div
-        className={`transition-all duration-300 ease-in-out ${
-          isOpen
-            ? 'max-h-[1000px] opacity-100 border-t border-border/40 p-6'
-            : 'max-h-0 opacity-0 pointer-events-none overflow-hidden'
-        }`}
-      >
-        {children}
-      </div>
+      <div className="pt-1">{children}</div>
     </div>
   )
 }
@@ -459,16 +463,6 @@ export function BarcodeTab({
   updateSetting: UpdateSetting
 }): React.JSX.Element {
   const [printingLabel, setPrintingLabel] = useState(false)
-  const [openSections, setOpenSections] = useState({
-    content: true,
-    typography: false,
-    spacing: false,
-    calibration: false
-  })
-
-  const toggleSection = (section: keyof typeof openSections): void => {
-    setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }))
-  }
 
   const resetCalibration = (): void => {
     for (const [key, value] of Object.entries(BARCODE_DEFAULTS)) {
@@ -516,18 +510,49 @@ export function BarcodeTab({
   const labelSize = settingValue(settings, 'barcodeLabelSize') === '60x40' ? '60x40' : '46x25'
 
   return (
-    <div className="grid gap-8 lg:grid-cols-12 items-start">
-      {/* Left Column: Collapsible Configuration Dropdowns */}
-      <div className="lg:col-span-7 space-y-4">
-        {/* Section 1: Label Content & Visibility */}
-        <CollapsibleSection
+    <div className="grid gap-6 lg:grid-cols-12 items-start">
+      {/* Left Column: Configuration Settings Grid */}
+      <div className="lg:col-span-7 space-y-6">
+        {/* Minimalist Top Actions Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-muted/40 border border-border/40 p-4 rounded-xl shadow-sm">
+          <div>
+            <h3 className="text-xs font-semibold text-foreground tracking-wide uppercase">
+              Label Controls
+            </h3>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              Quickly run test prints or restore standard layouts
+            </p>
+          </div>
+          <div className="flex items-center gap-2 self-end sm:self-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={resetCalibration}
+              className="rounded-xl text-xs h-9 px-3.5 gap-1.5 hover:bg-accent/40"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Reset Defaults
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={testLabel}
+              disabled={printingLabel}
+              className="rounded-xl text-xs h-9 px-3.5 gap-1.5 border-primary/20 hover:border-primary/40 text-primary hover:bg-primary/5 shadow-sm font-semibold"
+            >
+              <Tag className="h-3.5 w-3.5" />
+              {printingLabel ? 'Printing...' : 'Print Test'}
+            </Button>
+          </div>
+        </div>
+
+        {/* Visibility Card */}
+        <CardSection
           title="Barcode Label Content"
-          description="Choose which text elements appear on barcode labels."
+          description="Control which layout elements are printed on the sticker label."
           icon={<Barcode className="h-4 w-4" />}
-          isOpen={openSections.content}
-          onToggle={() => toggleSection('content')}
         >
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-3.5 sm:grid-cols-2">
             <ToggleField
               label="Show shop name"
               checked={settingBool(settings, 'barcodeShowShopName')}
@@ -572,137 +597,34 @@ export function BarcodeTab({
             />
           </div>
           {settingBool(settings, 'barcodeShowSaleName') && (
-            <div className="mt-4">
+            <div className="mt-4 pt-3 border-t border-border/20">
               <Field label="Sale Name Text">
                 <Input
                   value={settingValue(settings, 'barcodeSaleNameText')}
                   onChange={(event) => updateSetting('barcodeSaleNameText', event.target.value)}
                   className="rounded-lg bg-background"
+                  placeholder="e.g. ASHAD SALE"
                 />
               </Field>
             </div>
           )}
-        </CollapsibleSection>
+        </CardSection>
 
-        {/* Section 2: Typography & Alignment */}
-        <CollapsibleSection
-          title="Typography & Text Alignment"
-          description="Adjust font size (in pt) and text alignment for each sticker field."
-          icon={<Type className="h-4 w-4" />}
-          isOpen={openSections.typography}
-          onToggle={() => toggleSection('typography')}
-        >
-          <div className="space-y-4">
-            <div className="hidden sm:grid grid-cols-[1fr_120px_110px] gap-4 text-xs font-semibold text-muted-foreground pb-2 border-b border-border/40">
-              <div>Element Label</div>
-              <div>Font Size (pt)</div>
-              <div className="text-right pr-2">Alignment</div>
-            </div>
-
-            {/* Shop / Sale Name */}
-            {settingBool(settings, 'barcodeShowShopName') && (
-              <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px_110px] items-center gap-3 py-1 border-b border-border/10 sm:border-none">
-                <span className="text-sm font-medium text-foreground/80">Shop / Sale Name</span>
-                <NumericOrDefaultInput
-                  value={settingValue(settings, 'barcodeShopFontSize')}
-                  onChange={(val) => updateSetting('barcodeShopFontSize', val)}
-                  placeholder="Default"
-                  min="6"
-                  max="24"
-                  step="0.5"
-                />
-                <div className="flex justify-end">
-                  <AlignmentSelector
-                    value={settingValue(settings, 'barcodeShopAlign') || 'right'}
-                    onChange={(val) => updateSetting('barcodeShopAlign', val)}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Product Name */}
-            {settingBool(settings, 'barcodeShowName') && (
-              <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px_110px] items-center gap-3 py-1 border-b border-border/10 sm:border-none">
-                <span className="text-sm font-medium text-foreground/80">Product Name</span>
-                <NumericOrDefaultInput
-                  value={settingValue(settings, 'barcodeNameFontSize')}
-                  onChange={(val) => updateSetting('barcodeNameFontSize', val)}
-                  placeholder="Default"
-                  min="6"
-                  max="24"
-                  step="0.5"
-                />
-                <div className="flex justify-end">
-                  <AlignmentSelector
-                    value={settingValue(settings, 'barcodeNameAlign') || 'left'}
-                    onChange={(val) => updateSetting('barcodeNameAlign', val)}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Price Row */}
-            {(settingBool(settings, 'barcodeShowMrp') ||
-              settingBool(settings, 'barcodeShowSellingPrice')) && (
-              <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px_110px] items-center gap-3 py-1 border-b border-border/10 sm:border-none">
-                <span className="text-sm font-medium text-foreground/80">Price Row</span>
-                <NumericOrDefaultInput
-                  value={settingValue(settings, 'barcodePriceFontSize')}
-                  onChange={(val) => updateSetting('barcodePriceFontSize', val)}
-                  placeholder="Default"
-                  min="6"
-                  max="24"
-                  step="0.5"
-                />
-                <div className="flex justify-end">
-                  <AlignmentSelector
-                    value={settingValue(settings, 'barcodePriceAlign') || 'left'}
-                    onChange={(val) => updateSetting('barcodePriceAlign', val)}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* SKU Code Text */}
-            {settingBool(settings, 'barcodeShowCode') && (
-              <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px_110px] items-center gap-3 py-1">
-                <span className="text-sm font-medium text-foreground/80">SKU Code Text</span>
-                <NumericOrDefaultInput
-                  value={settingValue(settings, 'barcodeCodeFontSize')}
-                  onChange={(val) => updateSetting('barcodeCodeFontSize', val)}
-                  placeholder="Default"
-                  min="6"
-                  max="24"
-                  step="0.5"
-                />
-                <div className="flex justify-end">
-                  <AlignmentSelector
-                    value={settingValue(settings, 'barcodeCodeAlign') || 'center'}
-                    onChange={(val) => updateSetting('barcodeCodeAlign', val)}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        </CollapsibleSection>
-
-        {/* Section 3: Margins & Spacing */}
-        <CollapsibleSection
-          title="Label Spacing & Dimensions"
-          description="Adjust sticker paddings, element gaps, and barcode scale."
+        {/* Spacing & Sizes Card */}
+        <CardSection
+          title="Sticker Geometry & Spacing"
+          description="Set standard physical dimensions and element spacing offsets."
           icon={<SlidersHorizontal className="h-4 w-4" />}
-          isOpen={openSections.spacing}
-          onToggle={() => toggleSection('spacing')}
         >
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Label Size Preset">
               <select
-                className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm transition-colors focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
+                className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
                 value={labelSize}
                 onChange={(event) => updateSetting('barcodeLabelSize', event.target.value)}
               >
-                <option value="46x25">46 x 25 mm</option>
-                <option value="60x40">60 x 40 mm</option>
+                <option value="46x25">46 x 25 mm (Standard)</option>
+                <option value="60x40">60 x 40 mm (Large)</option>
               </select>
             </Field>
             <Field label="Horizontal Padding (mm)">
@@ -742,7 +664,7 @@ export function BarcodeTab({
                 max="100"
                 value={settingValue(settings, 'barcodeWidth')}
                 onChange={(event) => updateSetting('barcodeWidth', event.target.value)}
-                className="rounded-lg bg-background"
+                className="h-9 rounded-lg bg-background text-sm"
               />
             </Field>
             <Field label="Barcode Height (mm)">
@@ -753,42 +675,113 @@ export function BarcodeTab({
                 step="0.5"
                 value={settingValue(settings, 'barcodeHeight')}
                 onChange={(event) => updateSetting('barcodeHeight', event.target.value)}
-                className="rounded-lg bg-background"
+                className="h-9 rounded-lg bg-background text-sm"
               />
             </Field>
           </div>
-        </CollapsibleSection>
+        </CardSection>
 
-        {/* Section 4: Print Calibration */}
-        <CollapsibleSection
-          title="Print Calibration & Offsets"
-          description="Nudge layout offset to match pre-cut label positions."
-          icon={<RotateCcw className="h-4 w-4" />}
-          isOpen={openSections.calibration}
-          onToggle={() => toggleSection('calibration')}
-          action={
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={resetCalibration}
-                className="rounded-lg text-xs h-8"
-              >
-                <RotateCcw className="h-3 w-3 mr-1" />
-                Reset
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={testLabel}
-                disabled={printingLabel}
-                className="rounded-lg text-xs h-8"
-              >
-                <Tag className="h-3 w-3 mr-1" />
-                {printingLabel ? 'Printing...' : 'Print Test'}
-              </Button>
+        {/* Alignment & Typography Card */}
+        <CardSection
+          title="Typography & Alignment"
+          description="Adjust font sizes (pt) and content alignments for label fields."
+          icon={<Type className="h-4 w-4" />}
+        >
+          <div className="space-y-4">
+            <div className="hidden sm:grid grid-cols-[1fr_120px_110px] gap-4 text-[10px] font-bold text-muted-foreground uppercase pb-2 border-b border-border/40">
+              <div>Label Item</div>
+              <div>Font Size (pt)</div>
+              <div className="text-right pr-2">Alignment</div>
             </div>
-          }
+
+            {settingBool(settings, 'barcodeShowShopName') && (
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px_110px] items-center gap-3 py-1.5 border-b border-border/10 sm:border-none">
+                <span className="text-xs font-semibold text-foreground/80">Shop / Sale Name</span>
+                <NumericOrDefaultInput
+                  value={settingValue(settings, 'barcodeShopFontSize')}
+                  onChange={(val) => updateSetting('barcodeShopFontSize', val)}
+                  placeholder="Default"
+                  min="6"
+                  max="24"
+                  step="0.5"
+                />
+                <div className="flex justify-end">
+                  <AlignmentSelector
+                    value={settingValue(settings, 'barcodeShopAlign') || 'right'}
+                    onChange={(val) => updateSetting('barcodeShopAlign', val)}
+                  />
+                </div>
+              </div>
+            )}
+
+            {settingBool(settings, 'barcodeShowName') && (
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px_110px] items-center gap-3 py-1.5 border-b border-border/10 sm:border-none">
+                <span className="text-xs font-semibold text-foreground/80">Product Name</span>
+                <NumericOrDefaultInput
+                  value={settingValue(settings, 'barcodeNameFontSize')}
+                  onChange={(val) => updateSetting('barcodeNameFontSize', val)}
+                  placeholder="Default"
+                  min="6"
+                  max="24"
+                  step="0.5"
+                />
+                <div className="flex justify-end">
+                  <AlignmentSelector
+                    value={settingValue(settings, 'barcodeNameAlign') || 'left'}
+                    onChange={(val) => updateSetting('barcodeNameAlign', val)}
+                  />
+                </div>
+              </div>
+            )}
+
+            {(settingBool(settings, 'barcodeShowMrp') ||
+              settingBool(settings, 'barcodeShowSellingPrice')) && (
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px_110px] items-center gap-3 py-1.5 border-b border-border/10 sm:border-none">
+                <span className="text-xs font-semibold text-foreground/80">Price Row</span>
+                <NumericOrDefaultInput
+                  value={settingValue(settings, 'barcodePriceFontSize')}
+                  onChange={(val) => updateSetting('barcodePriceFontSize', val)}
+                  placeholder="Default"
+                  min="6"
+                  max="24"
+                  step="0.5"
+                />
+                <div className="flex justify-end">
+                  <AlignmentSelector
+                    value={settingValue(settings, 'barcodePriceAlign') || 'left'}
+                    onChange={(val) => updateSetting('barcodePriceAlign', val)}
+                  />
+                </div>
+              </div>
+            )}
+
+            {settingBool(settings, 'barcodeShowCode') && (
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px_110px] items-center gap-3 py-1.5">
+                <span className="text-xs font-semibold text-foreground/80">SKU Code Text</span>
+                <NumericOrDefaultInput
+                  value={settingValue(settings, 'barcodeCodeFontSize')}
+                  onChange={(val) => updateSetting('barcodeCodeFontSize', val)}
+                  placeholder="Default"
+                  min="6"
+                  max="24"
+                  step="0.5"
+                />
+                <div className="flex justify-end">
+                  <AlignmentSelector
+                    value={settingValue(settings, 'barcodeCodeAlign') || 'center'}
+                    onChange={(val) => updateSetting('barcodeCodeAlign', val)}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </CardSection>
+
+        {/* Nudge Calibration Card */}
+        <CardSection
+          title="Print Position Calibration"
+          description="Slightly adjust layout offsets to align text with pre-cut sticker fields."
+          icon={<RotateCcw className="h-4 w-4" />}
         >
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="Nudge X (mm)" hint="Positive moves right, negative moves left">
@@ -799,7 +792,7 @@ export function BarcodeTab({
                 step="0.1"
                 value={settingValue(settings, 'barcodeNudgeX')}
                 onChange={(event) => updateSetting('barcodeNudgeX', event.target.value)}
-                className="rounded-lg bg-background"
+                className="h-9 rounded-lg bg-background text-sm"
               />
             </Field>
             <Field label="Nudge Y (mm)" hint="Positive moves down, negative moves up">
@@ -810,17 +803,17 @@ export function BarcodeTab({
                 step="0.1"
                 value={settingValue(settings, 'barcodeNudgeY')}
                 onChange={(event) => updateSetting('barcodeNudgeY', event.target.value)}
-                className="rounded-lg bg-background"
+                className="h-9 rounded-lg bg-background text-sm"
               />
             </Field>
           </div>
-        </CollapsibleSection>
+        </CardSection>
       </div>
 
       {/* Right Column: Sticky Live Preview */}
       <div className="lg:col-span-5 lg:sticky lg:top-[90px] self-start space-y-4">
         <SettingsSection title="Live Preview" icon={<Tag className="h-4 w-4" />}>
-          <div className="flex flex-col justify-center items-center rounded-xl border border-border/60 bg-muted/20 p-8 shadow-inner min-h-[350px] relative overflow-hidden bg-[radial-gradient(#e5e7eb_1.2px,transparent_1.2px)] [background-size:16px_16px]">
+          <div className="flex flex-col justify-center items-center rounded-xl border border-border/40 bg-muted/10 p-8 shadow-inner min-h-[380px] relative overflow-hidden bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] dark:bg-[radial-gradient(#27272a_1px,transparent_1px)]">
             <BarcodeStickerPreview settings={settings} labelSize={labelSize} />
           </div>
         </SettingsSection>

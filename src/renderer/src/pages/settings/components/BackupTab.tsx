@@ -246,15 +246,29 @@ export function BackupTab({
           </Field>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
-          <Button variant="outline" onClick={saveCloudConfig} disabled={cloudBusy} className="rounded-xl">
+          <Button
+            variant="outline"
+            onClick={saveCloudConfig}
+            disabled={cloudBusy}
+            className="rounded-xl"
+          >
             <HardDrive className="h-4 w-4" />
             Save Config
           </Button>
-          <Button variant="outline" onClick={authenticateCloud} disabled={cloudBusy} className="rounded-xl">
+          <Button
+            variant="outline"
+            onClick={authenticateCloud}
+            disabled={cloudBusy}
+            className="rounded-xl"
+          >
             <Cloud className="h-4 w-4" />
             Connect
           </Button>
-          <Button onClick={backupToCloud} disabled={cloudBusy || !cloudStatus.authenticated} className="rounded-xl">
+          <Button
+            onClick={backupToCloud}
+            disabled={cloudBusy || !cloudStatus.authenticated}
+            className="rounded-xl"
+          >
             <UploadCloud className="h-4 w-4" />
             Backup to Cloud
           </Button>

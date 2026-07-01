@@ -79,9 +79,7 @@ export default function SettingsPage(): React.JSX.Element {
             </div>
             <div>
               <h1 className="text-xl font-bold tracking-tight">Settings</h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Configure your billing system
-              </p>
+              <p className="text-sm text-muted-foreground mt-0.5">Configure your billing system</p>
             </div>
           </div>
           <Button
@@ -104,9 +102,7 @@ export default function SettingsPage(): React.JSX.Element {
             return (
               <div key={tab.id}>
                 {/* Separator after subscription tab */}
-                {idx === 1 && (
-                  <div className="my-2 mx-3 border-t border-border/40" />
-                )}
+                {idx === 1 && <div className="my-2 mx-3 border-t border-border/40" />}
                 <button
                   onClick={() => setActiveTab(tab.id)}
                   className={`relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-200 group ${

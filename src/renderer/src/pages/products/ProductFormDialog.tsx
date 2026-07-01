@@ -507,8 +507,9 @@ export function ProductFormDialog({
               <Input
                 type="number"
                 min={0}
+                step="any"
                 value={form.stock || ''}
-                onChange={(e) => updateField('stock', parseInt(e.target.value) || 0)}
+                onChange={(e) => updateField('stock', parseFloat(e.target.value) || 0)}
               />
             </div>
 
@@ -518,8 +519,9 @@ export function ProductFormDialog({
               <Input
                 type="number"
                 min={0}
+                step="any"
                 value={form.lowStockThreshold || ''}
-                onChange={(e) => updateField('lowStockThreshold', parseInt(e.target.value) || 0)}
+                onChange={(e) => updateField('lowStockThreshold', parseFloat(e.target.value) || 0)}
               />
             </div>
 

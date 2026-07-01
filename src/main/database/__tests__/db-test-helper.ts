@@ -57,9 +57,10 @@ const MIGRATION_SQL = `
       wholesale_price REAL,
       gst_rate REAL NOT NULL DEFAULT 5,
       price_includes_gst INTEGER NOT NULL DEFAULT 0,
-      opening_stock INTEGER NOT NULL DEFAULT 0,
-      current_stock INTEGER NOT NULL DEFAULT 0,
-      low_stock_alert INTEGER,
+      opening_stock REAL NOT NULL DEFAULT 0,
+      current_stock REAL NOT NULL DEFAULT 0,
+      low_stock_alert REAL,
+      unit TEXT NOT NULL DEFAULT 'pcs',
       location TEXT,
       supplier_id INTEGER,
       color TEXT,
@@ -116,7 +117,7 @@ const MIGRATION_SQL = `
       status TEXT NOT NULL DEFAULT 'completed',
       salesman_name TEXT,
       total_items INTEGER NOT NULL DEFAULT 0,
-      total_qty INTEGER NOT NULL DEFAULT 0,
+      total_qty REAL NOT NULL DEFAULT 0,
       notes TEXT,
       created_by TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
@@ -128,7 +129,7 @@ const MIGRATION_SQL = `
       product_id INTEGER,
       product_name TEXT NOT NULL,
       hsn_code TEXT NOT NULL DEFAULT '',
-      qty INTEGER NOT NULL DEFAULT 1,
+      qty REAL NOT NULL DEFAULT 1,
       rate REAL NOT NULL DEFAULT 0,
       discount_type TEXT NOT NULL DEFAULT 'flat',
       discount_value REAL NOT NULL DEFAULT 0,
@@ -144,7 +145,7 @@ const MIGRATION_SQL = `
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       product_id INTEGER NOT NULL REFERENCES products(id),
       type TEXT NOT NULL,
-      qty INTEGER NOT NULL,
+      qty REAL NOT NULL,
       reference_type TEXT,
       reference_id INTEGER,
       notes TEXT,
@@ -203,8 +204,8 @@ const MIGRATION_SQL = `
       bill_item_id INTEGER NOT NULL,
       product_id INTEGER,
       product_name TEXT NOT NULL,
-      original_qty INTEGER NOT NULL DEFAULT 0,
-      return_qty INTEGER NOT NULL DEFAULT 0,
+      original_qty REAL NOT NULL DEFAULT 0,
+      return_qty REAL NOT NULL DEFAULT 0,
       rate REAL NOT NULL DEFAULT 0,
       gst_rate REAL NOT NULL DEFAULT 0,
       refund_amount REAL NOT NULL DEFAULT 0
@@ -233,7 +234,7 @@ const MIGRATION_SQL = `
       invoice_no TEXT,
       invoice_date TEXT,
       total_items INTEGER NOT NULL DEFAULT 0,
-      total_qty INTEGER NOT NULL DEFAULT 0,
+      total_qty REAL NOT NULL DEFAULT 0,
       subtotal REAL NOT NULL DEFAULT 0,
       gst_amount REAL NOT NULL DEFAULT 0,
       discount_amount REAL NOT NULL DEFAULT 0,
@@ -253,7 +254,7 @@ const MIGRATION_SQL = `
       product_name TEXT NOT NULL,
       barcode TEXT,
       hsn_code TEXT,
-      qty INTEGER NOT NULL DEFAULT 1,
+      qty REAL NOT NULL DEFAULT 1,
       purchase_rate REAL NOT NULL DEFAULT 0,
       selling_rate REAL NOT NULL DEFAULT 0,
       mrp REAL NOT NULL DEFAULT 0,
@@ -311,7 +312,7 @@ const MIGRATION_SQL = `
       product_id INTEGER,
       product_name TEXT NOT NULL,
       hsn_code TEXT NOT NULL DEFAULT '',
-      qty INTEGER NOT NULL DEFAULT 1,
+      qty REAL NOT NULL DEFAULT 1,
       rate REAL NOT NULL DEFAULT 0,
       discount_value REAL NOT NULL DEFAULT 0,
       amount REAL NOT NULL DEFAULT 0
@@ -391,12 +392,13 @@ export function insertTestProduct(
     gstRate: number
     stock: number
     isActive: number
+    unit: string
   }> = {}
 ): number {
   const result = db
     .prepare(
-      `INSERT INTO products (name, sku, barcode, category_id, hsn_code, purchase_price, selling_price, gst_rate, opening_stock, current_stock, is_active)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO products (name, sku, barcode, category_id, hsn_code, purchase_price, selling_price, gst_rate, opening_stock, current_stock, is_active, unit)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       overrides.name ?? 'Test Saree',
@@ -409,7 +411,8 @@ export function insertTestProduct(
       overrides.gstRate ?? 5,
       overrides.stock ?? 10,
       overrides.stock ?? 10,
-      overrides.isActive ?? 1
+      overrides.isActive ?? 1,
+      overrides.unit ?? 'pcs'
     )
   return Number(result.lastInsertRowid)
 }

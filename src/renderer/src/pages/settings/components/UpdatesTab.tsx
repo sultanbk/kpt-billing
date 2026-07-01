@@ -221,12 +221,12 @@ export function UpdatesTab(): React.JSX.Element {
         )}
 
         {/* Info note */}
-        <div className="rounded-lg bg-muted/30 border border-border/40 p-3">
+        {/* <div className="rounded-lg bg-muted/30 border border-border/40 p-3">
           <p className="text-[11px] text-muted-foreground leading-relaxed">
             Updates are checked automatically every 4 hours and downloaded in the background. They
             install silently when you close the app — no disruption to billing.
           </p>
-        </div>
+        </div> */}
       </div>
     </SettingsSection>
   )

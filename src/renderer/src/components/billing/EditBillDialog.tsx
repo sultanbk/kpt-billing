@@ -778,11 +778,12 @@ export function EditBillDialog({
                                     type="number"
                                     min={0}
                                     max={available}
+                                    step="any"
                                     value={returnQty}
                                     onChange={(e) => {
                                       const v = Math.max(
                                         0,
-                                        Math.min(available, parseInt(e.target.value) || 0)
+                                        Math.min(available, parseFloat(e.target.value) || 0)
                                       )
                                       setReturnQtys({ ...returnQtys, [itemId]: v })
                                     }}
@@ -966,10 +967,11 @@ export function EditBillDialog({
                                       </Button>
                                       <Input
                                         type="number"
-                                        min={1}
+                                        min={0.001}
+                                        step="any"
                                         value={ei.quantity}
                                         onChange={(e) =>
-                                          updateExchangeQty(idx, parseInt(e.target.value) || 1)
+                                          updateExchangeQty(idx, parseFloat(e.target.value) || 1)
                                         }
                                         className="h-6 w-10 text-center text-xs px-0.5"
                                       />

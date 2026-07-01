@@ -155,8 +155,8 @@ export function PaymentsTab({
               Payments Settings Protected
             </h3>
             <p className="text-xs text-muted-foreground mt-1.5 max-w-sm leading-relaxed">
-              Verification is required to view or edit payment methods.
-              Enter your owner PIN to unlock.
+              Verification is required to view or edit payment methods. Enter your owner PIN to
+              unlock.
             </p>
             <Button
               onClick={() => setVerifyOpen(true)}

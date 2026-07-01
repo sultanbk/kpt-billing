@@ -55,8 +55,8 @@ export function PurchaseHistory({
                   <div className="font-medium">{p.purchaseNo}</div>
                   <div className="text-xs text-muted-foreground">
                     {p.date}
-                    {p.supplierName && ` Ã¢â‚¬Â¢ ${p.supplierName}`}
-                    {p.city && ` Ã¢â‚¬Â¢ ${p.city}`}
+                    {p.supplierName && ` • ${p.supplierName}`}
+                    {p.city && ` • ${p.city}`}
                   </div>
                 </div>
               </div>
@@ -64,7 +64,7 @@ export function PurchaseHistory({
                 <div className="text-right">
                   <div className="font-medium">{formatCurrency(p.grandTotal)}</div>
                   <div className="text-xs text-muted-foreground">
-                    {p.totalItems} items Ã¢â‚¬Â¢ {p.totalQty} qty
+                    {p.totalItems} items • {p.totalQty} qty
                   </div>
                 </div>
                 <Badge

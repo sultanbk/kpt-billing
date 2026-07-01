@@ -71,7 +71,9 @@ describe('SettingsPage', () => {
     // Switch to General tab
     await user.click(await screen.findByRole('button', { name: /general/i }))
 
-    expect(await screen.findAllByText('Shop and billing identity', { exact: false })).toHaveLength(2)
+    expect(await screen.findAllByText('Shop and billing identity', { exact: false })).toHaveLength(
+      2
+    )
     expect(screen.queryByRole('button', { name: /user guide/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /about/i })).not.toBeInTheDocument()
 

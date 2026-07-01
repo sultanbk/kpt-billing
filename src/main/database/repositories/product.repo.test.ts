@@ -233,4 +233,45 @@ describe('ProductRepository', () => {
       expect(result.data[0].isActive).toBe(false)
     })
   })
+
+  describe('unit and decimal stock persistence', () => {
+    it('saves unit type and fractional stock levels', () => {
+      const product = repo.create({
+        name: 'Cotton Fabric',
+        hsnCode: '5208',
+        costPrice: 150.5,
+        sellingPrice: 220,
+        gstRate: 5,
+        stock: 12.5,
+        unit: 'mtr'
+      })
+
+      expect(product.unit).toBe('mtr')
+      expect(product.stock).toBe(12.5)
+
+      // Verify stock ledger entry contains the fractional quantity
+      const ledger = testDb
+        .prepare('SELECT qty FROM stock_ledger WHERE product_id = ?')
+        .all(product.id)
+      expect(ledger).toHaveLength(1)
+      expect((ledger[0] as Record<string, unknown>).qty).toBe(12.5)
+
+      // Test updating unit and stock
+      const updated = repo.update(product.id, {
+        unit: 'kg',
+        stock: 15.75
+      })
+
+      expect(updated.unit).toBe('kg')
+      expect(updated.stock).toBe(15.75)
+
+      // Verify stock ledger adjustment details
+      const ledgerAfterUpdate = testDb
+        .prepare('SELECT qty FROM stock_ledger WHERE product_id = ? ORDER BY id DESC')
+        .all(product.id)
+      expect(ledgerAfterUpdate).toHaveLength(2)
+      // Delta should be 15.75 - 12.5 = 3.25
+      expect((ledgerAfterUpdate[0] as Record<string, unknown>).qty).toBe(3.25)
+    })
+  })
 })

@@ -66,9 +66,10 @@ export function CartRow({
           </Button>
           <Input
             type="number"
-            min={1}
+            min={0.001}
+            step="any"
             value={item.quantity}
-            onChange={(e) => onUpdateQty(Math.max(1, parseInt(e.target.value) || 1))}
+            onChange={(e) => onUpdateQty(Math.max(0.001, parseFloat(e.target.value) || 1))}
             className="h-7 w-12 text-center text-sm px-1 font-semibold rounded-lg bg-background/90"
           />
           <Button

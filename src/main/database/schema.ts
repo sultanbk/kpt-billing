@@ -58,9 +58,10 @@ export const products = sqliteTable('products', {
   wholesalePrice: real('wholesale_price'),
   gstRate: real('gst_rate').notNull().default(5),
   priceIncludesGst: integer('price_includes_gst', { mode: 'boolean' }).notNull().default(false),
-  openingStock: integer('opening_stock').notNull().default(0),
-  currentStock: integer('current_stock').notNull().default(0),
-  lowStockAlert: integer('low_stock_alert'),
+  openingStock: real('opening_stock').notNull().default(0),
+  currentStock: real('current_stock').notNull().default(0),
+  lowStockAlert: real('low_stock_alert'),
+  unit: text('unit').notNull().default('pcs'),
   location: text('location'),
   supplierId: integer('supplier_id'),
   color: text('color'),
@@ -127,7 +128,7 @@ export const bills = sqliteTable('bills', {
   status: text('status').notNull().default('completed'), // completed, returned, cancelled
   salesmanName: text('salesman_name'),
   totalItems: integer('total_items').notNull().default(0),
-  totalQty: integer('total_qty').notNull().default(0),
+  totalQty: real('total_qty').notNull().default(0),
   notes: text('notes'),
   createdBy: text('created_by'),
   createdAt: text('created_at')
@@ -144,7 +145,7 @@ export const billItems = sqliteTable('bill_items', {
   productId: integer('product_id'),
   productName: text('product_name').notNull(),
   hsnCode: text('hsn_code').notNull().default(''),
-  qty: integer('qty').notNull().default(1),
+  qty: real('qty').notNull().default(1),
   rate: real('rate').notNull().default(0),
   discountType: text('discount_type').notNull().default('flat'), // flat, percent
   discountValue: real('discount_value').notNull().default(0),
@@ -163,7 +164,7 @@ export const stockLedger = sqliteTable('stock_ledger', {
     .notNull()
     .references(() => products.id),
   type: text('type').notNull(), // sale, purchase, adjustment, return, opening, damage
-  qty: integer('qty').notNull(), // positive for in, negative for out
+  qty: real('qty').notNull(), // positive for in, negative for out
   referenceType: text('reference_type'), // bill, purchase, manual
   referenceId: integer('reference_id'),
   notes: text('notes'),
@@ -270,7 +271,7 @@ export const estimateItems = sqliteTable('estimate_items', {
   productId: integer('product_id'),
   productName: text('product_name').notNull(),
   hsnCode: text('hsn_code').notNull().default(''),
-  qty: integer('qty').notNull().default(1),
+  qty: real('qty').notNull().default(1),
   rate: real('rate').notNull().default(0),
   discountValue: real('discount_value').notNull().default(0),
   amount: real('amount').notNull().default(0)
@@ -305,8 +306,8 @@ export const billReturnItems = sqliteTable('bill_return_items', {
   billItemId: integer('bill_item_id').notNull(),
   productId: integer('product_id'),
   productName: text('product_name').notNull(),
-  originalQty: integer('original_qty').notNull().default(0),
-  returnQty: integer('return_qty').notNull().default(0),
+  originalQty: real('original_qty').notNull().default(0),
+  returnQty: real('return_qty').notNull().default(0),
   rate: real('rate').notNull().default(0),
   gstRate: real('gst_rate').notNull().default(0),
   refundAmount: real('refund_amount').notNull().default(0)
@@ -323,7 +324,7 @@ export const purchases = sqliteTable('purchases', {
   invoiceNo: text('invoice_no'),
   invoiceDate: text('invoice_date'),
   totalItems: integer('total_items').notNull().default(0),
-  totalQty: integer('total_qty').notNull().default(0),
+  totalQty: real('total_qty').notNull().default(0),
   subtotal: real('subtotal').notNull().default(0),
   gstAmount: real('gst_amount').notNull().default(0),
   discountAmount: real('discount_amount').notNull().default(0),
@@ -348,7 +349,7 @@ export const purchaseItems = sqliteTable('purchase_items', {
   productName: text('product_name').notNull(),
   barcode: text('barcode'),
   hsnCode: text('hsn_code'),
-  qty: integer('qty').notNull().default(1),
+  qty: real('qty').notNull().default(1),
   purchaseRate: real('purchase_rate').notNull().default(0),
   sellingRate: real('selling_rate').notNull().default(0),
   mrp: real('mrp').notNull().default(0),

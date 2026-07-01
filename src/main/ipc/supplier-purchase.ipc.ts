@@ -90,7 +90,7 @@ export function registerSupplierPurchaseIpc(): void {
       newValue: { purchaseNo: result.purchaseNo, grandTotal: result.grandTotal }
     })
 
-    const productIds = validated.items
+    const productIds = (result.items ?? [])
       .map((item) => item.productId)
       .filter((id): id is number => typeof id === 'number')
     BrowserWindow.getAllWindows().forEach((win) => {

@@ -59,7 +59,7 @@ export const productFormSchema = z.object({
   priceIncludesGst: z.boolean().optional(),
   stock: z.number().min(0),
   unit: z.string().max(20).optional().nullable(),
-  lowStockThreshold: z.number().int().min(0).optional().nullable(),
+  lowStockThreshold: z.number().min(0).optional().nullable(),
   location: z.string().max(100).optional().nullable(),
   color: z.string().max(50).optional().nullable(),
   size: z.string().max(50).optional().nullable(),
@@ -123,7 +123,7 @@ const billItemSchema = z.object({
   sku: z.string().max(50).optional(),
   hsn: z.string().max(20).optional(),
   price: z.number().min(0),
-  quantity: z.number().int().min(1),
+  quantity: z.number().positive(),
   unit: z.string().max(20).optional(),
   discount: z.number().min(0).optional().default(0),
   discountType: z.enum(['percentage', 'amount', 'flat', 'percent']).optional().default('flat'),
@@ -186,8 +186,8 @@ const returnItemSchema = z.object({
   billItemId: z.number().int().positive(),
   productId: z.number().int().positive().nullable(),
   productName: z.string().min(1).max(255),
-  originalQty: z.number().int().min(0),
-  returnQty: z.number().int().min(1),
+  originalQty: z.number().min(0),
+  returnQty: z.number().positive(),
   rate: z.number().min(0),
   gstRate: z.number().min(0).max(100),
   refundAmount: z.number().min(0)
@@ -199,7 +199,7 @@ const exchangeItemSchema = z.object({
   sku: z.string().max(50).optional(),
   hsn: z.string().max(20),
   price: z.number().min(0),
-  quantity: z.number().int().min(1),
+  quantity: z.number().positive(),
   discount: z.number().min(0),
   discountType: z.enum(['percentage', 'amount']),
   gstRate: z.number().min(0).max(100)
@@ -222,7 +222,7 @@ const purchaseItemSchema = z.object({
   productName: z.string().min(1).max(255),
   barcode: z.string().max(50).optional().nullable(),
   hsnCode: z.string().max(20).optional().nullable(),
-  qty: z.number().int().min(1),
+  qty: z.number().positive(),
   purchaseRate: z.number().min(0),
   sellingRate: z.number().min(0),
   mrp: z.number().min(0),
@@ -231,18 +231,42 @@ const purchaseItemSchema = z.object({
   amount: z.number().min(0)
 })
 
-export const purchaseCreateSchema = z.object({
-  supplierId: z.number().int().positive().optional(),
-  supplierName: z.string().max(255).optional(),
-  city: z.string().max(100).optional(),
-  invoiceNo: z.string().max(100).optional(),
-  invoiceDate: z.string().optional(),
-  paymentMode: z.string().max(20).optional(),
-  paymentStatus: z.string().max(20).optional(),
-  amountPaid: z.number().min(0).optional(),
-  notes: z.string().max(1000).optional(),
-  items: z.array(purchaseItemSchema).min(1)
-})
+export const purchaseCreateSchema = z
+  .object({
+    supplierId: z.number().int().positive().optional(),
+    supplierName: z.string().max(255).optional(),
+    city: z.string().max(100).optional(),
+    invoiceNo: z.string().max(100).optional(),
+    invoiceDate: dateSchema.optional(),
+    paymentMode: z.enum(['cash', 'upi', 'card', 'cheque']).optional(),
+    paymentStatus: z.enum(['paid', 'partial', 'unpaid']).optional(),
+    amountPaid: z.number().min(0).optional(),
+    notes: z.string().max(1000).optional(),
+    items: z.array(purchaseItemSchema).min(1)
+  })
+  .superRefine((data, ctx) => {
+    const grandTotal = data.items.reduce((sum, item) => {
+      const lineTotal = item.purchaseRate * item.qty
+      return sum + lineTotal + (lineTotal * item.gstRate) / 100
+    }, 0)
+    const amountPaid = data.amountPaid ?? 0
+
+    if (amountPaid > grandTotal) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['amountPaid'],
+        message: 'Amount paid cannot exceed purchase total'
+      })
+    }
+
+    if (data.paymentStatus === 'unpaid' && amountPaid > 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['amountPaid'],
+        message: 'Unpaid purchases cannot have an amount paid'
+      })
+    }
+  })
 
 export const purchaseFiltersSchema = z
   .object({

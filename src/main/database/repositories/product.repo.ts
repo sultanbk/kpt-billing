@@ -180,8 +180,8 @@ export class ProductRepository {
       .prepare(
         `INSERT INTO products (name, short_name, sku, barcode, category_id, sub_category, brand,
          hsn_code, purchase_price, mrp, selling_price, wholesale_price, gst_rate, price_includes_gst,
-         opening_stock, current_stock, low_stock_alert, location, color, size, material, notes, is_active)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+         opening_stock, current_stock, low_stock_alert, unit, location, color, size, material, notes, is_active)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         data.name,
@@ -191,7 +191,7 @@ export class ProductRepository {
         categoryId,
         data.subCategory || null,
         data.brand || null,
-        data.hsnCode,
+        data.hsnCode || '5007',
         data.costPrice,
         data.mrp ?? 0,
         data.sellingPrice,
@@ -201,6 +201,7 @@ export class ProductRepository {
         data.stock,
         data.stock, // currentStock = stock initially
         data.lowStockThreshold || null,
+        data.unit || 'pcs',
         data.location || null,
         data.color || null,
         data.size || null,
@@ -317,6 +318,10 @@ export class ProductRepository {
       if (data.lowStockThreshold !== undefined) {
         fields.push('low_stock_alert = ?')
         values.push(data.lowStockThreshold ?? null)
+      }
+      if (data.unit !== undefined) {
+        fields.push('unit = ?')
+        values.push(data.unit || 'pcs')
       }
       if (data.location !== undefined) {
         fields.push('location = ?')

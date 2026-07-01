@@ -41,14 +41,7 @@ export function SecurityTab(): React.JSX.Element {
   }
 
   // PIN strength indicator
-  const pinStrength =
-    newPin.length === 0
-      ? 0
-      : newPin.length < 4
-        ? 1
-        : newPin.length < 6
-          ? 2
-          : 3
+  const pinStrength = newPin.length === 0 ? 0 : newPin.length < 4 ? 1 : newPin.length < 6 ? 2 : 3
   const strengthLabels = ['', 'Weak', 'Good', 'Strong']
   const strengthColors = ['', 'bg-red-500', 'bg-amber-500', 'bg-emerald-500']
 

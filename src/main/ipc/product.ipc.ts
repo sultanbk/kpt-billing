@@ -228,7 +228,7 @@ export function registerProductIpc(): void {
 
   safeHandle('products:adjustStock', (_event, productId, quantity, type, notes?) => {
     const validId = validate(idSchema, productId)
-    const validQty = validate(z.number().int(), quantity)
+    const validQty = validate(z.number(), quantity)
     const validType = validate(stockAdjustTypeSchema, type)
     const validNotes = notes ? validate(z.string().max(500), notes) : undefined
     const result = productRepo.adjustStock(validId, validQty, validType, validNotes)

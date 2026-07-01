@@ -128,11 +128,21 @@ export function PrintersTab({
             <Printer className="h-4 w-4" />
             {printing ? 'Printing...' : 'Test Receipt'}
           </Button>
-          <Button variant="outline" onClick={testLabel} disabled={printingLabel} className="rounded-xl">
+          <Button
+            variant="outline"
+            onClick={testLabel}
+            disabled={printingLabel}
+            className="rounded-xl"
+          >
             <Tag className="h-4 w-4" />
             {printingLabel ? 'Printing...' : 'Test Label'}
           </Button>
-          <Button variant="outline" onClick={runDiagnostics} disabled={checking} className="rounded-xl">
+          <Button
+            variant="outline"
+            onClick={runDiagnostics}
+            disabled={checking}
+            className="rounded-xl"
+          >
             <Activity className="h-4 w-4" />
             {checking ? 'Checking...' : 'Run Diagnostics'}
           </Button>
@@ -140,10 +150,7 @@ export function PrintersTab({
       </SettingsSection>
 
       {diagnostics && (
-        <SettingsSection
-          title="Diagnostics Result"
-          icon={<Activity className="h-4 w-4" />}
-        >
+        <SettingsSection title="Diagnostics Result" icon={<Activity className="h-4 w-4" />}>
           <div className="grid gap-3 md:grid-cols-2">
             <StatusCard label="Printer selected" ok={diagnostics.checks.printerSelected} />
             <StatusCard label="Exists in Windows" ok={diagnostics.checks.selectedExistsInSystem} />
@@ -195,9 +202,7 @@ function StatusCard({ label, ok }: { label: string; ok: boolean }): React.JSX.El
   return (
     <div
       className={`flex items-center justify-between rounded-xl border p-4 text-sm transition-colors ${
-        ok
-          ? 'border-emerald-500/20 bg-emerald-500/5'
-          : 'border-destructive/20 bg-destructive/5'
+        ok ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-destructive/20 bg-destructive/5'
       }`}
     >
       <span className="flex items-center gap-2">

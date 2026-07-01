@@ -8,6 +8,7 @@ export interface PurchaseItemRepository {
     qty: number
     purchaseRate: number
     sellingRate: number
+    mrp: number
   }[]
   deletePurchaseItems: (id: number) => void
 }
@@ -40,24 +41,27 @@ export class SqlitePurchaseItemRepository implements PurchaseItemRepository {
     qty: number
     purchaseRate: number
     sellingRate: number
+    mrp: number
   }[] {
     const db = getSqlite()
     const rows = db
       .prepare(
-        'SELECT product_id, qty, purchase_rate, selling_rate FROM purchase_items WHERE purchase_id = ?'
+        'SELECT product_id, qty, purchase_rate, selling_rate, mrp FROM purchase_items WHERE purchase_id = ?'
       )
       .all(id) as {
       product_id: number
       qty: number
       purchase_rate: number
       selling_rate: number
+      mrp: number
     }[]
 
     return rows.map((row) => ({
       productId: row.product_id,
       qty: row.qty,
       purchaseRate: row.purchase_rate,
-      sellingRate: row.selling_rate
+      sellingRate: row.selling_rate,
+      mrp: row.mrp
     }))
   }
 

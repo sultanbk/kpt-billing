@@ -65,11 +65,7 @@ function featureRows(features: FeatureFlags | null): string[] {
     })
 }
 
-function StatusIcon({
-  status
-}: {
-  status: string | undefined
-}): React.JSX.Element {
+function StatusIcon({ status }: { status: string | undefined }): React.JSX.Element {
   switch (status) {
     case 'active':
       return <CheckCircle2 className="h-5 w-5 text-emerald-500" />
@@ -149,9 +145,7 @@ export function SubscriptionTab(): React.JSX.Element {
                 <div className="mt-1 text-3xl font-bold tracking-tight">{planLabel}</div>
                 {days !== null && isActivated && (
                   <p className="mt-1.5 text-sm text-muted-foreground">
-                    {days > 0
-                      ? `${days} days remaining`
-                      : 'Renewal needed'}
+                    {days > 0 ? `${days} days remaining` : 'Renewal needed'}
                   </p>
                 )}
               </div>
@@ -165,9 +159,7 @@ export function SubscriptionTab(): React.JSX.Element {
                 {formatStatus(licenseState?.status)}
               </Badge>
               {licenseState?.shopName && (
-                <span className="text-xs text-muted-foreground">
-                  {licenseState.shopName}
-                </span>
+                <span className="text-xs text-muted-foreground">{licenseState.shopName}</span>
               )}
             </div>
           </div>
@@ -242,24 +234,13 @@ export function SubscriptionTab(): React.JSX.Element {
           {/* Quick Actions */}
           {isActivated && (
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              <Button
-                asChild
-                className="h-11 bg-green-600 hover:bg-green-700 rounded-xl shadow-sm"
-              >
-                <a
-                  href={getWhatsAppUpgradeUrl(planLabel)}
-                  target="_blank"
-                  rel="noreferrer"
-                >
+              <Button asChild className="h-11 bg-green-600 hover:bg-green-700 rounded-xl shadow-sm">
+                <a href={getWhatsAppUpgradeUrl(planLabel)} target="_blank" rel="noreferrer">
                   <MessageCircle className="h-4 w-4" />
                   WhatsApp Support
                 </a>
               </Button>
-              <Button
-                asChild
-                variant="outline"
-                className="h-11 rounded-xl"
-              >
+              <Button asChild variant="outline" className="h-11 rounded-xl">
                 <a href={SARVA_ONE_WEBSITE} target="_blank" rel="noreferrer">
                   <ShieldCheck className="h-4 w-4" />
                   Sarva One Website

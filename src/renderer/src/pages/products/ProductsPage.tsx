@@ -612,9 +612,10 @@ export default function ProductsPage(): React.JSX.Element {
               <Label>Quantity</Label>
               <Input
                 type="number"
-                min={1}
+                min={0.001}
+                step="any"
                 value={adjustQty || ''}
-                onChange={(e) => setAdjustQty(parseInt(e.target.value) || 0)}
+                onChange={(e) => setAdjustQty(parseFloat(e.target.value) || 0)}
                 placeholder={adjustType === 'damage' ? 'Qty to remove' : 'Qty to add'}
               />
               {adjustType === 'damage' && adjustQty > 0 && (

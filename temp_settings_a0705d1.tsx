@@ -641,9 +641,9 @@ export default function SettingsPage(): React.JSX.Element {
     // Confirmation
     const confirmed = window.confirm(
       'WARNING: Restoring from a backup will REPLACE all current data with the backup data.\n\n' +
-      'A safety backup of your current data will be created automatically before restoring.\n\n' +
-      'The app will reload after restoration.\n\n' +
-      'Are you sure you want to continue?'
+        'A safety backup of your current data will be created automatically before restoring.\n\n' +
+        'The app will reload after restoration.\n\n' +
+        'Are you sure you want to continue?'
     )
     if (!confirmed) return
 
@@ -734,10 +734,11 @@ export default function SettingsPage(): React.JSX.Element {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-all duration-150 ${activeTab === tab.id
+              className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-all duration-150 ${
+                activeTab === tab.id
                   ? 'bg-primary/10 text-primary shadow-sm'
                   : 'text-muted-foreground hover:bg-accent/70 hover:text-foreground'
-                }`}
+              }`}
             >
               <tab.icon
                 className={`h-4 w-4 shrink-0 ${activeTab === tab.id ? 'text-primary' : ''}`}
@@ -1267,12 +1268,13 @@ export default function SettingsPage(): React.JSX.Element {
                                     )
                                   }
                                 }}
-                                className={`flex items-center justify-between p-3 rounded-lg border-2 cursor-pointer transition-all ${settings.barcodeShowSaleName === 'true'
+                                className={`flex items-center justify-between p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                                  settings.barcodeShowSaleName === 'true'
                                     ? 'border-border opacity-50 cursor-not-allowed bg-muted/10'
                                     : (settings.barcodeShowShopName ?? 'true') === 'true'
                                       ? 'border-primary bg-primary/5 shadow-sm'
                                       : 'border-border bg-transparent hover:bg-accent/30'
-                                  }`}
+                                }`}
                               >
                                 <div className="space-y-0.5 select-none">
                                   <div className="text-xs font-bold">Shop Name</div>
@@ -1281,19 +1283,21 @@ export default function SettingsPage(): React.JSX.Element {
                                   </div>
                                 </div>
                                 <div
-                                  className={`w-8 h-4 rounded-full p-0.5 transition-colors duration-200 flex items-center ${settings.barcodeShowSaleName === 'true'
+                                  className={`w-8 h-4 rounded-full p-0.5 transition-colors duration-200 flex items-center ${
+                                    settings.barcodeShowSaleName === 'true'
                                       ? 'bg-muted-foreground/20'
                                       : (settings.barcodeShowShopName ?? 'true') === 'true'
                                         ? 'bg-primary'
                                         : 'bg-muted-foreground/30'
-                                    }`}
+                                  }`}
                                 >
                                   <div
-                                    className={`w-3 h-3 rounded-full bg-white shadow transition-transform duration-200 ${settings.barcodeShowSaleName !== 'true' &&
-                                        (settings.barcodeShowShopName ?? 'true') === 'true'
+                                    className={`w-3 h-3 rounded-full bg-white shadow transition-transform duration-200 ${
+                                      settings.barcodeShowSaleName !== 'true' &&
+                                      (settings.barcodeShowShopName ?? 'true') === 'true'
                                         ? 'translate-x-4'
                                         : 'translate-x-0'
-                                      }`}
+                                    }`}
                                   />
                                 </div>
                               </div>
@@ -1308,10 +1312,11 @@ export default function SettingsPage(): React.JSX.Element {
                                       : 'true'
                                   )
                                 }
-                                className={`flex items-center justify-between p-3 rounded-lg border-2 cursor-pointer transition-all ${(settings.barcodeShowName ?? 'true') === 'true'
+                                className={`flex items-center justify-between p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                                  (settings.barcodeShowName ?? 'true') === 'true'
                                     ? 'border-primary bg-primary/5 shadow-sm'
                                     : 'border-border bg-transparent hover:bg-accent/30'
-                                  }`}
+                                }`}
                               >
                                 <div className="space-y-0.5 select-none">
                                   <div className="text-xs font-bold">Product Name</div>
@@ -1320,16 +1325,18 @@ export default function SettingsPage(): React.JSX.Element {
                                   </div>
                                 </div>
                                 <div
-                                  className={`w-8 h-4 rounded-full p-0.5 transition-colors duration-200 flex items-center ${(settings.barcodeShowName ?? 'true') === 'true'
+                                  className={`w-8 h-4 rounded-full p-0.5 transition-colors duration-200 flex items-center ${
+                                    (settings.barcodeShowName ?? 'true') === 'true'
                                       ? 'bg-primary'
                                       : 'bg-muted-foreground/30'
-                                    }`}
+                                  }`}
                                 >
                                   <div
-                                    className={`w-3 h-3 rounded-full bg-white shadow transition-transform duration-200 ${(settings.barcodeShowName ?? 'true') === 'true'
+                                    className={`w-3 h-3 rounded-full bg-white shadow transition-transform duration-200 ${
+                                      (settings.barcodeShowName ?? 'true') === 'true'
                                         ? 'translate-x-4'
                                         : 'translate-x-0'
-                                      }`}
+                                    }`}
                                   />
                                 </div>
                               </div>
@@ -1344,10 +1351,11 @@ export default function SettingsPage(): React.JSX.Element {
                                       : 'true'
                                   )
                                 }
-                                className={`flex items-center justify-between p-3 rounded-lg border-2 cursor-pointer transition-all ${(settings.barcodeShowMrp ?? 'true') === 'true'
+                                className={`flex items-center justify-between p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                                  (settings.barcodeShowMrp ?? 'true') === 'true'
                                     ? 'border-primary bg-primary/5 shadow-sm'
                                     : 'border-border bg-transparent hover:bg-accent/30'
-                                  }`}
+                                }`}
                               >
                                 <div className="space-y-0.5 select-none">
                                   <div className="text-xs font-bold">Show MRP</div>
@@ -1356,16 +1364,18 @@ export default function SettingsPage(): React.JSX.Element {
                                   </div>
                                 </div>
                                 <div
-                                  className={`w-8 h-4 rounded-full p-0.5 transition-colors duration-200 flex items-center ${(settings.barcodeShowMrp ?? 'true') === 'true'
+                                  className={`w-8 h-4 rounded-full p-0.5 transition-colors duration-200 flex items-center ${
+                                    (settings.barcodeShowMrp ?? 'true') === 'true'
                                       ? 'bg-primary'
                                       : 'bg-muted-foreground/30'
-                                    }`}
+                                  }`}
                                 >
                                   <div
-                                    className={`w-3 h-3 rounded-full bg-white shadow transition-transform duration-200 ${(settings.barcodeShowMrp ?? 'true') === 'true'
+                                    className={`w-3 h-3 rounded-full bg-white shadow transition-transform duration-200 ${
+                                      (settings.barcodeShowMrp ?? 'true') === 'true'
                                         ? 'translate-x-4'
                                         : 'translate-x-0'
-                                      }`}
+                                    }`}
                                   />
                                 </div>
                               </div>
@@ -1380,10 +1390,11 @@ export default function SettingsPage(): React.JSX.Element {
                                       : 'true'
                                   )
                                 }
-                                className={`flex items-center justify-between p-3 rounded-lg border-2 cursor-pointer transition-all ${(settings.barcodeShowSellingPrice ?? 'true') === 'true'
+                                className={`flex items-center justify-between p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                                  (settings.barcodeShowSellingPrice ?? 'true') === 'true'
                                     ? 'border-primary bg-primary/5 shadow-sm'
                                     : 'border-border bg-transparent hover:bg-accent/30'
-                                  }`}
+                                }`}
                               >
                                 <div className="space-y-0.5 select-none">
                                   <div className="text-xs font-bold">Selling Price</div>
@@ -1392,16 +1403,18 @@ export default function SettingsPage(): React.JSX.Element {
                                   </div>
                                 </div>
                                 <div
-                                  className={`w-8 h-4 rounded-full p-0.5 transition-colors duration-200 flex items-center ${(settings.barcodeShowSellingPrice ?? 'true') === 'true'
+                                  className={`w-8 h-4 rounded-full p-0.5 transition-colors duration-200 flex items-center ${
+                                    (settings.barcodeShowSellingPrice ?? 'true') === 'true'
                                       ? 'bg-primary'
                                       : 'bg-muted-foreground/30'
-                                    }`}
+                                  }`}
                                 >
                                   <div
-                                    className={`w-3 h-3 rounded-full bg-white shadow transition-transform duration-200 ${(settings.barcodeShowSellingPrice ?? 'true') === 'true'
+                                    className={`w-3 h-3 rounded-full bg-white shadow transition-transform duration-200 ${
+                                      (settings.barcodeShowSellingPrice ?? 'true') === 'true'
                                         ? 'translate-x-4'
                                         : 'translate-x-0'
-                                      }`}
+                                    }`}
                                   />
                                 </div>
                               </div>
@@ -1418,12 +1431,13 @@ export default function SettingsPage(): React.JSX.Element {
                                     )
                                   }
                                 }}
-                                className={`flex items-center justify-between p-3 rounded-lg border-2 cursor-pointer transition-all ${(settings.barcodeShowMrp ?? 'true') !== 'true'
+                                className={`flex items-center justify-between p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                                  (settings.barcodeShowMrp ?? 'true') !== 'true'
                                     ? 'border-border opacity-50 cursor-not-allowed bg-muted/10'
                                     : (settings.barcodeStrikeMrp ?? 'true') === 'true'
                                       ? 'border-primary bg-primary/5 shadow-sm'
                                       : 'border-border bg-transparent hover:bg-accent/30'
-                                  }`}
+                                }`}
                               >
                                 <div className="space-y-0.5 select-none">
                                   <div className="text-xs font-bold">Strike MRP</div>
@@ -1432,19 +1446,21 @@ export default function SettingsPage(): React.JSX.Element {
                                   </div>
                                 </div>
                                 <div
-                                  className={`w-8 h-4 rounded-full p-0.5 transition-colors duration-200 flex items-center ${(settings.barcodeShowMrp ?? 'true') !== 'true'
+                                  className={`w-8 h-4 rounded-full p-0.5 transition-colors duration-200 flex items-center ${
+                                    (settings.barcodeShowMrp ?? 'true') !== 'true'
                                       ? 'bg-muted-foreground/20'
                                       : (settings.barcodeStrikeMrp ?? 'true') === 'true'
                                         ? 'bg-primary'
                                         : 'bg-muted-foreground/30'
-                                    }`}
+                                  }`}
                                 >
                                   <div
-                                    className={`w-3 h-3 rounded-full bg-white shadow transition-transform duration-200 ${(settings.barcodeShowMrp ?? 'true') === 'true' &&
-                                        (settings.barcodeStrikeMrp ?? 'true') === 'true'
+                                    className={`w-3 h-3 rounded-full bg-white shadow transition-transform duration-200 ${
+                                      (settings.barcodeShowMrp ?? 'true') === 'true' &&
+                                      (settings.barcodeStrikeMrp ?? 'true') === 'true'
                                         ? 'translate-x-4'
                                         : 'translate-x-0'
-                                      }`}
+                                    }`}
                                   />
                                 </div>
                               </div>
@@ -1459,10 +1475,11 @@ export default function SettingsPage(): React.JSX.Element {
                                       : 'true'
                                   )
                                 }
-                                className={`flex items-center justify-between p-3 rounded-lg border-2 cursor-pointer transition-all ${(settings.barcodeShowDiscount ?? 'true') === 'true'
+                                className={`flex items-center justify-between p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                                  (settings.barcodeShowDiscount ?? 'true') === 'true'
                                     ? 'border-primary bg-primary/5 shadow-sm'
                                     : 'border-border bg-transparent hover:bg-accent/30'
-                                  }`}
+                                }`}
                               >
                                 <div className="space-y-0.5 select-none">
                                   <div className="text-xs font-bold">Show Discount</div>
@@ -1471,16 +1488,18 @@ export default function SettingsPage(): React.JSX.Element {
                                   </div>
                                 </div>
                                 <div
-                                  className={`w-8 h-4 rounded-full p-0.5 transition-colors duration-200 flex items-center ${(settings.barcodeShowDiscount ?? 'true') === 'true'
+                                  className={`w-8 h-4 rounded-full p-0.5 transition-colors duration-200 flex items-center ${
+                                    (settings.barcodeShowDiscount ?? 'true') === 'true'
                                       ? 'bg-primary'
                                       : 'bg-muted-foreground/30'
-                                    }`}
+                                  }`}
                                 >
                                   <div
-                                    className={`w-3 h-3 rounded-full bg-white shadow transition-transform duration-200 ${(settings.barcodeShowDiscount ?? 'true') === 'true'
+                                    className={`w-3 h-3 rounded-full bg-white shadow transition-transform duration-200 ${
+                                      (settings.barcodeShowDiscount ?? 'true') === 'true'
                                         ? 'translate-x-4'
                                         : 'translate-x-0'
-                                      }`}
+                                    }`}
                                   />
                                 </div>
                               </div>
@@ -1498,10 +1517,11 @@ export default function SettingsPage(): React.JSX.Element {
                                 className="flex items-center gap-2.5 cursor-pointer select-none"
                               >
                                 <div
-                                  className={`w-4 h-4 rounded flex items-center justify-center border ${settings.barcodeShowSaleName === 'true'
+                                  className={`w-4 h-4 rounded flex items-center justify-center border ${
+                                    settings.barcodeShowSaleName === 'true'
                                       ? 'bg-primary border-primary text-white'
                                       : 'border-input bg-transparent'
-                                    }`}
+                                  }`}
                                 >
                                   {settings.barcodeShowSaleName === 'true' && (
                                     <span className="text-[10px]">âœ“</span>
@@ -1637,24 +1657,24 @@ export default function SettingsPage(): React.JSX.Element {
                             {/* Reset Dimensions */}
                             {(settings.barcodeWidth !== '75' ||
                               settings.barcodeHeight !==
-                              (settings.barcodeLabelSize === '60x40' ? '12.0' : '5.5')) && (
-                                <Button
-                                  variant="ghost"
-                                  type="button"
-                                  size="sm"
-                                  onClick={() => {
-                                    updateSetting('barcodeWidth', '75')
-                                    updateSetting(
-                                      'barcodeHeight',
-                                      settings.barcodeLabelSize === '60x40' ? '12.0' : '5.5'
-                                    )
-                                  }}
-                                  className="h-7 text-[11px] text-muted-foreground hover:text-foreground hover:bg-accent px-2 py-0 mt-1 gap-1"
-                                >
-                                  <RotateCcw className="h-3 w-3" />
-                                  Reset Dimensions
-                                </Button>
-                              )}
+                                (settings.barcodeLabelSize === '60x40' ? '12.0' : '5.5')) && (
+                              <Button
+                                variant="ghost"
+                                type="button"
+                                size="sm"
+                                onClick={() => {
+                                  updateSetting('barcodeWidth', '75')
+                                  updateSetting(
+                                    'barcodeHeight',
+                                    settings.barcodeLabelSize === '60x40' ? '12.0' : '5.5'
+                                  )
+                                }}
+                                className="h-7 text-[11px] text-muted-foreground hover:text-foreground hover:bg-accent px-2 py-0 mt-1 gap-1"
+                              >
+                                <RotateCcw className="h-3 w-3" />
+                                Reset Dimensions
+                              </Button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1701,10 +1721,11 @@ export default function SettingsPage(): React.JSX.Element {
                                 className="flex items-center gap-2.5 cursor-pointer select-none"
                               >
                                 <div
-                                  className={`w-4 h-4 rounded flex items-center justify-center border ${(settings.barcodeShowCode ?? 'true') === 'true'
+                                  className={`w-4 h-4 rounded flex items-center justify-center border ${
+                                    (settings.barcodeShowCode ?? 'true') === 'true'
                                       ? 'bg-primary border-primary text-white'
                                       : 'border-input bg-transparent'
-                                    }`}
+                                  }`}
                                 >
                                   {(settings.barcodeShowCode ?? 'true') === 'true' && (
                                     <span className="text-[10px]">✓</span>
@@ -1912,7 +1933,7 @@ export default function SettingsPage(): React.JSX.Element {
                                   <Label>Horiz. Padding (X)</Label>
                                   <span className="font-mono font-bold text-primary text-[10px]">
                                     {settings.barcodePaddingX === 'default' ||
-                                      !settings.barcodePaddingX
+                                    !settings.barcodePaddingX
                                       ? 'Default'
                                       : `${settings.barcodePaddingX} mm`}
                                   </span>
@@ -1924,7 +1945,7 @@ export default function SettingsPage(): React.JSX.Element {
                                   step="0.5"
                                   value={
                                     settings.barcodePaddingX === 'default' ||
-                                      !settings.barcodePaddingX
+                                    !settings.barcodePaddingX
                                       ? 0
                                       : parseFloat(settings.barcodePaddingX)
                                   }
@@ -1944,7 +1965,7 @@ export default function SettingsPage(): React.JSX.Element {
                                   <Label>Vert. Padding (Y)</Label>
                                   <span className="font-mono font-bold text-primary text-[10px]">
                                     {settings.barcodePaddingY === 'default' ||
-                                      !settings.barcodePaddingY
+                                    !settings.barcodePaddingY
                                       ? 'Default'
                                       : `${settings.barcodePaddingY} mm`}
                                   </span>
@@ -1956,7 +1977,7 @@ export default function SettingsPage(): React.JSX.Element {
                                   step="0.5"
                                   value={
                                     settings.barcodePaddingY === 'default' ||
-                                      !settings.barcodePaddingY
+                                    !settings.barcodePaddingY
                                       ? 0
                                       : parseFloat(settings.barcodePaddingY)
                                   }
@@ -2124,20 +2145,20 @@ export default function SettingsPage(): React.JSX.Element {
                             {/* Reset Calibration */}
                             {(settings.barcodeNudgeX !== '0.0' ||
                               settings.barcodeNudgeY !== '0.0') && (
-                                <Button
-                                  variant="ghost"
-                                  type="button"
-                                  size="sm"
-                                  onClick={() => {
-                                    updateSetting('barcodeNudgeX', '0.0')
-                                    updateSetting('barcodeNudgeY', '0.0')
-                                  }}
-                                  className="h-7 text-[11px] text-muted-foreground hover:text-foreground hover:bg-accent px-2 py-0 mt-1 gap-1"
-                                >
-                                  <RotateCcw className="h-3 w-3" />
-                                  Reset Calibration
-                                </Button>
-                              )}
+                              <Button
+                                variant="ghost"
+                                type="button"
+                                size="sm"
+                                onClick={() => {
+                                  updateSetting('barcodeNudgeX', '0.0')
+                                  updateSetting('barcodeNudgeY', '0.0')
+                                }}
+                                className="h-7 text-[11px] text-muted-foreground hover:text-foreground hover:bg-accent px-2 py-0 mt-1 gap-1"
+                              >
+                                <RotateCcw className="h-3 w-3" />
+                                Reset Calibration
+                              </Button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -2208,28 +2229,28 @@ export default function SettingsPage(): React.JSX.Element {
                               : '14.5px'
                         const priceRowFontSize =
                           settings.barcodePriceFontSize &&
-                            settings.barcodePriceFontSize !== 'default'
+                          settings.barcodePriceFontSize !== 'default'
                             ? `${parseFloat(settings.barcodePriceFontSize) * 1.3 * fontScale}px`
                             : isLargeLabel
                               ? '14px'
                               : '12px'
                         const mrpFontSize =
                           settings.barcodePriceFontSize &&
-                            settings.barcodePriceFontSize !== 'default'
+                          settings.barcodePriceFontSize !== 'default'
                             ? `${parseFloat(settings.barcodePriceFontSize) * 1.3 * fontScale * 0.85}px`
                             : isLargeLabel
                               ? '13px'
                               : '11px'
                         const spFontSize =
                           settings.barcodePriceFontSize &&
-                            settings.barcodePriceFontSize !== 'default'
+                          settings.barcodePriceFontSize !== 'default'
                             ? `${parseFloat(settings.barcodePriceFontSize) * 1.3 * fontScale * 1.15}px`
                             : isLargeLabel
                               ? '17px'
                               : '14.5px'
                         const discountFontSize =
                           settings.barcodePriceFontSize &&
-                            settings.barcodePriceFontSize !== 'default'
+                          settings.barcodePriceFontSize !== 'default'
                             ? `${parseFloat(settings.barcodePriceFontSize) * 1.3 * fontScale * 0.85}px`
                             : isLargeLabel
                               ? '13px'
@@ -2261,7 +2282,7 @@ export default function SettingsPage(): React.JSX.Element {
                               >
                                 {/* 1. Header (Shop Name or Sale Name) */}
                                 {settings.barcodeShowSaleName === 'true' ||
-                                  (settings.barcodeShowShopName ?? 'true') === 'true' ? (
+                                (settings.barcodeShowShopName ?? 'true') === 'true' ? (
                                   <div
                                     className="font-black uppercase tracking-wider truncate max-w-full"
                                     style={{
@@ -2308,10 +2329,11 @@ export default function SettingsPage(): React.JSX.Element {
                                 >
                                   {(settings.barcodeShowMrp ?? 'true') === 'true' && (
                                     <span
-                                      className={`relative inline-flex items-center text-black ${(settings.barcodeStrikeMrp ?? 'true') === 'true'
+                                      className={`relative inline-flex items-center text-black ${
+                                        (settings.barcodeStrikeMrp ?? 'true') === 'true'
                                           ? 'font-semibold'
                                           : 'font-bold'
-                                        }`}
+                                      }`}
                                       style={{ fontSize: mrpFontSize }}
                                     >
                                       <span>â‚¹2000.00</span>
@@ -2442,11 +2464,12 @@ export default function SettingsPage(): React.JSX.Element {
                                   'Exchange Policy: Goods can be exchanged\nwithin 7 days if accompanied by bill.\nThank You! Come Again.'
                                 )
                               }}
-                              className={`py-2 text-xs font-semibold rounded-lg transition-all duration-200 ${settings.receiptFooterType !== 'custom' &&
-                                  settings.receiptFooterType !== 'none'
+                              className={`py-2 text-xs font-semibold rounded-lg transition-all duration-200 ${
+                                settings.receiptFooterType !== 'custom' &&
+                                settings.receiptFooterType !== 'none'
                                   ? 'bg-background text-foreground shadow-sm'
                                   : 'text-muted-foreground hover:text-foreground hover:bg-background/30'
-                                }`}
+                              }`}
                             >
                               Standard Policy
                             </button>
@@ -2461,10 +2484,11 @@ export default function SettingsPage(): React.JSX.Element {
                                   updateSetting('receiptFooter', '')
                                 }
                               }}
-                              className={`py-2 text-xs font-semibold rounded-lg transition-all duration-200 ${settings.receiptFooterType === 'custom'
+                              className={`py-2 text-xs font-semibold rounded-lg transition-all duration-200 ${
+                                settings.receiptFooterType === 'custom'
                                   ? 'bg-background text-foreground shadow-sm'
                                   : 'text-muted-foreground hover:text-foreground hover:bg-background/30'
-                                }`}
+                              }`}
                             >
                               Custom Text
                             </button>
@@ -2474,10 +2498,11 @@ export default function SettingsPage(): React.JSX.Element {
                                 updateSetting('receiptFooterType', 'none')
                                 updateSetting('receiptFooter', '')
                               }}
-                              className={`py-2 text-xs font-semibold rounded-lg transition-all duration-200 ${settings.receiptFooterType === 'none'
+                              className={`py-2 text-xs font-semibold rounded-lg transition-all duration-200 ${
+                                settings.receiptFooterType === 'none'
                                   ? 'bg-background text-foreground shadow-sm'
                                   : 'text-muted-foreground hover:text-foreground hover:bg-background/30'
-                                }`}
+                              }`}
                             >
                               No Footer
                             </button>
